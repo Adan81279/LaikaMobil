@@ -57,9 +57,11 @@ export const LoginScreen = () => {
     }
   };
 
-  const handleQuickLogin = async (role: 'admin' | 'gestor') => {
+  const handleQuickLogin = async (role: 'admin' | 'gestor' | 'operador') => {
     setLoading(true);
-    const quickEmail = role === 'admin' ? 'admin@laikaclub.com' : 'jimena@laikaclub.com';
+    let quickEmail = 'admin@laikaclub.com';
+    if (role === 'gestor') quickEmail = 'jimena@laikaclub.com';
+    if (role === 'operador') quickEmail = 'operador@laikaclub.com';
     const quickPass = 'password123'; // Standard mock password
 
     setEmail(quickEmail);
@@ -138,7 +140,7 @@ export const LoginScreen = () => {
                 style={[styles.quickBtn, { borderColor: COLORS.primary }]}
                 onPress={() => handleQuickLogin('admin')}
               >
-                <Ionicons name="shield-checkmark" size={16} color={COLORS.primary} />
+                <Ionicons name="shield-checkmark" size={14} color={COLORS.primary} />
                 <Text style={[styles.quickBtnText, { color: COLORS.primary }]}>Admin Role</Text>
               </TouchableOpacity>
 
@@ -146,8 +148,16 @@ export const LoginScreen = () => {
                 style={[styles.quickBtn, { borderColor: COLORS.secondary }]}
                 onPress={() => handleQuickLogin('gestor')}
               >
-                <Ionicons name="ribbon" size={16} color={COLORS.secondary} />
+                <Ionicons name="ribbon" size={14} color={COLORS.secondary} />
                 <Text style={[styles.quickBtnText, { color: COLORS.secondary }]}>Gestor Role</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.quickBtn, { borderColor: COLORS.success }]}
+                onPress={() => handleQuickLogin('operador')}
+              >
+                <Ionicons name="barcode-outline" size={14} color={COLORS.success} />
+                <Text style={[styles.quickBtnText, { color: COLORS.success }]}>Operador Role</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -226,7 +236,8 @@ const styles = StyleSheet.create({
   },
   quickAccessButtons: {
     flexDirection: 'row',
-    gap: SPACING.md,
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
     justifyContent: 'center',
     width: '100%',
   },
@@ -235,15 +246,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.sm,
     borderWidth: 1.5,
     borderRadius: BORDER_RADIUS.md,
     backgroundColor: COLORS.dark.surface,
     gap: SPACING.xs,
-    minWidth: 130,
+    minWidth: 100,
+    flex: 1,
   },
   quickBtnText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
 });

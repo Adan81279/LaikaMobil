@@ -38,6 +38,13 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permite que Laika Club acceda a la cámara para escanear los boletos de acceso.",
+          "barcodeScannerEnabled": true
+        }
       ]
     ],
     "experiments": {

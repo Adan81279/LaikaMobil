@@ -28,6 +28,7 @@ function RootLayoutNavigation() {
     const inAuthGroup = firstSegment === '(auth)';
     const inAdminGroup = firstSegment === '(admin)';
     const inGestorGroup = firstSegment === '(gestor)';
+    const inOperadorGroup = firstSegment === '(operador)';
 
     if (!isAuthenticated) {
       // Redirect to login if not authenticated and not in auth group
@@ -42,6 +43,8 @@ function RootLayoutNavigation() {
           router.replace('/(admin)/dashboard' as any);
         } else if (user?.role === 'gestor') {
           router.replace('/(gestor)/dashboard' as any);
+        } else if (user?.role === 'operador') {
+          router.replace('/(operador)/dashboard' as any);
         } else {
           router.replace('/(tabs)' as any);
         }
@@ -52,6 +55,8 @@ function RootLayoutNavigation() {
         Alert.alert('Acceso Restringido', 'No tiene privilegios para acceder al panel de administración.');
         if (user?.role === 'gestor') {
           router.replace('/(gestor)/dashboard' as any);
+        } else if (user?.role === 'operador') {
+          router.replace('/(operador)/dashboard' as any);
         } else {
           router.replace('/(auth)/login' as any);
         }
@@ -60,6 +65,16 @@ function RootLayoutNavigation() {
       // Authorization guard: restrict access to gestor group (allow admin as supervisor)
       if (inGestorGroup && user?.role !== 'gestor' && user?.role !== 'admin') {
         Alert.alert('Acceso Restringido', 'No tiene privilegios para acceder al panel de organización.');
+        if (user?.role === 'operador') {
+          router.replace('/(operador)/dashboard' as any);
+        } else {
+          router.replace('/(auth)/login' as any);
+        }
+      }
+
+      // Authorization guard: restrict access to operador group (allow admin/gestor as supervisor)
+      if (inOperadorGroup && user?.role !== 'operador' && user?.role !== 'admin' && user?.role !== 'gestor') {
+        Alert.alert('Acceso Restringido', 'No tiene privilegios para acceder al panel de control de puerta.');
         router.replace('/(auth)/login' as any);
       }
     }
@@ -71,6 +86,7 @@ function RootLayoutNavigation() {
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(admin)" options={{ headerShown: false }} />
         <Stack.Screen name="(gestor)" options={{ headerShown: false }} />
+        <Stack.Screen name="(operador)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
