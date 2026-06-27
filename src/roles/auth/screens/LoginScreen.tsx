@@ -49,6 +49,9 @@ export const LoginScreen = () => {
       } else if (trimmedEmail.includes('operador')) {
         Alert.alert('Modo Local (Offline)', 'Servidor no disponible. Accediendo con credenciales locales de Operador.');
         await loginMock('operador');
+      } else if (trimmedEmail.includes('cliente') || trimmedEmail.includes('usuario')) {
+        Alert.alert('Modo Local (Offline)', 'Servidor no disponible. Accediendo con credenciales locales de Usuario.');
+        await loginMock('usuario');
       } else {
         Alert.alert('Error de Conexión', 'No se pudo conectar con el servidor central: ' + (error.message || 'Request timed out'));
       }
@@ -57,11 +60,12 @@ export const LoginScreen = () => {
     }
   };
 
-  const handleQuickLogin = async (role: 'admin' | 'gestor' | 'operador') => {
+  const handleQuickLogin = async (role: 'admin' | 'gestor' | 'operador' | 'usuario') => {
     setLoading(true);
     let quickEmail = 'admin@laikaclub.com';
     if (role === 'gestor') quickEmail = 'jimena@laikaclub.com';
     if (role === 'operador') quickEmail = 'operador@laikaclub.com';
+    if (role === 'usuario') quickEmail = 'cliente@laikaclub.com';
     const quickPass = 'password123'; // Standard mock password
 
     setEmail(quickEmail);
@@ -158,6 +162,14 @@ export const LoginScreen = () => {
               >
                 <Ionicons name="barcode-outline" size={14} color={COLORS.success} />
                 <Text style={[styles.quickBtnText, { color: COLORS.success }]}>Operador Role</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.quickBtn, { borderColor: '#e2e8f0' }]}
+                onPress={() => handleQuickLogin('usuario')}
+              >
+                <Ionicons name="people-outline" size={14} color="#e2e8f0" />
+                <Text style={[styles.quickBtnText, { color: '#e2e8f0' }]}>Usuario Role</Text>
               </TouchableOpacity>
             </View>
           </View>

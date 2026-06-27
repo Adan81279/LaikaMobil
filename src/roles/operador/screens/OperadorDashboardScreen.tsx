@@ -19,12 +19,28 @@ import Card from '../../../components/Card';
 import Loader from '../../../components/Loader';
 import Button from '../../../components/Button';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useAuth } from '../../../context/AuthContext';
 
 export const OperadorDashboardScreen = () => {
   const router = useRouter();
+  const { logout } = useAuth();
   const [ticketCode, setTicketCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<OperatorStats | null>(null);
+
+  const handleLogout = async () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (e) {}
+    Alert.alert(
+      'Cerrar Sesión',
+      '¿Estás seguro de que deseas salir de la cuenta de Operador?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Cerrar Sesión', style: 'destructive', onPress: () => logout() }
+      ]
+    );
+  };
   
   // Validation Results State
   const [validationResult, setValidationResult] = useState<TicketValidationResponse | null>(null);
@@ -137,16 +153,24 @@ export const OperadorDashboardScreen = () => {
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.header}>
-          <View>
+          <View style={{ flex: 1, marginRight: SPACING.sm }}>
             <Text style={styles.title}>Control de Acceso</Text>
             <Text style={styles.subtitle}>Escaneo en puerta del recinto y registro de boletos.</Text>
           </View>
-          <TouchableOpacity 
-            style={styles.statsShortcut} 
-            onPress={() => router.push('/(operador)/stats' as any)}
-          >
-            <Ionicons name="analytics" size={20} color={COLORS.secondary} />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity 
+              style={styles.statsShortcut} 
+              onPress={() => router.push('/(operador)/stats' as any)}
+            >
+              <Ionicons name="analytics" size={20} color={COLORS.secondary} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.logoutBtnHeader} 
+              onPress={handleLogout}
+            >
+              <Ionicons name="log-out" size={20} color={COLORS.error} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Counter Stats Cards */}
@@ -390,6 +414,21 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   statsShortcut: {
+    width: 42,
+    height: 42,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.dark.surface,
+    borderColor: COLORS.dark.border,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: SPACING.xs,
+    alignItems: 'center',
+  },
+  logoutBtnHeader: {
     width: 42,
     height: 42,
     borderRadius: BORDER_RADIUS.md,

@@ -37,7 +37,7 @@ function RootLayoutNavigation() {
       }
     } else {
       // Redirect authenticated users to their dashboard if they are in the auth screen or root index
-      const isRootPath = !firstSegment || firstSegment === 'index' || firstSegment === '(tabs)';
+      const isRootPath = !firstSegment || firstSegment === 'index' || (firstSegment === '(tabs)' && segments.length === 1);
       if (inAuthGroup || isRootPath) {
         if (user?.role === 'admin') {
           router.replace('/(admin)/dashboard' as any);
