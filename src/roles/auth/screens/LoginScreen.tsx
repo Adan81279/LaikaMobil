@@ -8,7 +8,8 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
+  Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../../components/Button';
@@ -95,10 +96,11 @@ export const LoginScreen = () => {
 
           {/* Brand/Logo Section */}
           <View style={styles.logoSection}>
-            <View style={styles.logoCircle}>
-              <Ionicons name="paw" size={48} color={COLORS.secondary} />
-            </View>
-            <Text style={styles.brandName}>LAIKA CLUB</Text>
+            <Image
+              source={require('../../../../assets/images/laika_club_logo.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
             <Text style={styles.brandTagline}>Plataforma de Control de Espectáculos</Text>
           </View>
 
@@ -194,23 +196,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: SPACING.xl,
   },
-  logoCircle: {
-    width: 90,
-    height: 90,
-    borderRadius: BORDER_RADIUS.round,
-    backgroundColor: `${COLORS.secondary}15`,
-    justifyContent: 'center',
-    alignItems: 'center',
+  logoImage: {
+    width: 220,
+    height: 70,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: '#FFFFFF',
+    padding: SPACING.xs,
     marginBottom: SPACING.md,
-    borderWidth: 2,
-    borderColor: COLORS.secondary,
-    ...SHADOWS.md,
-  },
-  brandName: {
-    fontSize: 26,
-    fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textPrimary,
-    letterSpacing: 2,
   },
   brandTagline: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
