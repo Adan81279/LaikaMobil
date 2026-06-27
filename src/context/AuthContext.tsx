@@ -14,6 +14,7 @@ interface AuthContextType {
   checkPermission: (module: string, action: string) => boolean;
   hasRole: (minRole: UserRole) => boolean;
   updateBaseUrl: (url: string) => Promise<void>;
+  updateProfile: (name: string, email: string, avatar?: string, password?: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -155,6 +156,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await AsyncStorage.setItem('custom_backend_url', url);
   };
 
+  const updateProfile = useCallback(async (name: string, email: string, avatar?: string, password?: string): Promise<boolean> => {
+    try {
+      if (!user) return false;
+      const updatedUser = { ...user, name, email };
+      if (avatar) {
+        updatedUser.avatar = avatar;
+      }
+      setUser(updatedUser);
+      await AsyncStorage.setItem(APP_CONFIG.STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+      if (password) {
+        await AsyncStorage.setItem('@laika_user_password_hash', password);
+      }
+      return true;
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      return false;
+    }
+  }, [user]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -167,6 +187,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         checkPermission,
         hasRole,
         updateBaseUrl,
+        updateProfile,
       }}
     >
       {children}

@@ -6,7 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert
+  Alert,
+  Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +17,8 @@ import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../../st
 import gestorService, { GestorDashboardStats } from '../services/gestor.service';
 import Card from '../../../components/Card';
 import Loader from '../../../components/Loader';
+import EditProfileModal from '../../../components/EditProfileModal';
+import * as Haptics from 'expo-haptics';
 
 export const GestorDashboardScreen = () => {
   const { user, logout } = useAuth();
@@ -23,6 +26,7 @@ export const GestorDashboardScreen = () => {
   const [stats, setStats] = useState<GestorDashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
   const fetchStats = async () => {
     try {
@@ -93,19 +97,52 @@ export const GestorDashboardScreen = () => {
         {/* Header Block */}
         <View style={styles.header}>
           <View style={styles.profileRow}>
-            <View style={styles.avatarMock}>
-              <Ionicons name="person" size={28} color="#FFFFFF" />
-            </View>
+            <TouchableOpacity 
+              activeOpacity={0.8}
+              onPress={() => {
+                try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
+                setIsEditModalVisible(true);
+              }}
+              style={styles.avatarMock}
+            >
+              {user?.avatar ? (
+                <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+              ) : (
+                <Ionicons name="person" size={28} color="#FFFFFF" />
+              )}
+              <View style={styles.avatarEditOverlay}>
+                <Ionicons name="camera" size={12} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
             <View style={styles.profileText}>
               <Text style={styles.welcomeText}>Portal de Organización</Text>
-              <Text style={styles.nameText}>{user?.name || 'Gestor Laika'}</Text>
+              <TouchableOpacity 
+                activeOpacity={0.7} 
+                onPress={() => {
+                  try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
+                  setIsEditModalVisible(true);
+                }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+              >
+                <Text style={styles.nameText}>{user?.name || 'Gestor Laika'}</Text>
+                <Ionicons name="create-outline" size={14} color={COLORS.primary} />
+              </TouchableOpacity>
               <View style={styles.badge}>
                 <Ionicons name="ribbon-outline" size={12} color="#FFFFFF" />
                 <Text style={styles.badgeText}>Event Coordinator</Text>
               </View>
             </View>
+            <TouchableOpacity 
+              style={[styles.logoutButton, { marginRight: SPACING.xs }]} 
+              onPress={() => {
+                try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
+                setIsEditModalVisible(true);
+              }}
+            >
+              <Ionicons name="person-outline" size={20} color={COLORS.primary} />
+            </TouchableOpacity>
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogoutPress}>
-              <Ionicons name="log-out-outline" size={24} color={COLORS.error} />
+              <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
             </TouchableOpacity>
           </View>
         </View>
@@ -163,11 +200,30 @@ export const GestorDashboardScreen = () => {
           ))}
         </View>
       </ScrollView>
+      <EditProfileModal visible={isEditModalVisible} onClose={() => setIsEditModalVisible(false)} />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: BORDER_RADIUS.round,
+  },
+  avatarEditOverlay: {
+    position: 'absolute',
+    right: -4,
+    bottom: -4,
+    backgroundColor: COLORS.primary,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: COLORS.dark.background,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.dark.background,

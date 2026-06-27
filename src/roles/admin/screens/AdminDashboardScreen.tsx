@@ -17,6 +17,8 @@ import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../../st
 import adminService, { HardwareMetrics } from '../services/admin.service';
 import Card from '../../../components/Card';
 import Loader from '../../../components/Loader';
+import EditProfileModal from '../../../components/EditProfileModal';
+import * as Haptics from 'expo-haptics';
 
 export const AdminDashboardScreen = () => {
   const { user, logout } = useAuth();
@@ -24,6 +26,7 @@ export const AdminDashboardScreen = () => {
   const [metrics, setMetrics] = useState<HardwareMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
   const fetchMetrics = async () => {
     try {
@@ -108,20 +111,50 @@ export const AdminDashboardScreen = () => {
         {/* Header Block */}
         <View style={styles.header}>
           <View style={styles.profileRow}>
-            <Image
-              source={{ uri: user?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150' }}
-              style={styles.avatar}
-            />
+            <TouchableOpacity 
+              activeOpacity={0.8}
+              onPress={() => {
+                try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
+                setIsEditModalVisible(true);
+              }}
+            >
+              <Image
+                source={{ uri: user?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150' }}
+                style={styles.avatar}
+              />
+              <View style={styles.avatarEditOverlay}>
+                <Ionicons name="camera" size={12} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
             <View style={styles.profileText}>
               <Text style={styles.welcomeText}>Panel Administrativo</Text>
-              <Text style={styles.nameText}>{user?.name || 'Administrador'}</Text>
+              <TouchableOpacity 
+                activeOpacity={0.7} 
+                onPress={() => {
+                  try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
+                  setIsEditModalVisible(true);
+                }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+              >
+                <Text style={styles.nameText}>{user?.name || 'Administrador'}</Text>
+                <Ionicons name="create-outline" size={14} color={COLORS.primary} />
+              </TouchableOpacity>
               <View style={styles.badge}>
                 <Ionicons name="shield-checkmark" size={12} color="#FFFFFF" />
                 <Text style={styles.badgeText}>Rol: Super Admin</Text>
               </View>
             </View>
+            <TouchableOpacity 
+              style={[styles.logoutButton, { marginRight: SPACING.xs }]} 
+              onPress={() => {
+                try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
+                setIsEditModalVisible(true);
+              }}
+            >
+              <Ionicons name="person-outline" size={20} color={COLORS.primary} />
+            </TouchableOpacity>
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogoutPress}>
-              <Ionicons name="log-out-outline" size={24} color={COLORS.error} />
+              <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
             </TouchableOpacity>
           </View>
         </View>
@@ -201,11 +234,25 @@ export const AdminDashboardScreen = () => {
           ))}
         </View>
       </ScrollView>
+      <EditProfileModal visible={isEditModalVisible} onClose={() => setIsEditModalVisible(false)} />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  avatarEditOverlay: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    backgroundColor: COLORS.primary,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: COLORS.dark.background,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.dark.background,

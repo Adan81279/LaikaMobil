@@ -7,6 +7,7 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../../styles/theme';
@@ -16,11 +17,13 @@ import Card from '../../../components/Card';
 import Loader from '../../../components/Loader';
 import Button from '../../../components/Button';
 import * as Haptics from 'expo-haptics';
+import EditProfileModal from '../../../components/EditProfileModal';
 
 export const UserProfileScreen = () => {
   const { user, logout } = useAuth();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'refunds' | 'security'>('profile');
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
   // Refund states
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -128,11 +131,25 @@ export const UserProfileScreen = () => {
       {/* Profile Header */}
       <View style={styles.header}>
         <View style={styles.profileMeta}>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarInitial}>
-              {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
-            </Text>
-          </View>
+          <TouchableOpacity 
+            activeOpacity={0.8}
+            onPress={() => {
+              try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
+              setIsEditModalVisible(true);
+            }}
+            style={styles.avatarCircle}
+          >
+            {user?.avatar ? (
+              <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarInitial}>
+                {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+              </Text>
+            )}
+            <View style={styles.avatarEditBadge}>
+              <Ionicons name="camera" size={10} color="#FFFFFF" />
+            </View>
+          </TouchableOpacity>
           <View>
             <Text style={styles.profileName}>{user?.name || 'Usuario Laika'}</Text>
             <Text style={styles.profileEmail}>{user?.email || 'usuario@laikaclub.com'}</Text>
@@ -174,7 +191,19 @@ export const UserProfileScreen = () => {
         ) : activeTab === 'profile' ? (
           /* SETTINGS TAB */
           <View style={styles.tabContent}>
-            <Text style={styles.sectionTitle}>Ajustes de Cuenta</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={styles.sectionTitle}>Ajustes de Cuenta</Text>
+              <TouchableOpacity 
+                onPress={() => {
+                  try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
+                  setIsEditModalVisible(true);
+                }} 
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+              >
+                <Ionicons name="create-outline" size={16} color={COLORS.primary} />
+                <Text style={{ fontSize: 11, fontWeight: 'bold', color: COLORS.primary }}>Editar Perfil</Text>
+              </TouchableOpacity>
+            </View>
             <Card>
               <View style={styles.settingsRow}>
                 <Ionicons name="person-outline" size={20} color={COLORS.primary} />
@@ -349,6 +378,7 @@ export const UserProfileScreen = () => {
           </View>
         )}
       </ScrollView>
+      <EditProfileModal visible={isEditModalVisible} onClose={() => setIsEditModalVisible(false)} />
     </View>
   );
 };
@@ -377,6 +407,25 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 24,
+  },
+  avatarEditBadge: {
+    position: 'absolute',
+    right: -4,
+    bottom: -4,
+    backgroundColor: COLORS.primary,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#070a13',
   },
   avatarInitial: {
     color: '#FFFFFF',

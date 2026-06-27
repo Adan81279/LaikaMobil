@@ -8,6 +8,7 @@ import {
   Alert,
   TextInput,
   Animated,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,13 +21,15 @@ import Loader from '../../../components/Loader';
 import Button from '../../../components/Button';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useAuth } from '../../../context/AuthContext';
+import EditProfileModal from '../../../components/EditProfileModal';
 
 export const OperadorDashboardScreen = () => {
   const router = useRouter();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [ticketCode, setTicketCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<OperatorStats | null>(null);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -163,6 +166,19 @@ export const OperadorDashboardScreen = () => {
               onPress={() => router.push('/(operador)/stats' as any)}
             >
               <Ionicons name="analytics" size={20} color={COLORS.secondary} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.statsShortcut} 
+              onPress={() => {
+                try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
+                setIsEditModalVisible(true);
+              }}
+            >
+              {user?.avatar ? (
+                <Image source={{ uri: user.avatar }} style={styles.avatarMini} />
+              ) : (
+                <Ionicons name="person" size={20} color={COLORS.primary} />
+              )}
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.logoutBtnHeader} 
@@ -383,6 +399,7 @@ export const OperadorDashboardScreen = () => {
         )}
 
       </ScrollView>
+      <EditProfileModal visible={isEditModalVisible} onClose={() => setIsEditModalVisible(false)} />
     </SafeAreaView>
   );
 };
@@ -422,6 +439,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  avatarMini: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
   },
   headerActions: {
     flexDirection: 'row',
