@@ -22,6 +22,11 @@ export const APP_CONFIG = {
     PUBLIC_EVENTS: 60000, // 60 seconds
   },
 
+  // Feature Flags
+  FEATURES: {
+    ENABLE_ADMIN_GESTOR_ROLES: false, // Set to true to re-enable Admin and Gestor roles
+  },
+
   // Storage Keys for AsyncStorage
   STORAGE_KEYS: {
     TOKEN: '@laika_auth_token',

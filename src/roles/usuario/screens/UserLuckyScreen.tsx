@@ -17,8 +17,12 @@ import Card from '../../../components/Card';
 import Loader from '../../../components/Loader';
 import Button from '../../../components/Button';
 import * as Haptics from 'expo-haptics';
+import { useAuth } from '../../../context/AuthContext';
+import { useRouter } from 'expo-router';
 
 export const UserLuckyScreen = () => {
+  const { user } = useAuth();
+  const router = useRouter();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +39,7 @@ export const UserLuckyScreen = () => {
   }, []);
 
   const fetchUserData = async () => {
+    if (!user) return;
     setLoading(true);
     try {
       const uStats = await usuarioService.getAchievements();
@@ -47,6 +52,25 @@ export const UserLuckyScreen = () => {
       setLoading(false);
     }
   };
+
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.guestContainer}>
+          <Ionicons name="sparkles-outline" size={80} color={COLORS.dark.textMuted} style={{ marginBottom: SPACING.md }} />
+          <Text style={styles.guestTitle}>Lucky Seat Recompensas</Text>
+          <Text style={styles.guestDesc}>
+            Inicia sesión o regístrate para participar en el sorteo diario de cupones, acumular XP y desbloquear medallas exclusivas.
+          </Text>
+          <Button
+            title="Iniciar Sesión / Registrarse"
+            onPress={() => router.replace('/(auth)/login' as any)}
+            style={styles.guestBtn}
+          />
+        </View>
+      </View>
+    );
+  }
 
   const handleSpinWheel = () => {
     if (spinning) return;
@@ -533,6 +557,30 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   resultBtn: {
+    width: '100%',
+  },
+  guestContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SPACING.xl,
+    backgroundColor: '#070a13',
+  },
+  guestTitle: {
+    fontSize: TYPOGRAPHY.fontSizes.lg,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: '#FFFFFF',
+    marginBottom: SPACING.sm,
+  },
+  guestDesc: {
+    fontSize: TYPOGRAPHY.fontSizes.sm - 1,
+    color: COLORS.dark.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: SPACING.xl,
+    paddingHorizontal: SPACING.md,
+  },
+  guestBtn: {
     width: '100%',
   },
 });

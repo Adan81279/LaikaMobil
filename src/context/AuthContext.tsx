@@ -8,6 +8,9 @@ interface AuthContextType {
   token: string | null;
   user: UserProfile | null;
   isLoading: boolean;
+  savedCard: any | null;
+  saveCardDetails: (cardDetails: any) => Promise<void>;
+  clearSavedCard: () => Promise<void>;
   login: (email: string, password: string) => Promise<boolean>;
   loginMock: (role: UserRole) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -31,6 +34,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [savedCard, setSavedCard] = useState<any | null>(null);
+
+  // Load user-specific card details dynamically
+  useEffect(() => {
+    const loadSavedCard = async () => {
+      if (user) {
+        try {
+          const cardData = await AsyncStorage.getItem(`@laika_saved_card_${user.email}`);
+          if (cardData) {
+            setSavedCard(JSON.parse(cardData));
+          } else {
+            setSavedCard(null);
+          }
+        } catch (e) {
+          console.error('Error loading saved card:', e);
+        }
+      } else {
+        setSavedCard(null);
+      }
+    };
+    loadSavedCard();
+  }, [user]);
+
+  const saveCardDetails = async (cardDetails: any) => {
+    if (user) {
+      try {
+        await AsyncStorage.setItem(`@laika_saved_card_${user.email}`, JSON.stringify(cardDetails));
+        setSavedCard(cardDetails);
+      } catch (e) {
+        console.error('Error saving card:', e);
+      }
+    }
+  };
+
+  const clearSavedCard = async () => {
+    if (user) {
+      try {
+        await AsyncStorage.removeItem(`@laika_saved_card_${user.email}`);
+        setSavedCard(null);
+      } catch (e) {
+        console.error('Error clearing saved card:', e);
+      }
+    }
+  };
 
   // Initialize and check stored session
   useEffect(() => {
@@ -181,6 +228,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         token,
         user,
         isLoading,
+        savedCard,
+        saveCardDetails,
+        clearSavedCard,
         login,
         loginMock,
         logout,

@@ -1,21 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  Image
-} from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../../components/Button';
 import Input from '../../../components/Input';
 import Loader from '../../../components/Loader';
 import { useAuth } from '../../../context/AuthContext';
+import APP_CONFIG from '../../../core/config/app.config';
 import { BORDER_RADIUS, COLORS, SHADOWS, SPACING, TYPOGRAPHY } from '../../../styles/theme';
 
 export const LoginScreen = () => {
@@ -39,14 +30,22 @@ export const LoginScreen = () => {
       }
     } catch (error: any) {
       console.warn('Network login failed, trying fallback to offline mock...', error);
-      
+
       // Auto-fallback to offline mock session for development
       if (trimmedEmail.includes('admin')) {
-        Alert.alert('Modo Local (Offline)', 'Servidor no disponible. Accediendo con credenciales locales de Administrador.');
-        await loginMock('admin');
+        if (APP_CONFIG.FEATURES.ENABLE_ADMIN_GESTOR_ROLES) {
+          Alert.alert('Modo Local (Offline)', 'Servidor no disponible. Accediendo con credenciales locales de Administrador.');
+          await loginMock('admin');
+        } else {
+          Alert.alert('Acceso Denegado', 'El rol de Administrador está desactivado en esta versión.');
+        }
       } else if (trimmedEmail.includes('jimena') || trimmedEmail.includes('gestor')) {
-        Alert.alert('Modo Local (Offline)', 'Servidor no disponible. Accediendo con credenciales locales de Gestor.');
-        await loginMock('gestor');
+        if (APP_CONFIG.FEATURES.ENABLE_ADMIN_GESTOR_ROLES) {
+          Alert.alert('Modo Local (Offline)', 'Servidor no disponible. Accediendo con credenciales locales de Gestor.');
+          await loginMock('gestor');
+        } else {
+          Alert.alert('Acceso Denegado', 'El rol de Gestor está desactivado en esta versión.');
+        }
       } else if (trimmedEmail.includes('operador')) {
         Alert.alert('Modo Local (Offline)', 'Servidor no disponible. Accediendo con credenciales locales de Operador.');
         await loginMock('operador');
@@ -62,6 +61,11 @@ export const LoginScreen = () => {
   };
 
   const handleQuickLogin = async (role: 'admin' | 'gestor' | 'operador' | 'usuario') => {
+    if ((role === 'admin' || role === 'gestor') && !APP_CONFIG.FEATURES.ENABLE_ADMIN_GESTOR_ROLES) {
+      Alert.alert('Acceso Denegado', 'El rol seleccionado está desactivado en esta versión.');
+      return;
+    }
+
     setLoading(true);
     let quickEmail = 'admin@laikaclub.com';
     if (role === 'gestor') quickEmail = 'jimena@laikaclub.com';
@@ -142,21 +146,25 @@ export const LoginScreen = () => {
           <View style={styles.quickAccessSection}>
             <Text style={styles.quickAccessTitle}>Ingreso Rápido (Desarrollo/Demo)</Text>
             <View style={styles.quickAccessButtons}>
-              <TouchableOpacity
-                style={[styles.quickBtn, { borderColor: COLORS.primary }]}
-                onPress={() => handleQuickLogin('admin')}
-              >
-                <Ionicons name="shield-checkmark" size={14} color={COLORS.primary} />
-                <Text style={[styles.quickBtnText, { color: COLORS.primary }]}>Admin Role</Text>
-              </TouchableOpacity>
+              {APP_CONFIG.FEATURES.ENABLE_ADMIN_GESTOR_ROLES && (
+                <>
+                  <TouchableOpacity
+                    style={[styles.quickBtn, { borderColor: COLORS.primary }]}
+                    onPress={() => handleQuickLogin('admin')}
+                  >
+                    <Ionicons name="shield-checkmark" size={14} color={COLORS.primary} />
+                    <Text style={[styles.quickBtnText, { color: COLORS.primary }]}>Admin Role</Text>
+                  </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.quickBtn, { borderColor: COLORS.secondary }]}
-                onPress={() => handleQuickLogin('gestor')}
-              >
-                <Ionicons name="ribbon" size={14} color={COLORS.secondary} />
-                <Text style={[styles.quickBtnText, { color: COLORS.secondary }]}>Gestor Role</Text>
-              </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.quickBtn, { borderColor: COLORS.secondary }]}
+                    onPress={() => handleQuickLogin('gestor')}
+                  >
+                    <Ionicons name="ribbon" size={14} color={COLORS.secondary} />
+                    <Text style={[styles.quickBtnText, { color: COLORS.secondary }]}>Gestor Role</Text>
+                  </TouchableOpacity>
+                </>
+              )}
 
               <TouchableOpacity
                 style={[styles.quickBtn, { borderColor: COLORS.success }]}

@@ -8,6 +8,7 @@ import 'react-native-reanimated';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
 import Loader from '../src/components/Loader';
+import APP_CONFIG from '../src/core/config/app.config';
 
 export const unstable_settings = {
   anchor: '(auth)',
@@ -31,18 +32,32 @@ function RootLayoutNavigation() {
     const inOperadorGroup = firstSegment === '(operador)';
 
     if (!isAuthenticated) {
-      // Redirect to login if not authenticated and not in auth group
-      if (!inAuthGroup) {
+      // Guest mode: only redirect to login if attempting to access restricted admin, gestor, or operator groups
+      if (inAdminGroup || inGestorGroup || inOperadorGroup) {
         router.replace('/(auth)/login' as any);
+      } else {
+        // If guest is at root path, send to tabs (guest home page)
+        const isRootPath = !firstSegment || firstSegment === 'index';
+        if (isRootPath) {
+          router.replace('/(tabs)' as any);
+        }
       }
     } else {
       // Redirect authenticated users to their dashboard if they are in the auth screen or root index
       const isRootPath = !firstSegment || firstSegment === 'index' || (firstSegment === '(tabs)' && segments.length === 1);
       if (inAuthGroup || isRootPath) {
         if (user?.role === 'admin') {
-          router.replace('/(admin)/dashboard' as any);
+          if (APP_CONFIG.FEATURES.ENABLE_ADMIN_GESTOR_ROLES) {
+            router.replace('/(admin)/dashboard' as any);
+          } else {
+            router.replace('/(tabs)' as any);
+          }
         } else if (user?.role === 'gestor') {
-          router.replace('/(gestor)/dashboard' as any);
+          if (APP_CONFIG.FEATURES.ENABLE_ADMIN_GESTOR_ROLES) {
+            router.replace('/(gestor)/dashboard' as any);
+          } else {
+            router.replace('/(tabs)' as any);
+          }
         } else if (user?.role === 'operador') {
           router.replace('/(operador)/dashboard' as any);
         } else {
@@ -51,31 +66,45 @@ function RootLayoutNavigation() {
       }
 
       // Authorization guard: restrict access to admin group
-      if (inAdminGroup && user?.role !== 'admin') {
-        Alert.alert('Acceso Restringido', 'No tiene privilegios para acceder al panel de administración.');
-        if (user?.role === 'gestor') {
-          router.replace('/(gestor)/dashboard' as any);
-        } else if (user?.role === 'operador') {
-          router.replace('/(operador)/dashboard' as any);
-        } else {
-          router.replace('/(auth)/login' as any);
+      if (inAdminGroup) {
+        if (!APP_CONFIG.FEATURES.ENABLE_ADMIN_GESTOR_ROLES) {
+          router.replace('/(tabs)' as any);
+        } else if (user?.role !== 'admin') {
+          Alert.alert('Acceso Restringido', 'No tiene privilegios para acceder al panel de administración.');
+          if (user?.role === 'gestor') {
+            router.replace('/(gestor)/dashboard' as any);
+          } else if (user?.role === 'operador') {
+            router.replace('/(operador)/dashboard' as any);
+          } else {
+            router.replace('/(auth)/login' as any);
+          }
         }
       }
 
-      // Authorization guard: restrict access to gestor group (allow admin as supervisor)
-      if (inGestorGroup && user?.role !== 'gestor' && user?.role !== 'admin') {
-        Alert.alert('Acceso Restringido', 'No tiene privilegios para acceder al panel de organización.');
-        if (user?.role === 'operador') {
-          router.replace('/(operador)/dashboard' as any);
-        } else {
-          router.replace('/(auth)/login' as any);
+      // Authorization guard: restrict access to gestor group
+      if (inGestorGroup) {
+        if (!APP_CONFIG.FEATURES.ENABLE_ADMIN_GESTOR_ROLES) {
+          router.replace('/(tabs)' as any);
+        } else if (user?.role !== 'gestor' && user?.role !== 'admin') {
+          Alert.alert('Acceso Restringido', 'No tiene privilegios para acceder al panel de organización.');
+          if (user?.role === 'operador') {
+            router.replace('/(operador)/dashboard' as any);
+          } else {
+            router.replace('/(auth)/login' as any);
+          }
         }
       }
 
-      // Authorization guard: restrict access to operador group (allow admin/gestor as supervisor)
-      if (inOperadorGroup && user?.role !== 'operador' && user?.role !== 'admin' && user?.role !== 'gestor') {
-        Alert.alert('Acceso Restringido', 'No tiene privilegios para acceder al panel de control de puerta.');
-        router.replace('/(auth)/login' as any);
+      // Authorization guard: restrict access to operador group
+      if (inOperadorGroup) {
+        const hasSupervisorAccess = APP_CONFIG.FEATURES.ENABLE_ADMIN_GESTOR_ROLES
+          ? (user?.role === 'operador' || user?.role === 'admin' || user?.role === 'gestor')
+          : (user?.role === 'operador');
+
+        if (!hasSupervisorAccess) {
+          Alert.alert('Acceso Restringido', 'No tiene privilegios para acceder al panel de control de puerta.');
+          router.replace('/(auth)/login' as any);
+        }
       }
     }
   }, [isAuthenticated, isLoading, segments, user]);
@@ -84,8 +113,12 @@ function RootLayoutNavigation() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(admin)" options={{ headerShown: false }} />
-        <Stack.Screen name="(gestor)" options={{ headerShown: false }} />
+        {APP_CONFIG.FEATURES.ENABLE_ADMIN_GESTOR_ROLES && (
+          <>
+            <Stack.Screen name="(admin)" options={{ headerShown: false }} />
+            <Stack.Screen name="(gestor)" options={{ headerShown: false }} />
+          </>
+        )}
         <Stack.Screen name="(operador)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />

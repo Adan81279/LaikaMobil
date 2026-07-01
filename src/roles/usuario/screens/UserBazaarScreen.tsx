@@ -18,10 +18,14 @@ import Card from '../../../components/Card';
 import Loader from '../../../components/Loader';
 import Button from '../../../components/Button';
 import * as Haptics from 'expo-haptics';
+import { useAuth } from '../../../context/AuthContext';
+import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
 export const UserBazaarScreen = () => {
+  const { user } = useAuth();
+  const router = useRouter();
   const [items, setItems] = useState<MerchItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -94,6 +98,21 @@ export const UserBazaarScreen = () => {
   const handleCheckout = async () => {
     if (getCartTotalItems() === 0) return;
     
+    if (!user) {
+      Alert.alert(
+        'Inicio de Sesión Requerido',
+        'Para realizar compras de mercancía es necesario estar registrado e iniciar sesión.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Iniciar Sesión', onPress: () => {
+            setCartOpen(false);
+            router.replace('/(auth)/login' as any);
+          }}
+        ]
+      );
+      return;
+    }
+    
     setLoading(true);
     try {
       const orderItems = Object.entries(cart).map(([id, qty]) => ({
@@ -137,14 +156,25 @@ export const UserBazaarScreen = () => {
             <Text style={styles.headerSubtitle}>Mercancía Oficial Coldplay, Duki & Aoki</Text>
           </View>
           
-          <TouchableOpacity style={styles.cartIconContainer} onPress={() => setCartOpen(true)}>
-            <Ionicons name="cart-outline" size={24} color="#FFFFFF" />
-            {getCartTotalItems() > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{getCartTotalItems()}</Text>
-              </View>
+          <View style={{ flexDirection: 'row', gap: SPACING.xs, alignItems: 'center' }}>
+            {!user && (
+              <TouchableOpacity 
+                style={styles.loginHeaderBtn}
+                onPress={() => router.replace('/(auth)/login' as any)}
+              >
+                <Ionicons name="log-in-outline" size={16} color="#FFFFFF" />
+                <Text style={styles.loginHeaderBtnText}>Entrar</Text>
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.cartIconContainer} onPress={() => setCartOpen(true)}>
+              <Ionicons name="cart-outline" size={24} color="#FFFFFF" />
+              {getCartTotalItems() > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{getCartTotalItems()}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -526,6 +556,23 @@ const styles = StyleSheet.create({
   successBtn: {
     width: '100%',
     marginTop: SPACING.md,
+  },
+  loginHeaderBtn: {
+    backgroundColor: COLORS.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingHorizontal: SPACING.sm + 2,
+    height: 40,
+    borderRadius: BORDER_RADIUS.round,
+    borderColor: COLORS.primaryLight,
+    borderWidth: 1,
+  },
+  loginHeaderBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: 'bold',
   },
 });
 

@@ -27,6 +27,12 @@ export interface Ticket {
   ticket_code: string;
   purchased_at: string;
   status: 'valid' | 'used' | 'refunded';
+  event_name?: string;
+  eventName?: string;
+  venue?: string;
+  event_date?: string;
+  event_time?: string;
+  seat_id?: string;
 }
 
 export interface RefundRequest {
@@ -62,6 +68,32 @@ export interface Coupon {
   description: string;
 }
 
+export interface MerchOrder {
+  id: string;
+  items: Array<{ title: string; price: number; quantity: number; image: string }>;
+  total: number;
+  status: 'preparing' | 'shipping' | 'delivered';
+  purchased_at: string;
+}
+
+export interface EventOpinion {
+  id: string;
+  event_id: string;
+  event_title: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+}
+
+export interface Artist {
+  id: string;
+  name: string;
+  image: string;
+  genre: string;
+  isFollowing: boolean;
+  upcomingShow?: string;
+}
+
 // Memory cache for offline/mock state to persist changes within run session
 let mockTickets: Ticket[] = [];
 let mockRefunds: RefundRequest[] = [];
@@ -72,6 +104,14 @@ let mockCoupons: Coupon[] = [
 ];
 let mockXP = 350;
 let mockLevel = 2;
+let mockMerchOrders: MerchOrder[] = [];
+let mockOpinions: EventOpinion[] = [];
+let mockArtists: Artist[] = [
+  { id: 'a1', name: 'Duki', image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150', genre: 'Música', isFollowing: true, upcomingShow: 'Duki - A.D.A. Tour 2026' },
+  { id: 'a2', name: 'Coldplay', image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=150', genre: 'Música', isFollowing: false, upcomingShow: 'Coldplay - Music of the Spheres Tour' },
+  { id: 'a3', name: 'Steve Aoki', image: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=150', genre: 'Electrónica', isFollowing: true, upcomingShow: 'Steve Aoki - Neon Party' },
+  { id: 'a4', name: 'Justice', image: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=150', genre: 'Electrónica', isFollowing: false },
+];
 
 const STORAGE_KEYS = {
   TICKETS: '@laika_user_tickets',
@@ -79,6 +119,9 @@ const STORAGE_KEYS = {
   XP: '@laika_user_xp',
   LEVEL: '@laika_user_level',
   COUPONS: '@laika_user_coupons',
+  MERCH_ORDERS: '@laika_merch_orders',
+  OPINIONS: '@laika_event_opinions',
+  ARTISTS: '@laika_followed_artists',
 };
 
 // Initialize cache from AsyncStorage if available
@@ -89,6 +132,9 @@ const initOfflineCache = async () => {
     const savedXP = await AsyncStorage.getItem(STORAGE_KEYS.XP);
     const savedLevel = await AsyncStorage.getItem(STORAGE_KEYS.LEVEL);
     const savedCoupons = await AsyncStorage.getItem(STORAGE_KEYS.COUPONS);
+    const savedMerchOrders = await AsyncStorage.getItem(STORAGE_KEYS.MERCH_ORDERS);
+    const savedOpinions = await AsyncStorage.getItem(STORAGE_KEYS.OPINIONS);
+    const savedArtists = await AsyncStorage.getItem(STORAGE_KEYS.ARTISTS);
 
     if (savedTickets) mockTickets = JSON.parse(savedTickets);
     else {
@@ -102,7 +148,7 @@ const initOfflineCache = async () => {
           date: '15/07/2026',
           time: '21:00',
           seat_label: 'A-12 (VIP)',
-          price: 1500,
+          price: 2250, // VIP multiplier (1.5 * 1500)
           ticket_code: 'TKT-VALID-123',
           purchased_at: new Date(Date.now() - 86400000 * 2).toISOString(),
           status: 'valid'
@@ -128,6 +174,25 @@ const initOfflineCache = async () => {
     if (savedXP) mockXP = parseInt(savedXP, 10);
     if (savedLevel) mockLevel = parseInt(savedLevel, 10);
     if (savedCoupons) mockCoupons = JSON.parse(savedCoupons);
+
+    if (savedMerchOrders) mockMerchOrders = JSON.parse(savedMerchOrders);
+    else {
+      mockMerchOrders = [
+        {
+          id: 'ORD-501',
+          items: [
+            { title: 'Gorra Laika Neon Black', price: 320, quantity: 1, image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&w=400&q=80' }
+          ],
+          total: 320,
+          status: 'delivered',
+          purchased_at: new Date(Date.now() - 86400000 * 5).toISOString()
+        }
+      ];
+      await AsyncStorage.setItem(STORAGE_KEYS.MERCH_ORDERS, JSON.stringify(mockMerchOrders));
+    }
+
+    if (savedOpinions) mockOpinions = JSON.parse(savedOpinions);
+    if (savedArtists) mockArtists = JSON.parse(savedArtists);
   } catch (e) {
     console.error('Error restoring user cache:', e);
   }
@@ -157,6 +222,24 @@ const saveGamificationToStorage = async (level: number, xp: number) => {
 const saveCouponsToStorage = async (coupons: Coupon[]) => {
   try {
     await AsyncStorage.setItem(STORAGE_KEYS.COUPONS, JSON.stringify(coupons));
+  } catch (e) {}
+};
+
+const saveMerchOrdersToStorage = async (orders: MerchOrder[]) => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.MERCH_ORDERS, JSON.stringify(orders));
+  } catch (e) {}
+};
+
+const saveOpinionsToStorage = async (opinions: EventOpinion[]) => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.OPINIONS, JSON.stringify(opinions));
+  } catch (e) {}
+};
+
+const saveArtistsToStorage = async (artists: Artist[]) => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.ARTISTS, JSON.stringify(artists));
   } catch (e) {}
 };
 
@@ -253,10 +336,23 @@ class UsuarioService {
   private async saveMockTickets(eventId: string, seats: string[], price: number) {
     const events = await this.getPublicEvents();
     const event = events.find(e => e.id === eventId);
+    const basePrice = event?.price || 0;
     
     const newTickets = seats.map((seat, index) => {
       const ticketId = `TKT-${Math.floor(100 + Math.random() * 900)}`;
       const randomCode = `TKT-VALID-${Math.floor(100000 + Math.random() * 900000)}`;
+      
+      const row = seat.split('-')[0];
+      let seatPrice = basePrice;
+      let zoneName = 'General';
+      if (row === 'A') {
+        seatPrice = basePrice * 1.5;
+        zoneName = 'VIP';
+      } else if (row === 'B' || row === 'C') {
+        seatPrice = basePrice * 1.1;
+        zoneName = 'Gold';
+      }
+
       return {
         id: ticketId,
         event_id: eventId,
@@ -264,8 +360,8 @@ class UsuarioService {
         venue_name: event?.venue || 'Recinto Central',
         date: event?.date || 'Fecha Pendiente',
         time: event?.time || 'Hora Pendiente',
-        seat_label: seat,
-        price: price / seats.length,
+        seat_label: `${seat} (${zoneName})`,
+        price: seatPrice,
         ticket_code: randomCode,
         purchased_at: new Date().toISOString(),
         status: 'valid' as const
@@ -394,15 +490,22 @@ class UsuarioService {
    * Purchase merchandise items
    */
   async purchaseMerchandise(items: Array<{ item: MerchItem; quantity: number }>, totalPrice: number): Promise<boolean> {
-    try {
-      await apiService.post('/api/merchandise/orders/', { items, total: totalPrice }, { timeout: 2000 });
-      await this.addXP(50);
-      return true;
-    } catch (e) {
-      console.warn('Merch API timed out, simulation complete.');
-      await this.addXP(50);
-      return true;
-    }
+    const newOrder: MerchOrder = {
+      id: `ORD-${Math.floor(100 + Math.random() * 900)}`,
+      items: items.map(it => ({
+        title: it.item.title,
+        price: it.item.price,
+        quantity: it.quantity,
+        image: it.item.image
+      })),
+      total: totalPrice,
+      status: 'preparing',
+      purchased_at: new Date().toISOString()
+    };
+    mockMerchOrders = [newOrder, ...mockMerchOrders];
+    await saveMerchOrdersToStorage(mockMerchOrders);
+    await this.addXP(50);
+    return true;
   }
 
   /**
@@ -495,6 +598,57 @@ class UsuarioService {
     } catch (e) {
       return mockCoupons;
     }
+  }
+
+  /**
+   * Get client's merchandise orders
+   */
+  async getMerchOrders(): Promise<MerchOrder[]> {
+    return mockMerchOrders;
+  }
+
+  /**
+   * Get reviews/opinions
+   */
+  async getOpinions(): Promise<EventOpinion[]> {
+    return mockOpinions;
+  }
+
+  /**
+   * Submit an event opinion/review
+   */
+  async submitOpinion(eventId: string, eventTitle: string, rating: number, comment: string): Promise<boolean> {
+    const newOpinion: EventOpinion = {
+      id: `REV-${Math.floor(1000 + Math.random() * 9000)}`,
+      event_id: eventId,
+      event_title: eventTitle,
+      rating,
+      comment,
+      created_at: new Date().toISOString()
+    };
+    mockOpinions = [newOpinion, ...mockOpinions];
+    await saveOpinionsToStorage(mockOpinions);
+    // Add XP for leaving reviews
+    await this.addXP(40);
+    return true;
+  }
+
+  /**
+   * Get artists list
+   */
+  async getArtists(): Promise<Artist[]> {
+    return mockArtists;
+  }
+
+  /**
+   * Toggle follow/unfollow artist
+   */
+  async toggleFollowArtist(artistId: string): Promise<Artist[]> {
+    mockArtists = mockArtists.map(art => 
+      art.id === artistId ? { ...art, isFollowing: !art.isFollowing } : art
+    );
+    await saveArtistsToStorage(mockArtists);
+    return mockArtists;
   }
 }
 

@@ -8,52 +8,170 @@ import {
   TextInput,
   Alert,
   Image,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../../styles/theme';
 import { useAuth } from '../../../context/AuthContext';
-import usuarioService, { Ticket, RefundRequest } from '../services/usuario.service';
+import usuarioService, {
+  Ticket,
+  RefundRequest,
+  MerchOrder,
+  EventOpinion,
+  Artist,
+  Coupon,
+  EventInfo,
+  UserStats
+} from '../services/usuario.service';
 import Card from '../../../components/Card';
 import Loader from '../../../components/Loader';
 import Button from '../../../components/Button';
 import * as Haptics from 'expo-haptics';
 import EditProfileModal from '../../../components/EditProfileModal';
+import { useRouter } from 'expo-router';
+import APP_CONFIG from '../../../core/config/app.config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useIsFocused } from '@react-navigation/native';
+
+const AVAILABLE_GENRES = ['Música', 'Electrónica', 'Rock', 'Pop', 'Reggaeton', 'Indie', 'Convención'];
 
 export const UserProfileScreen = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, savedCard, saveCardDetails, clearSavedCard } = useAuth();
+  const router = useRouter();
+  const isFocused = useIsFocused();
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'refunds' | 'security'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'history' | 'explore' | 'benefits'>('profile');
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
-  // Refund states
+  // Sub-tab for history
+  const [historySubTab, setHistorySubTab] = useState<'tickets' | 'merch' | 'opinions'>('tickets');
+
+  // Loaded states from service
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [refunds, setRefunds] = useState<RefundRequest[]>([]);
+  const [merchOrders, setMerchOrders] = useState<MerchOrder[]>([]);
+  const [opinions, setOpinions] = useState<EventOpinion[]>([]);
+  const [artists, setArtists] = useState<Artist[]>([]);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [publicEvents, setPublicEvents] = useState<EventInfo[]>([]);
+  const [stats, setStats] = useState<UserStats | null>(null);
+
+  // Preference states
+  const [selectedGenres, setSelectedGenres] = useState<string[]>(['Música', 'Electrónica']);
+
+  // Refund request inputs
   const [selectedTicketId, setSelectedTicketId] = useState('');
   const [refundReason, setRefundReason] = useState('');
 
-  // Promotion states
-  const [selectedRole, setSelectedRole] = useState<'operador' | 'gestor'>('operador');
-  const [promotionReason, setPromotionReason] = useState('');
+  // Opinion review form states
+  const [reviewEventId, setReviewEventId] = useState('');
+  const [reviewEventTitle, setReviewEventTitle] = useState('');
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
 
+  // QR Modal states
+  const [selectedTicketForQR, setSelectedTicketForQR] = useState<Ticket | null>(null);
+  const [isQRModalVisible, setIsQRModalVisible] = useState(false);
+
+  // Simulated notifications
+  const [notifications, setNotifications] = useState([
+    { id: '1', title: '¡Cupón de Bienvenida!', body: 'Disfruta de un 15% de descuento usando el código LAIKAFIRST.', time: 'Hace 2 horas', read: false },
+    { id: '2', title: 'Compra Confirmada', body: 'Tu boleto para Duki - A.D.A. Tour ya está disponible en tu Historial.', time: 'Hace 1 día', read: true },
+    { id: '3', title: 'Oferta Especial', body: 'Obtén 2x1 en la zona General para Steve Aoki - Neon Party.', time: 'Hace 3 días', read: true }
+  ]);
+
+  // Load preferences on start
   useEffect(() => {
-    fetchRefundsData();
-  }, [activeTab]);
-
-  const fetchRefundsData = async () => {
-    if (activeTab === 'refunds') {
-      setLoading(true);
+    const loadPreferences = async () => {
       try {
-        const uTickets = await usuarioService.getMyTickets();
-        const uRefunds = await usuarioService.getRefunds();
-        setTickets(uTickets.filter(t => t.status === 'valid'));
-        setRefunds(uRefunds);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
+        const stored = await AsyncStorage.getItem(`@laika_pref_genres_${user?.email}`);
+        if (stored) {
+          setSelectedGenres(JSON.parse(stored));
+        }
+      } catch (e) {}
+    };
+    if (user) {
+      loadPreferences();
+    }
+  }, [user]);
+
+  // Fetch all profile details when tabs switch or screen is focused
+  useEffect(() => {
+    if (user && isFocused) {
+      fetchProfileData();
+    }
+  }, [activeTab, user, isFocused]);
+
+  const fetchProfileData = async () => {
+    setLoading(true);
+    try {
+      const uTickets = await usuarioService.getMyTickets();
+      const uRefunds = await usuarioService.getRefunds();
+      const uOrders = await usuarioService.getMerchOrders();
+      const uOpinions = await usuarioService.getOpinions();
+      const uArtists = await usuarioService.getArtists();
+      const uCoupons = await usuarioService.getCoupons();
+      const uEvents = await usuarioService.getPublicEvents();
+      const uStats = await usuarioService.getAchievements();
+
+      setTickets(uTickets);
+      setRefunds(uRefunds);
+      setMerchOrders(uOrders);
+      setOpinions(uOpinions);
+      setArtists(uArtists);
+      setCoupons(uCoupons);
+      setPublicEvents(uEvents);
+      setStats(uStats);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
     }
   };
+
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.guestContainer}>
+          <Ionicons name="person-circle-outline" size={80} color={COLORS.dark.textMuted} style={{ marginBottom: SPACING.md }} />
+          <Text style={styles.guestTitle}>Mi Cuenta Laika Club</Text>
+          <Text style={styles.guestDesc}>
+            Inicia sesión o regístrate para poder comprar boletos, recibir reembolsos, registrar tus pases y acceder a tu Wallet digital.
+          </Text>
+          <Button
+            title="Iniciar Sesión / Registrarse"
+            onPress={() => router.replace('/(auth)/login' as any)}
+            style={styles.guestBtn}
+          />
+        </View>
+      </View>
+    );
+  }
+
+  // Calculate Loyalty Program details
+  const validTicketCount = tickets.filter(t => t.status === 'valid' || t.status === 'used').length;
+  let loyaltyTier = 'Bronce';
+  let nextTier = 'Plata';
+  let nextTierThreshold = 3;
+  let progressToNext = validTicketCount / nextTierThreshold;
+  let tierColor = '#C19A6B'; // Bronze
+  let tierIcon = 'ribbon-outline';
+
+  if (validTicketCount >= 3 && validTicketCount < 6) {
+    loyaltyTier = 'Plata';
+    nextTier = 'Oro';
+    nextTierThreshold = 6;
+    progressToNext = (validTicketCount - 3) / 3;
+    tierColor = '#C0C0C0'; // Silver
+    tierIcon = 'shield-half-outline';
+  } else if (validTicketCount >= 6) {
+    loyaltyTier = 'Oro';
+    nextTier = 'Máxima Categoría';
+    progressToNext = 1.0;
+    tierColor = '#FFD700'; // Gold
+    tierIcon = 'trophy-outline';
+  }
 
   const handleLogout = async () => {
     try {
@@ -69,72 +187,121 @@ export const UserProfileScreen = () => {
     );
   };
 
-  const handleRequestRefund = async () => {
-    if (!selectedTicketId) {
-      Alert.alert('Boleto requerido', 'Por favor selecciona un boleto para reembolsar.');
+  // Toggle favorite genre
+  const handleToggleGenre = async (genre: string) => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (e) {}
+    let updated = [...selectedGenres];
+    if (updated.includes(genre)) {
+      updated = updated.filter(g => g !== genre);
+    } else {
+      updated.push(genre);
+    }
+    setSelectedGenres(updated);
+    await AsyncStorage.setItem(`@laika_pref_genres_${user.email}`, JSON.stringify(updated));
+  };
+
+  // Toggle follow artist
+  const handleToggleFollowArtist = async (artistId: string) => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (e) {}
+    const updated = await usuarioService.toggleFollowArtist(artistId);
+    setArtists(updated);
+  };
+
+  // Submit opinion/review
+  const handleSubmitReview = async () => {
+    if (!reviewEventId) {
+      Alert.alert('Evento requerido', 'Por favor selecciona un concierto de tu lista.');
       return;
     }
-    if (!refundReason.trim()) {
-      Alert.alert('Motivo requerido', 'Por favor ingresa la razón de la devolución.');
+    if (!reviewComment.trim()) {
+      Alert.alert('Comentario vacío', 'Por favor escribe tu opinión.');
       return;
     }
 
     setLoading(true);
     try {
-      const success = await usuarioService.requestRefund(selectedTicketId, refundReason);
+      const success = await usuarioService.submitOpinion(reviewEventId, reviewEventTitle, reviewRating, reviewComment);
       if (success) {
         try {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } catch (h) {}
-        Alert.alert('Solicitud enviada', 'Tu solicitud de reembolso ha sido registrada y está en proceso de revisión.');
-        setSelectedTicketId('');
-        setRefundReason('');
+        Alert.alert('Opinión Registrada', '¡Gracias por compartir tu reseña! Recibiste +40 XP.');
+        setReviewComment('');
+        setReviewEventId('');
         // Reload
-        fetchRefundsData();
-      } else {
-        Alert.alert('Error', 'No se pudo registrar la solicitud de reembolso.');
+        const uOpinions = await usuarioService.getOpinions();
+        const uStats = await usuarioService.getAchievements();
+        setOpinions(uOpinions);
+        setStats(uStats);
       }
     } catch (e) {
-      Alert.alert('Error de red', 'La solicitud no pudo ser enviada.');
+      Alert.alert('Error', 'No se pudo enviar tu reseña.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRequestPromotion = async () => {
-    if (!promotionReason.trim()) {
-      Alert.alert('Motivo requerido', 'Por favor explica por qué solicitas el ascenso.');
-      return;
-    }
-
-    setLoading(true);
+  // Save demo card
+  const handleRegisterDemoCard = () => {
     try {
-      const success = await usuarioService.requestPermissionPromotion(selectedRole, promotionReason);
-      if (success) {
-        try {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        } catch (h) {}
-        Alert.alert('Solicitud enviada', 'Tu postulación ha sido enviada al Administrador del sistema.');
-        setPromotionReason('');
-      } else {
-        Alert.alert('Error', 'No se pudo procesar la postulación.');
-      }
-    } catch (e) {
-      Alert.alert('Error de red', 'La solicitud no pudo ser transmitida.');
-    } finally {
-      setLoading(false);
-    }
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (e) {}
+    saveCardDetails({
+      number: '4242424242424242',
+      expiry: '12/29',
+      cvv: '123',
+      name: user.name || 'Titular de la Cuenta',
+    });
+    Alert.alert('Tarjeta Registrada', 'Se ha guardado una tarjeta de pruebas exitosamente.');
   };
+
+  // Remove saved card
+  const handleRemoveCard = () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (e) {}
+    Alert.alert(
+      'Eliminar Tarjeta',
+      '¿Deseas desvincular tu tarjeta del perfil?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: () => {
+          clearSavedCard();
+          Alert.alert('Tarjeta Eliminada', 'Tus métodos de pago han sido borrados de tu perfil.');
+        }}
+      ]
+    );
+  };
+
+  // Copy Coupon Code
+  const handleCopyCoupon = (code: string) => {
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (e) {}
+    Alert.alert('Código Copiado', `¡El cupón "${code}" ha sido copiado al portapapeles!`);
+  };
+
+  // Filter recommended events dynamically
+  const recommendedEvents = publicEvents.filter(e => {
+    // Matches followed artists OR selected genres
+    const artistMatch = artists.some(art => art.isFollowing && art.upcomingShow === e.title);
+    const genreMatch = selectedGenres.includes(e.category);
+    return artistMatch || genreMatch;
+  });
 
   return (
     <View style={styles.container}>
       {/* Profile Header */}
       <View style={styles.header}>
         <View style={styles.profileMeta}>
-          <TouchableOpacity 
+          <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => {
-              try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
+              try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch (e) {}
               setIsEditModalVisible(true);
             }}
             style={styles.avatarCircle}
@@ -150,83 +317,210 @@ export const UserProfileScreen = () => {
               <Ionicons name="camera" size={10} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.profileName}>{user?.name || 'Usuario Laika'}</Text>
             <Text style={styles.profileEmail}>{user?.email || 'usuario@laikaclub.com'}</Text>
           </View>
+
+          {/* Loyalty Level Quick Indicator */}
+          <View style={[styles.loyaltyBadgeSmall, { borderColor: tierColor }]}>
+            <Ionicons name={tierIcon as any} size={14} color={tierColor} />
+            <Text style={[styles.loyaltyTextSmall, { color: tierColor }]}>
+              {loyaltyTier}
+            </Text>
+          </View>
         </View>
 
-        {/* Tabs switcher */}
+        {/* Tab row navigation */}
         <View style={styles.tabsRow}>
           <TouchableOpacity
             style={[styles.tabBtn, activeTab === 'profile' && styles.tabBtnActive]}
             onPress={() => setActiveTab('profile')}
           >
+            <Ionicons name="cog-outline" size={16} color={activeTab === 'profile' ? '#FFFFFF' : COLORS.dark.textSecondary} />
             <Text style={[styles.tabText, activeTab === 'profile' && styles.tabTextActive]}>
               Ajustes
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tabBtn, activeTab === 'refunds' && styles.tabBtnActive]}
-            onPress={() => setActiveTab('refunds')}
+            style={[styles.tabBtn, activeTab === 'history' && styles.tabBtnActive]}
+            onPress={() => setActiveTab('history')}
           >
-            <Text style={[styles.tabText, activeTab === 'refunds' && styles.tabTextActive]}>
-              Devoluciones
+            <Ionicons name="receipt-outline" size={16} color={activeTab === 'history' ? '#FFFFFF' : COLORS.dark.textSecondary} />
+            <Text style={[styles.tabText, activeTab === 'history' && styles.tabTextActive]}>
+              Historial
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tabBtn, activeTab === 'security' && styles.tabBtnActive]}
-            onPress={() => setActiveTab('security')}
+            style={[styles.tabBtn, activeTab === 'explore' && styles.tabBtnActive]}
+            onPress={() => setActiveTab('explore')}
           >
-            <Text style={[styles.tabText, activeTab === 'security' && styles.tabTextActive]}>
-              Seguridad
+            <Ionicons name="compass-outline" size={16} color={activeTab === 'explore' ? '#FFFFFF' : COLORS.dark.textSecondary} />
+            <Text style={[styles.tabText, activeTab === 'explore' && styles.tabTextActive]}>
+              Descubrir
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabBtn, activeTab === 'benefits' && styles.tabBtnActive]}
+            onPress={() => setActiveTab('benefits')}
+          >
+            <Ionicons name="gift-outline" size={16} color={activeTab === 'benefits' ? '#FFFFFF' : COLORS.dark.textSecondary} />
+            <Text style={[styles.tabText, activeTab === 'benefits' && styles.tabTextActive]}>
+              Beneficios
             </Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {loading && activeTab === 'refunds' ? (
-          <Loader visible={true} message="Cargando historial..." />
-        ) : activeTab === 'profile' ? (
-          /* SETTINGS TAB */
+      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        {/* Loader if fetching */}
+        {loading && <Loader visible={true} message="Cargando perfil..." />}
+
+        {/* Loyalty Progress Banner (Rendered at top of scroll view for context) */}
+        <Card style={styles.loyaltyCard}>
+          <View style={styles.loyaltyHeader}>
+            <View style={[styles.loyaltyIconBg, { backgroundColor: `${tierColor}15` }]}>
+              <Ionicons name={tierIcon as any} size={24} color={tierColor} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.loyaltyLabel}>PROGRAMA DE FIDELIDAD LAIKA CLUB</Text>
+              <Text style={styles.loyaltyTitle}>Socio Nivel {loyaltyTier}</Text>
+            </View>
+            <View style={styles.loyaltyCountBadge}>
+              <Text style={styles.loyaltyCountText}>{validTicketCount} Shows</Text>
+            </View>
+          </View>
+          <Text style={styles.loyaltyDesc}>
+            {loyaltyTier === 'Bronce' && '¡Asiste a 3 eventos para subir a Socio Plata y recibir preventas anticipadas!'}
+            {loyaltyTier === 'Plata' && '¡Asiste a 6 eventos para ser Socio Oro, obtener 10% de descuento en el Bazar y fila rápida!'}
+            {loyaltyTier === 'Oro' && '¡Felicidades! Tienes preventas exclusivas, 10% de descuento en Bazaar y acceso VIP.'}
+          </Text>
+          
+          <View style={styles.progressBarWrapper}>
+            <View style={styles.progressTextRow}>
+              <Text style={styles.progressLabel}>Progreso al nivel {nextTier}</Text>
+              <Text style={styles.progressVal}>{Math.min(validTicketCount, nextTierThreshold)} / {nextTierThreshold} Shows</Text>
+            </View>
+            <View style={styles.progressBarBg}>
+              <View style={[styles.progressBarFill, { width: `${progressToNext * 100}%`, backgroundColor: tierColor }]} />
+            </View>
+          </View>
+        </Card>
+
+        {/* TAB 1: PROFILE / SETTINGS */}
+        {activeTab === 'profile' && (
           <View style={styles.tabContent}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={styles.sectionTitle}>Ajustes de Cuenta</Text>
-              <TouchableOpacity 
+            {/* Account Settings */}
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Ajustes de Perfil</Text>
+              <TouchableOpacity
                 onPress={() => {
-                  try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
+                  try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch (e) {}
                   setIsEditModalVisible(true);
-                }} 
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                }}
+                style={styles.editLink}
               >
-                <Ionicons name="create-outline" size={16} color={COLORS.primary} />
-                <Text style={{ fontSize: 11, fontWeight: 'bold', color: COLORS.primary }}>Editar Perfil</Text>
+                <Ionicons name="create-outline" size={14} color={COLORS.primary} />
+                <Text style={styles.editLinkText}>Editar Perfil</Text>
               </TouchableOpacity>
             </View>
             <Card>
               <View style={styles.settingsRow}>
-                <Ionicons name="person-outline" size={20} color={COLORS.primary} />
+                <Ionicons name="person-outline" size={18} color={COLORS.primary} />
                 <View style={styles.settingsMeta}>
                   <Text style={styles.settingsLabel}>Nombre de usuario</Text>
-                  <Text style={styles.settingsVal}>{user?.name || 'Invitado'}</Text>
+                  <Text style={styles.settingsVal}>{user?.name || 'Usuario'}</Text>
                 </View>
               </View>
               <View style={styles.settingsRow}>
-                <Ionicons name="mail-outline" size={20} color={COLORS.primary} />
+                <Ionicons name="mail-outline" size={18} color={COLORS.primary} />
                 <View style={styles.settingsMeta}>
                   <Text style={styles.settingsLabel}>Correo electrónico</Text>
-                  <Text style={styles.settingsVal}>{user?.email || 'invitado@laikaclub.com'}</Text>
+                  <Text style={styles.settingsVal}>{user?.email || 'usuario@laika.com'}</Text>
                 </View>
               </View>
               <View style={[styles.settingsRow, { borderBottomWidth: 0 }]}>
-                <Ionicons name="key-outline" size={20} color={COLORS.primary} />
+                <Ionicons name="key-outline" size={18} color={COLORS.primary} />
                 <View style={styles.settingsMeta}>
-                  <Text style={styles.settingsLabel}>Rol actual del sistema</Text>
+                  <Text style={styles.settingsLabel}>Rol en el sistema</Text>
                   <Text style={[styles.settingsVal, { textTransform: 'uppercase', color: COLORS.success }]}>
-                    {user?.role || 'usuario'} (Nivel 1)
+                    {user?.role || 'usuario'}
                   </Text>
                 </View>
+              </View>
+            </Card>
+
+            {/* Payment Method Manager */}
+            <Text style={[styles.sectionTitle, { marginTop: SPACING.sm }]}>Métodos de Pago Guardados</Text>
+            <Card>
+              {savedCard ? (
+                <View style={styles.savedCardContainer}>
+                  <View style={styles.cardHeaderRow}>
+                    <View style={styles.cardHeaderLeft}>
+                      <Ionicons name="card" size={24} color={COLORS.primary} />
+                      <Text style={styles.cardInfoBrand}>Visa •••• {savedCard.number.slice(-4)}</Text>
+                    </View>
+                    <TouchableOpacity onPress={handleRemoveCard} style={styles.deleteCardBtn}>
+                      <Ionicons name="trash-outline" size={16} color={COLORS.error} />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.cardDetailsRow}>
+                    <View>
+                      <Text style={styles.cardDetailsLabel}>TITULAR</Text>
+                      <Text style={styles.cardDetailsText}>
+                        {(savedCard.name || savedCard.holder || 'Titular de la Cuenta').toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={styles.cardDetailsLabel}>VENCE</Text>
+                      <Text style={styles.cardDetailsText}>{savedCard.expiry}</Text>
+                    </View>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.noCardContainer}>
+                  <Ionicons name="card-outline" size={32} color={COLORS.dark.textMuted} style={{ marginBottom: 4 }} />
+                  <Text style={styles.noCardTitle}>No tienes tarjetas guardadas</Text>
+                  <Text style={styles.noCardDesc}>
+                    Para guardar una tarjeta haz una compra de boletos o registra una tarjeta de pruebas aquí.
+                  </Text>
+                  <Button
+                    title="Vincular Tarjeta Demo"
+                    variant="secondary"
+                    onPress={handleRegisterDemoCard}
+                    style={{ marginTop: SPACING.md }}
+                  />
+                </View>
+              )}
+            </Card>
+
+            {/* Musical Preferences Selector */}
+            <Text style={[styles.sectionTitle, { marginTop: SPACING.sm }]}>Géneros Musicales Preferidos</Text>
+            <Card>
+              <Text style={styles.cardDesc}>
+                Selecciona tus géneros favoritos para que podamos recomendarte eventos alineados a tus gustos.
+              </Text>
+              <View style={styles.genresContainer}>
+                {AVAILABLE_GENRES.map((genre) => {
+                  const active = selectedGenres.includes(genre);
+                  return (
+                    <TouchableOpacity
+                      key={genre}
+                      style={[styles.genreTag, active && styles.genreTagActive]}
+                      onPress={() => handleToggleGenre(genre)}
+                    >
+                      <Ionicons
+                        name={active ? 'checkmark-circle' : 'add-circle-outline'}
+                        size={12}
+                        color={active ? '#FFFFFF' : COLORS.dark.textSecondary}
+                        style={{ marginRight: 4 }}
+                      />
+                      <Text style={[styles.genreTagText, active && styles.genreTagTextActive]}>
+                        {genre}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </Card>
 
@@ -238,146 +532,441 @@ export const UserProfileScreen = () => {
               style={styles.logoutBtn}
             />
           </View>
-        ) : activeTab === 'refunds' ? (
-          /* REFUNDS TAB */
+        )}
+
+        {/* TAB 2: HISTORY & REVIEWS */}
+        {activeTab === 'history' && (
           <View style={styles.tabContent}>
-            <Text style={styles.sectionTitle}>Solicitar Reembolso</Text>
-            <Card>
-              <Text style={styles.inputLabel}>Seleccionar Boleto Vigente</Text>
-              <View style={styles.pickerContainer}>
+            {/* Segmented control for history subtab */}
+            <View style={styles.subTabContainer}>
+              <TouchableOpacity
+                style={[styles.subTabBtn, historySubTab === 'tickets' && styles.subTabBtnActive]}
+                onPress={() => setHistorySubTab('tickets')}
+              >
+                <Text style={[styles.subTabText, historySubTab === 'tickets' && styles.subTabTextActive]}>
+                  Boletos ({tickets.length})
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.subTabBtn, historySubTab === 'merch' && styles.subTabBtnActive]}
+                onPress={() => setHistorySubTab('merch')}
+              >
+                <Text style={[styles.subTabText, historySubTab === 'merch' && styles.subTabTextActive]}>
+                  Bazar ({merchOrders.length})
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.subTabBtn, historySubTab === 'opinions' && styles.subTabBtnActive]}
+                onPress={() => setHistorySubTab('opinions')}
+              >
+                <Text style={[styles.subTabText, historySubTab === 'opinions' && styles.subTabTextActive]}>
+                  Calificar Eventos
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Subtab content: TICKETS */}
+            {historySubTab === 'tickets' && (
+              <View style={{ gap: SPACING.md }}>
                 {tickets.length === 0 ? (
-                  <Text style={styles.pickerPlaceholder}>No tienes boletos reembolsables</Text>
+                  <Card style={styles.emptyCard}>
+                    <Text style={styles.emptyText}>No has comprado boletos aún.</Text>
+                  </Card>
                 ) : (
                   tickets.map((t) => (
-                    <TouchableOpacity
-                      key={t.id}
-                      style={[
-                        styles.pickerItem,
-                        selectedTicketId === t.id && styles.pickerItemActive,
-                      ]}
-                      onPress={() => setSelectedTicketId(t.id)}
-                    >
-                      <Text
-                        style={[
-                          styles.pickerItemText,
-                          selectedTicketId === t.id && styles.pickerItemTextActive,
-                        ]}
-                      >
-                        {t.event_title} ({t.seat_label})
-                      </Text>
-                    </TouchableOpacity>
+                    <Card key={t.id} style={styles.ticketHistoryCard}>
+                      <View style={styles.ticketHistoryHeader}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.ticketEventTitle} numberOfLines={1}>{t.event_title || t.event_name || t.eventName || 'Espectáculo'}</Text>
+                          <Text style={styles.ticketVenue}>{t.venue_name || t.venue || 'Recinto Central'}</Text>
+                        </View>
+                        <Text style={[
+                          styles.ticketStatusText,
+                          t.status === 'valid' ? styles.statusValid :
+                          t.status === 'used' ? styles.statusUsed : styles.statusRefunded
+                        ]}>
+                          {t.status === 'valid' ? 'VIGENTE' :
+                           t.status === 'used' ? 'CANJEADO' : 'REEMBOLSADO'}
+                        </Text>
+                      </View>
+                      <View style={styles.ticketMetaGrid}>
+                        <View>
+                          <Text style={styles.metaLabel}>FECHA Y HORA</Text>
+                          <Text style={styles.metaText}>{(t.date || t.event_date || 'Fecha')} | {(t.time || t.event_time || 'N/A')}</Text>
+                        </View>
+                        <View style={{ alignItems: 'flex-end' }}>
+                          <Text style={styles.metaLabel}>ASIENTO</Text>
+                          <Text style={styles.metaText}>{t.seat_label || t.seat_id || 'N/A'}</Text>
+                        </View>
+                      </View>
+                      {t.status === 'valid' && (
+                        <Button
+                          title="Ver Código QR Acceso"
+                          variant="secondary"
+                          icon={<Ionicons name="qr-code-outline" size={14} color="#FFFFFF" />}
+                          onPress={() => {
+                            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
+                            setSelectedTicketForQR(t);
+                            setIsQRModalVisible(true);
+                          }}
+                          style={{ marginTop: SPACING.sm }}
+                        />
+                      )}
+                    </Card>
                   ))
                 )}
               </View>
+            )}
 
-              <Text style={[styles.inputLabel, { marginTop: SPACING.md }]}>Motivo de la Devolución</Text>
-              <TextInput
-                style={styles.textArea}
-                multiline
-                numberOfLines={3}
-                placeholder="Explica detalladamente el motivo por el cual solicitas el reembolso..."
-                placeholderTextColor={COLORS.dark.textMuted}
-                value={refundReason}
-                onChangeText={setRefundReason}
-              />
+            {/* Subtab content: BAZAR SOUVENIRS */}
+            {historySubTab === 'merch' && (
+              <View style={{ gap: SPACING.md }}>
+                {merchOrders.length === 0 ? (
+                  <Card style={styles.emptyCard}>
+                    <Text style={styles.emptyText}>No tienes pedidos del Bazar.</Text>
+                  </Card>
+                ) : (
+                  merchOrders.map((ord) => (
+                    <Card key={ord.id} style={styles.orderCard}>
+                      <View style={styles.orderHeader}>
+                        <Text style={styles.orderId}>Código: {ord.id}</Text>
+                        <View style={[
+                          styles.orderStatusBadge,
+                          ord.status === 'delivered' ? styles.orderStatusDelivered : styles.orderStatusPreparing
+                        ]}>
+                          <Text style={styles.orderStatusText}>
+                            {ord.status === 'delivered' ? 'ENTREGADO' : 'PREPARANDO'}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.orderDate}>Fecha: {new Date(ord.purchased_at).toLocaleDateString()}</Text>
 
+                      {ord.items.map((it, index) => (
+                        <View key={index} style={styles.orderItemRow}>
+                          <Image source={{ uri: it.image }} style={styles.orderItemThumb} />
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.orderItemTitle}>{it.title}</Text>
+                            <Text style={styles.orderItemQuantity}>Cantidad: {it.quantity} | ${it.price} c/u</Text>
+                          </View>
+                          <Text style={styles.orderItemSubtotal}>${it.price * it.quantity}</Text>
+                        </View>
+                      ))}
+
+                      <View style={styles.orderFooter}>
+                        <Text style={styles.orderTotalLabel}>TOTAL DE COMPRA</Text>
+                        <Text style={styles.orderTotalVal}>${ord.total}</Text>
+                      </View>
+                    </Card>
+                  ))
+                )}
+              </View>
+            )}
+
+            {/* Subtab content: CALIFICAR EVENTOS (LOCKED TO PURCHASERS) */}
+            {historySubTab === 'opinions' && (
+              <View style={{ gap: SPACING.md }}>
+                <Text style={styles.cardDesc}>
+                  Únicamente las personas que compraron boletos para un concierto y ya asistieron pueden calificar y dejar su opinión pública.
+                </Text>
+
+                {/* Submit new review section */}
+                <Card style={{ gap: SPACING.sm }}>
+                  <Text style={styles.inputLabel}>Seleccionar Evento Comprado</Text>
+                  <View style={styles.pickerContainer}>
+                    {tickets.length === 0 ? (
+                      <Text style={styles.pickerPlaceholder}>No has comprado boletos para ningún evento</Text>
+                    ) : (
+                      tickets.map((t) => (
+                        <TouchableOpacity
+                          key={t.id}
+                          style={[
+                            styles.pickerItem,
+                            reviewEventId === t.event_id && styles.pickerItemActive,
+                          ]}
+                          onPress={() => {
+                            setReviewEventId(t.event_id);
+                            setReviewEventTitle(t.event_title);
+                          }}
+                        >
+                          <Text
+                            style={[
+                              styles.pickerItemText,
+                              reviewEventId === t.event_id && styles.pickerItemTextActive,
+                            ]}
+                          >
+                            {t.event_title} ({t.seat_label})
+                          </Text>
+                        </TouchableOpacity>
+                      ))
+                    )}
+                  </View>
+
+                  {/* Star Rating Grid */}
+                  <Text style={[styles.inputLabel, { marginTop: SPACING.sm }]}>Calificación del Evento</Text>
+                  <View style={styles.ratingStarsRow}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <TouchableOpacity
+                        key={star}
+                        onPress={() => {
+                          try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
+                          setReviewRating(star);
+                        }}
+                      >
+                        <Ionicons
+                          name={star <= reviewRating ? 'star' : 'star-outline'}
+                          size={28}
+                          color={star <= reviewRating ? COLORS.success : COLORS.dark.textMuted}
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  {/* Comment input */}
+                  <Text style={[styles.inputLabel, { marginTop: SPACING.sm }]}>Comentario / Opinión</Text>
+                  <TextInput
+                    style={styles.textArea}
+                    multiline
+                    numberOfLines={3}
+                    placeholder="Comparte tu experiencia acerca del show, audio del recinto, organización..."
+                    placeholderTextColor={COLORS.dark.textMuted}
+                    value={reviewComment}
+                    onChangeText={setReviewComment}
+                  />
+
+                  <Button
+                    title="Publicar Calificación"
+                    disabled={tickets.length === 0 || !reviewEventId}
+                    onPress={handleSubmitReview}
+                    style={{ marginTop: SPACING.sm }}
+                  />
+                </Card>
+
+                {/* Opinions history list */}
+                <Text style={[styles.sectionTitle, { marginTop: SPACING.sm }]}>Mis Opiniones Enviadas</Text>
+                {opinions.length === 0 ? (
+                  <Card style={styles.emptyCard}>
+                    <Text style={styles.emptyText}>No has enviado ninguna opinión aún.</Text>
+                  </Card>
+                ) : (
+                  opinions.map((op) => (
+                    <Card key={op.id} style={styles.opinionHistoryCard}>
+                      <View style={styles.opinionHeaderRow}>
+                        <Text style={styles.opinionEvent} numberOfLines={1}>{op.event_title}</Text>
+                        <View style={styles.opinionStars}>
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Ionicons
+                              key={star}
+                              name={star <= op.rating ? 'star' : 'star-outline'}
+                              size={10}
+                              color={star <= op.rating ? COLORS.success : COLORS.dark.textMuted}
+                            />
+                          ))}
+                        </View>
+                      </View>
+                      <Text style={styles.opinionComment}>"{op.comment}"</Text>
+                      <Text style={styles.opinionMeta}>Enviado el: {new Date(op.created_at).toLocaleDateString()}</Text>
+                    </Card>
+                  ))
+                )}
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* TAB 3: EXPLORE & RECOMMENDATIONS */}
+        {activeTab === 'explore' && (
+          <View style={styles.tabContent}>
+            {/* Followed Artists */}
+            <Text style={styles.sectionTitle}>Artistas que sigo</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.artistsScrollContainer}>
+              {artists.map((art) => (
+                <View key={art.id} style={styles.artistCard}>
+                  <Image source={{ uri: art.image }} style={styles.artistThumb} />
+                  <Text style={styles.artistName}>{art.name}</Text>
+                  <Text style={styles.artistGenre}>{art.genre}</Text>
+                  
+                  {art.upcomingShow && art.isFollowing && (
+                    <View style={styles.alertTourBadge}>
+                      <Text style={styles.alertTourText}>¡De Gira!</Text>
+                    </View>
+                  )}
+
+                  <TouchableOpacity
+                    style={[styles.artistFollowBtn, art.isFollowing && styles.artistFollowBtnActive]}
+                    onPress={() => handleToggleFollowArtist(art.id)}
+                  >
+                    <Ionicons
+                      name={art.isFollowing ? 'checkmark-done-circle' : 'add-outline'}
+                      size={12}
+                      color={art.isFollowing ? COLORS.success : '#FFFFFF'}
+                    />
+                    <Text style={[styles.artistFollowText, art.isFollowing && styles.artistFollowTextActive]}>
+                      {art.isFollowing ? 'Siguiendo' : 'Seguir'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+
+            {/* Recommended Concerts (Matching genres or followed artists) */}
+            <Text style={[styles.sectionTitle, { marginTop: SPACING.sm }]}>
+              Recomendados para ti ({recommendedEvents.length})
+            </Text>
+            {recommendedEvents.length === 0 ? (
+              <Card style={styles.emptyCard}>
+                <Text style={styles.emptyText}>
+                  Selecciona más géneros musicales en tus Ajustes o sigue artistas para recibir recomendaciones personalizadas.
+                </Text>
+              </Card>
+            ) : (
+              recommendedEvents.map((ev) => (
+                <TouchableOpacity
+                  key={ev.id}
+                  style={styles.recomCard}
+                  activeOpacity={0.9}
+                  onPress={() => router.push(`/(tabs)/index` as any)} // Goes back to explore
+                >
+                  <Image source={{ uri: ev.image }} style={styles.recomImage} />
+                  <View style={styles.recomMetaContainer}>
+                    <View style={{ flex: 1 }}>
+                      <View style={styles.recomCategoryRow}>
+                        <Text style={styles.recomCategory}>{ev.category}</Text>
+                        <Text style={styles.recomDate}>{ev.date}</Text>
+                      </View>
+                      <Text style={styles.recomTitle} numberOfLines={1}>{ev.title}</Text>
+                      <Text style={styles.recomVenue}>{ev.venue}</Text>
+                    </View>
+                    <View style={styles.recomPriceBadge}>
+                      <Text style={styles.recomPriceLabel}>DESDE</Text>
+                      <Text style={styles.recomPriceVal}>${ev.price}</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
+          </View>
+        )}
+
+        {/* TAB 4: BENEFITS & COUPONS */}
+        {activeTab === 'benefits' && (
+          <View style={styles.tabContent}>
+            {/* Active coupons list */}
+            <Text style={styles.sectionTitle}>Mis Cupones de Descuento</Text>
+            {coupons.length === 0 ? (
+              <Card style={styles.emptyCard}>
+                <Text style={styles.emptyText}>No tienes cupones de descuento disponibles.</Text>
+              </Card>
+            ) : (
+              coupons.map((c) => (
+                <View key={c.code} style={styles.couponTicket}>
+                  <View style={styles.couponLeft}>
+                    <Text style={styles.couponDisc}>{c.discount}%</Text>
+                    <Text style={styles.couponDiscSub}>OFF</Text>
+                  </View>
+                  <View style={styles.couponMiddle}>
+                    <Text style={styles.couponCode}>{c.code}</Text>
+                    <Text style={styles.couponDescrip}>{c.description}</Text>
+                    <Text style={styles.couponExpiry}>Expira: {c.expiry}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => handleCopyCoupon(c.code)} style={styles.couponCopyBtn}>
+                    <Ionicons name="copy-outline" size={18} color={COLORS.primary} />
+                  </TouchableOpacity>
+                </View>
+              ))
+            )}
+
+            {/* Flash Deals / Special Promos */}
+            <Text style={[styles.sectionTitle, { marginTop: SPACING.sm }]}>Ofertas Relámpago y Promociones</Text>
+            <Card style={styles.dealCard}>
+              <View style={styles.dealHeaderRow}>
+                <View style={styles.dealHeaderBadge}>
+                  <Text style={styles.dealBadgeText}>OFERTA 2X1</Text>
+                </View>
+                <Text style={styles.dealExpiryText}>Expira en 4h</Text>
+              </View>
+              <Text style={styles.dealTitle}>Doble Diversión en Electrónica</Text>
+              <Text style={styles.dealDesc}>
+                Compra 1 boleto para Steve Aoki - Neon Party en zona general y recibe el segundo completamente gratis. ¡Promoción por tiempo limitado!
+              </Text>
               <Button
-                title="Enviar Solicitud"
-                disabled={tickets.length === 0}
-                onPress={handleRequestRefund}
+                title="Aprovechar 2x1"
+                variant="primary"
+                onPress={() => router.push('/(tabs)/index' as any)}
                 style={{ marginTop: SPACING.md }}
               />
             </Card>
 
-            {/* Refund History */}
-            <Text style={[styles.sectionTitle, { marginTop: SPACING.md }]}>
-              Historial de Solicitudes ({refunds.length})
-            </Text>
-            {refunds.length === 0 ? (
-              <Card style={styles.emptyCard}>
-                <Text style={styles.emptyText}>No tienes reembolsos solicitados.</Text>
-              </Card>
-            ) : (
-              refunds.map((ref) => (
-                <Card key={ref.id} style={styles.refundHistoryCard}>
-                  <View style={styles.refundHistoryHeader}>
-                    <Text style={styles.refundHistoryEvent} numberOfLines={1}>{ref.event_title}</Text>
-                    <Text style={[
-                      styles.refundStatus,
-                      ref.status === 'approved' ? styles.statusApproved :
-                      ref.status === 'rejected' ? styles.statusRejected : styles.statusPending
-                    ]}>
-                      {ref.status === 'approved' ? 'APROBADO' :
-                       ref.status === 'rejected' ? 'RECHAZADO' : 'PENDIENTE'}
-                    </Text>
+            {/* Notifications Inbox */}
+            <Text style={[styles.sectionTitle, { marginTop: SPACING.sm }]}>Bandeja de Notificaciones</Text>
+            <Card>
+              {notifications.map((not) => (
+                <View key={not.id} style={styles.notificationRow}>
+                  <View style={styles.notHeaderRow}>
+                    <View style={styles.notTitleWrapper}>
+                      {!not.read && <View style={styles.unreadDot} />}
+                      <Text style={[styles.notTitle, !not.read && styles.notTitleUnread]}>{not.title}</Text>
+                    </View>
+                    <Text style={styles.notTime}>{not.time}</Text>
                   </View>
-                  <Text style={styles.refundHistoryReason}>Motivo: {ref.reason}</Text>
-                  <Text style={styles.refundHistoryMeta}>Código: {ref.ticket_code} | {new Date(ref.requested_at).toLocaleDateString()}</Text>
-                </Card>
-              ))
-            )}
-          </View>
-        ) : (
-          /* SECURITY / PROMOTION TAB */
-          <View style={styles.tabContent}>
-            <Text style={styles.sectionTitle}>Solicitar Ascenso de Permisos</Text>
-            <Card style={{ gap: SPACING.md }}>
-              <Text style={styles.cardDesc}>
-                ¿Eres miembro del staff de puerta o coordinador técnico? Solicita una elevación de privilegios al Administrador del sistema.
-              </Text>
-              
-              <View>
-                <Text style={styles.inputLabel}>Seleccionar Rol Solicitado</Text>
-                <View style={styles.rolePickerRow}>
-                  <TouchableOpacity
-                    style={[
-                      styles.roleOption,
-                      selectedRole === 'operador' && styles.roleOptionActive,
-                    ]}
-                    onPress={() => setSelectedRole('operador')}
-                  >
-                    <Ionicons name="shield-outline" size={18} color={selectedRole === 'operador' ? '#FFFFFF' : COLORS.dark.textSecondary} />
-                    <Text style={[styles.roleOptionText, selectedRole === 'operador' && styles.roleOptionTextActive]}>
-                      Operador Staff
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.roleOption,
-                      selectedRole === 'gestor' && styles.roleOptionActive,
-                    ]}
-                    onPress={() => setSelectedRole('gestor')}
-                  >
-                    <Ionicons name="calendar-outline" size={18} color={selectedRole === 'gestor' ? '#FFFFFF' : COLORS.dark.textSecondary} />
-                    <Text style={[styles.roleOptionText, selectedRole === 'gestor' && styles.roleOptionTextActive]}>
-                      Gestor Organizador
-                    </Text>
-                  </TouchableOpacity>
+                  <Text style={styles.notBody}>{not.body}</Text>
                 </View>
-              </View>
-
-              <View>
-                <Text style={styles.inputLabel}>Justificación / Motivo del Cambio</Text>
-                <TextInput
-                  style={styles.textArea}
-                  multiline
-                  numberOfLines={4}
-                  placeholder="Detalla tu clave de empleado, recinto asignado o justificación..."
-                  placeholderTextColor={COLORS.dark.textMuted}
-                  value={promotionReason}
-                  onChangeText={setPromotionReason}
-                />
-              </View>
-
-              <Button
-                title="Enviar Postulación"
-                onPress={handleRequestPromotion}
-              />
+              ))}
             </Card>
           </View>
         )}
       </ScrollView>
+
+      {/* Ticket QR Modal */}
+      {selectedTicketForQR && (
+        <Modal
+          visible={isQRModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setIsQRModalVisible(false)}
+        >
+          <Pressable style={styles.modalOverlay} onPress={() => setIsQRModalVisible(false)}>
+            <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Boleto Digital Acceso</Text>
+                <TouchableOpacity onPress={() => setIsQRModalVisible(false)}>
+                  <Ionicons name="close-circle" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.qrContainer}>
+                <Text style={styles.qrEventTitle}>{selectedTicketForQR.event_title || selectedTicketForQR.event_name || selectedTicketForQR.eventName || 'Espectáculo'}</Text>
+                <Text style={styles.qrVenue}>{selectedTicketForQR.venue_name || selectedTicketForQR.venue || 'Recinto Central'}</Text>
+                
+                {/* Simulated QR Code structure */}
+                <View style={styles.qrBox}>
+                  <Ionicons name="qr-code" size={160} color="#070a13" />
+                  <View style={styles.qrScannerHelper} />
+                </View>
+
+                <View style={styles.qrMetaRow}>
+                  <View>
+                    <Text style={styles.qrMetaLabel}>ASIENTO</Text>
+                    <Text style={styles.qrMetaVal}>{selectedTicketForQR.seat_label || selectedTicketForQR.seat_id || 'N/A'}</Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={styles.qrMetaLabel}>CÓDIGO</Text>
+                    <Text style={styles.qrMetaVal}>{selectedTicketForQR.ticket_code}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.instructionBox}>
+                  <Ionicons name="information-circle-outline" size={16} color={COLORS.primary} />
+                  <Text style={styles.instructionText}>
+                    Presenta este código en el escáner del recinto. Se recomienda brillo de pantalla al máximo.
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </Pressable>
+        </Modal>
+      )}
+
+      {/* Edit Profile Modal */}
       <EditProfileModal visible={isEditModalVisible} onClose={() => setIsEditModalVisible(false)} />
     </View>
   );
@@ -442,6 +1031,21 @@ const styles = StyleSheet.create({
     color: COLORS.dark.textSecondary,
     marginTop: 2,
   },
+  loyaltyBadgeSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: BORDER_RADIUS.round,
+    gap: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+  },
+  loyaltyTextSmall: {
+    fontSize: 9,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    textTransform: 'uppercase',
+  },
   tabsRow: {
     flexDirection: 'row',
     borderTopWidth: 1,
@@ -451,15 +1055,18 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     alignItems: 'center',
+    justifyContent: 'center',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
+    flexDirection: 'column',
+    gap: 3,
   },
   tabBtnActive: {
     borderBottomColor: COLORS.primary,
   },
   tabText: {
     color: COLORS.dark.textSecondary,
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: TYPOGRAPHY.fontWeights.medium,
   },
   tabTextActive: {
@@ -468,16 +1075,106 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     padding: SPACING.md,
-    paddingBottom: SPACING.lg,
+    paddingBottom: SPACING.xl * 2,
   },
   tabContent: {
     gap: SPACING.md,
+  },
+  loyaltyCard: {
+    backgroundColor: '#0f1424',
+    borderColor: '#1e294b',
+    borderWidth: 1,
+    marginBottom: SPACING.md,
+  },
+  loyaltyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    marginBottom: SPACING.sm,
+  },
+  loyaltyIconBg: {
+    width: 42,
+    height: 42,
+    borderRadius: BORDER_RADIUS.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loyaltyLabel: {
+    fontSize: 8,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: COLORS.primary,
+    letterSpacing: 0.5,
+  },
+  loyaltyTitle: {
+    fontSize: TYPOGRAPHY.fontSizes.md - 1,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: '#FFFFFF',
+    marginTop: 1,
+  },
+  loyaltyCountBadge: {
+    backgroundColor: '#1e294b',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  loyaltyCountText: {
+    fontSize: 9,
+    color: '#FFFFFF',
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+  },
+  loyaltyDesc: {
+    fontSize: 10,
+    color: COLORS.dark.textSecondary,
+    lineHeight: 14,
+    marginBottom: SPACING.md,
+  },
+  progressBarWrapper: {
+    marginTop: SPACING.xs,
+  },
+  progressTextRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  progressLabel: {
+    fontSize: 9,
+    color: COLORS.dark.textMuted,
+  },
+  progressVal: {
+    fontSize: 9,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: '#FFFFFF',
+  },
+  progressBarBg: {
+    height: 6,
+    backgroundColor: '#151c2c',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   sectionTitle: {
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
     color: COLORS.dark.textSecondary,
     textTransform: 'uppercase',
+  },
+  editLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  editLinkText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: COLORS.primary,
   },
   settingsRow: {
     flexDirection: 'row',
@@ -503,8 +1200,265 @@ const styles = StyleSheet.create({
   logoutBtn: {
     marginTop: SPACING.sm,
   },
-  inputLabel: {
+  savedCardContainer: {
+    padding: SPACING.xs,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  cardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  cardInfoBrand: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+  },
+  deleteCardBtn: {
+    padding: 4,
+  },
+  cardDetailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardDetailsLabel: {
+    fontSize: 7,
+    color: COLORS.dark.textMuted,
+    letterSpacing: 0.5,
+  },
+  cardDetailsText: {
     fontSize: 10,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: '#FFFFFF',
+    marginTop: 2,
+  },
+  noCardContainer: {
+    alignItems: 'center',
+    paddingVertical: SPACING.md,
+  },
+  noCardTitle: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    marginTop: 4,
+  },
+  noCardDesc: {
+    fontSize: 9,
+    color: COLORS.dark.textMuted,
+    textAlign: 'center',
+    marginTop: 2,
+    paddingHorizontal: SPACING.lg,
+    lineHeight: 12,
+  },
+  cardDesc: {
+    fontSize: 10,
+    color: COLORS.dark.textSecondary,
+    lineHeight: 14,
+  },
+  genresContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
+    marginTop: SPACING.sm,
+  },
+  genreTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#151c2c',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: BORDER_RADIUS.round,
+  },
+  genreTagActive: {
+    backgroundColor: COLORS.primary,
+  },
+  genreTagText: {
+    fontSize: 10,
+    color: COLORS.dark.textSecondary,
+  },
+  genreTagTextActive: {
+    color: '#FFFFFF',
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+  },
+  subTabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#0b0f19',
+    borderRadius: BORDER_RADIUS.md,
+    padding: 4,
+    gap: 4,
+  },
+  subTabBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  subTabBtnActive: {
+    backgroundColor: '#151c2c',
+  },
+  subTabText: {
+    fontSize: 10,
+    color: COLORS.dark.textSecondary,
+    fontWeight: TYPOGRAPHY.fontWeights.medium,
+  },
+  subTabTextActive: {
+    color: '#FFFFFF',
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+  },
+  emptyCard: {
+    padding: SPACING.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 10,
+    color: COLORS.dark.textMuted,
+    textAlign: 'center',
+    lineHeight: 14,
+  },
+  ticketHistoryCard: {
+    backgroundColor: '#101625',
+  },
+  ticketHistoryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    borderBottomWidth: 1,
+    borderColor: '#1e293b',
+    paddingBottom: SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
+  ticketEventTitle: {
+    fontSize: 12,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: '#FFFFFF',
+  },
+  ticketVenue: {
+    fontSize: 9,
+    color: COLORS.dark.textSecondary,
+    marginTop: 2,
+  },
+  ticketStatusText: {
+    fontSize: 8,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  statusValid: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    color: COLORS.success,
+  },
+  statusUsed: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    color: COLORS.dark.textMuted,
+  },
+  statusRefunded: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    color: COLORS.error,
+  },
+  ticketMetaGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  metaLabel: {
+    fontSize: 7,
+    color: COLORS.dark.textMuted,
+  },
+  metaText: {
+    fontSize: 10,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: '#FFFFFF',
+    marginTop: 1,
+  },
+  orderCard: {
+    backgroundColor: '#101625',
+  },
+  orderHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  orderId: {
+    fontSize: 11,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: '#FFFFFF',
+  },
+  orderStatusBadge: {
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  orderStatusPreparing: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+  },
+  orderStatusDelivered: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+  },
+  orderStatusText: {
+    fontSize: 8,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: '#FFFFFF',
+  },
+  orderDate: {
+    fontSize: 9,
+    color: COLORS.dark.textMuted,
+    marginBottom: SPACING.md,
+  },
+  orderItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderBottomWidth: 1,
+    borderColor: '#1e293b',
+  },
+  orderItemThumb: {
+    width: 32,
+    height: 32,
+    borderRadius: BORDER_RADIUS.sm,
+    backgroundColor: '#1e293b',
+  },
+  orderItemTitle: {
+    fontSize: 10,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: '#FFFFFF',
+  },
+  orderItemQuantity: {
+    fontSize: 8,
+    color: COLORS.dark.textSecondary,
+    marginTop: 1,
+  },
+  orderItemSubtotal: {
+    fontSize: 10,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: '#FFFFFF',
+  },
+  orderFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: SPACING.sm,
+  },
+  orderTotalLabel: {
+    fontSize: 9,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: COLORS.dark.textSecondary,
+  },
+  orderTotalVal: {
+    fontSize: 12,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: COLORS.primary,
+  },
+  inputLabel: {
+    fontSize: 9,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
     color: COLORS.dark.textSecondary,
     marginBottom: SPACING.xs,
@@ -525,7 +1479,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
   },
   pickerItemActive: {
-    backgroundColor: `${COLORS.primary}20`,
+    backgroundColor: 'rgba(79, 70, 229, 0.15)',
     borderColor: COLORS.primary,
     borderWidth: 1,
   },
@@ -537,96 +1491,423 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
+  ratingStarsRow: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    marginVertical: SPACING.xs,
+  },
   textArea: {
     backgroundColor: '#151c2c',
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.sm,
     color: '#FFFFFF',
-    fontSize: 11,
-    minHeight: 80,
+    fontSize: 10,
+    minHeight: 65,
     textAlignVertical: 'top',
   },
-  emptyCard: {
-    padding: SPACING.md,
-    alignItems: 'center',
+  opinionHistoryCard: {
+    backgroundColor: '#101625',
   },
-  emptyText: {
-    fontSize: 10,
-    color: COLORS.dark.textMuted,
-  },
-  refundHistoryCard: {
-    marginBottom: SPACING.xs,
-  },
-  refundHistoryHeader: {
+  opinionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  refundHistoryEvent: {
+  opinionEvent: {
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
     color: '#FFFFFF',
     flex: 1,
   },
-  refundStatus: {
-    fontSize: 8,
-    fontWeight: TYPOGRAPHY.fontWeights.bold,
-    paddingVertical: 1,
-    paddingHorizontal: 6,
-    borderRadius: BORDER_RADIUS.sm,
+  opinionStars: {
+    flexDirection: 'row',
+    gap: 2,
   },
-  statusApproved: {
-    backgroundColor: `${COLORS.success}20`,
-    color: COLORS.success,
-  },
-  statusRejected: {
-    backgroundColor: `${COLORS.error}20`,
-    color: COLORS.error,
-  },
-  statusPending: {
-    backgroundColor: '#3b82f620',
-    color: '#3b82f6',
-  },
-  refundHistoryReason: {
+  opinionComment: {
     fontSize: 10,
     color: COLORS.dark.textSecondary,
-    marginTop: 4,
+    fontStyle: 'italic',
+    marginTop: SPACING.xs,
   },
-  refundHistoryMeta: {
+  opinionMeta: {
     fontSize: 8,
     color: COLORS.dark.textMuted,
-    marginTop: 2,
+    marginTop: 4,
   },
-  cardDesc: {
-    fontSize: 10,
-    color: COLORS.dark.textSecondary,
-    lineHeight: 14,
-  },
-  rolePickerRow: {
-    flexDirection: 'row',
+  artistsScrollContainer: {
     gap: SPACING.sm,
   },
-  roleOption: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: '#151c2c',
+  artistCard: {
+    width: 100,
+    backgroundColor: '#0b0f19',
     borderRadius: BORDER_RADIUS.md,
-    paddingVertical: SPACING.sm,
+    padding: SPACING.sm,
+    alignItems: 'center',
+    borderColor: '#151c2c',
+    borderWidth: 1,
+    position: 'relative',
   },
-  roleOptionActive: {
-    backgroundColor: COLORS.primary,
+  artistThumb: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#151c2c',
+    marginBottom: SPACING.xs,
   },
-  roleOptionText: {
+  artistName: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
-    fontWeight: TYPOGRAPHY.fontWeights.medium,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
-  roleOptionTextActive: {
+  artistGenre: {
+    fontSize: 8,
+    color: COLORS.dark.textMuted,
+    marginTop: 1,
+  },
+  alertTourBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: COLORS.primary,
+    borderRadius: 4,
+    paddingVertical: 1,
+    paddingHorizontal: 4,
+  },
+  alertTourText: {
+    fontSize: 6,
     color: '#FFFFFF',
     fontWeight: TYPOGRAPHY.fontWeights.bold,
+  },
+  artistFollowBtn: {
+    marginTop: SPACING.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#151c2c',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  artistFollowBtnActive: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+  },
+  artistFollowText: {
+    fontSize: 8,
+    color: '#FFFFFF',
+  },
+  artistFollowTextActive: {
+    color: COLORS.success,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+  },
+  recomCard: {
+    backgroundColor: '#0b0f19',
+    borderRadius: BORDER_RADIUS.md,
+    overflow: 'hidden',
+    borderColor: '#151c2c',
+    borderWidth: 1,
+    marginBottom: SPACING.sm,
+  },
+  recomImage: {
+    width: '100%',
+    height: 100,
+    backgroundColor: '#151c2c',
+  },
+  recomMetaContainer: {
+    flexDirection: 'row',
+    padding: SPACING.sm,
+    alignItems: 'center',
+  },
+  recomCategoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  recomCategory: {
+    fontSize: 8,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: COLORS.primary,
+    textTransform: 'uppercase',
+  },
+  recomDate: {
+    fontSize: 8,
+    color: COLORS.dark.textMuted,
+  },
+  recomTitle: {
+    fontSize: 11,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: '#FFFFFF',
+    marginTop: 2,
+  },
+  recomVenue: {
+    fontSize: 8,
+    color: COLORS.dark.textSecondary,
+    marginTop: 1,
+  },
+  recomPriceBadge: {
+    backgroundColor: '#151c2c',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: BORDER_RADIUS.sm,
+    alignItems: 'center',
+  },
+  recomPriceLabel: {
+    fontSize: 6,
+    color: COLORS.dark.textMuted,
+  },
+  recomPriceVal: {
+    fontSize: 10,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: '#FFFFFF',
+  },
+  couponTicket: {
+    flexDirection: 'row',
+    backgroundColor: '#0f1424',
+    borderColor: '#1e294b',
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.md,
+    overflow: 'hidden',
+    marginBottom: SPACING.xs,
+  },
+  couponLeft: {
+    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+    width: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRightWidth: 1,
+    borderColor: 'rgba(79, 70, 229, 0.2)',
+    borderStyle: 'dashed',
+  },
+  couponDisc: {
+    fontSize: 16,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: COLORS.primary,
+  },
+  couponDiscSub: {
+    fontSize: 8,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: COLORS.primary,
+  },
+  couponMiddle: {
+    flex: 1,
+    padding: SPACING.sm,
+  },
+  couponCode: {
+    fontSize: 12,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: '#FFFFFF',
+  },
+  couponDescrip: {
+    fontSize: 9,
+    color: COLORS.dark.textSecondary,
+    marginTop: 2,
+  },
+  couponExpiry: {
+    fontSize: 7,
+    color: COLORS.dark.textMuted,
+    marginTop: 4,
+  },
+  couponCopyBtn: {
+    paddingHorizontal: SPACING.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dealCard: {
+    backgroundColor: '#181124',
+    borderColor: '#37185e',
+    borderWidth: 1,
+  },
+  dealHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.xs,
+  },
+  dealHeaderBadge: {
+    backgroundColor: COLORS.error,
+    borderRadius: BORDER_RADIUS.sm,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+  },
+  dealBadgeText: {
+    fontSize: 8,
+    color: '#FFFFFF',
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+  },
+  dealExpiryText: {
+    fontSize: 8,
+    color: COLORS.dark.textMuted,
+  },
+  dealTitle: {
+    fontSize: 11,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: '#FFFFFF',
+  },
+  dealDesc: {
+    fontSize: 9,
+    color: COLORS.dark.textSecondary,
+    lineHeight: 13,
+    marginTop: 2,
+  },
+  notificationRow: {
+    paddingVertical: SPACING.sm,
+    borderBottomWidth: 1,
+    borderColor: '#151c2c',
+  },
+  notHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  notTitleWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  unreadDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.primary,
+  },
+  notTitle: {
+    fontSize: 10,
+    color: COLORS.dark.textSecondary,
+  },
+  notTitleUnread: {
+    color: '#FFFFFF',
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+  },
+  notTime: {
+    fontSize: 8,
+    color: COLORS.dark.textMuted,
+  },
+  notBody: {
+    fontSize: 9,
+    color: COLORS.dark.textMuted,
+    marginTop: 2,
+    lineHeight: 12,
+  },
+  guestContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SPACING.xl,
+    backgroundColor: '#070a13',
+  },
+  guestTitle: {
+    fontSize: TYPOGRAPHY.fontSizes.lg,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: '#FFFFFF',
+    marginBottom: SPACING.sm,
+  },
+  guestDesc: {
+    fontSize: TYPOGRAPHY.fontSizes.sm - 1,
+    color: COLORS.dark.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: SPACING.xl,
+    paddingHorizontal: SPACING.md,
+  },
+  guestBtn: {
+    width: '100%',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SPACING.xl,
+  },
+  modalContent: {
+    backgroundColor: '#0b0f19',
+    borderRadius: BORDER_RADIUS.lg,
+    width: '100%',
+    maxWidth: 320,
+    borderColor: '#1e294b',
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#0f1424',
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    borderBottomWidth: 1,
+    borderColor: '#1e294b',
+  },
+  modalTitle: {
+    fontSize: 12,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: '#FFFFFF',
+  },
+  qrContainer: {
+    padding: SPACING.lg,
+    alignItems: 'center',
+  },
+  qrEventTitle: {
+    fontSize: 14,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
+  qrVenue: {
+    fontSize: 10,
+    color: COLORS.dark.textSecondary,
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  qrBox: {
+    backgroundColor: '#FFFFFF',
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    marginVertical: SPACING.lg,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  qrScannerHelper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: COLORS.primary,
+    opacity: 0.7,
+  },
+  qrMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    borderTopWidth: 1,
+    borderColor: '#151c2c',
+    paddingTop: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  qrMetaLabel: {
+    fontSize: 7,
+    color: COLORS.dark.textMuted,
+  },
+  qrMetaVal: {
+    fontSize: 11,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: '#FFFFFF',
+    marginTop: 2,
+  },
+  instructionBox: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(79, 70, 229, 0.05)',
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.sm,
+    gap: SPACING.sm,
+    alignItems: 'flex-start',
+  },
+  instructionText: {
+    fontSize: 8.5,
+    color: COLORS.dark.textSecondary,
+    flex: 1,
+    lineHeight: 12,
   },
 });
 

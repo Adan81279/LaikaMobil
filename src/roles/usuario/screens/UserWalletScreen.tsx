@@ -15,18 +15,27 @@ import Card from '../../../components/Card';
 import Loader from '../../../components/Loader';
 import Button from '../../../components/Button';
 import * as Haptics from 'expo-haptics';
+import { useAuth } from '../../../context/AuthContext';
+import { useRouter } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 
 export const UserWalletScreen = () => {
+  const { user } = useAuth();
+  const router = useRouter();
+  const isFocused = useIsFocused();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
   const [qrModalVisible, setQrModalVisible] = useState(false);
 
   useEffect(() => {
-    fetchTickets();
-  }, []);
+    if (isFocused && user) {
+      fetchTickets();
+    }
+  }, [isFocused, user]);
 
   const fetchTickets = async () => {
+    if (!user) return;
     setLoading(true);
     try {
       const data = await usuarioService.getMyTickets();
@@ -37,6 +46,25 @@ export const UserWalletScreen = () => {
       setLoading(false);
     }
   };
+
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.guestContainer}>
+          <Ionicons name="wallet-outline" size={80} color={COLORS.dark.textMuted} style={{ marginBottom: SPACING.md }} />
+          <Text style={styles.guestTitle}>Mi Wallet Laika Club</Text>
+          <Text style={styles.guestDesc}>
+            Inicia sesión o regístrate para poder visualizar tus boletos comprados, generar tus códigos QR y acceder sin conexión a los eventos.
+          </Text>
+          <Button
+            title="Iniciar Sesión / Registrarse"
+            onPress={() => router.replace('/(auth)/login' as any)}
+            style={styles.guestBtn}
+          />
+        </View>
+      </View>
+    );
+  }
 
   const handleOpenTicket = (ticket: Ticket) => {
     try {
@@ -83,10 +111,10 @@ export const UserWalletScreen = () => {
             <Card key={ticket.id} style={styles.ticketCard}>
               <View style={styles.ticketMain}>
                 <View style={styles.ticketLeft}>
-                  <Text style={styles.ticketEventTitle} numberOfLines={1}>{ticket.event_title}</Text>
-                  <Text style={styles.ticketVenue} numberOfLines={1}>{ticket.venue_name}</Text>
-                  <Text style={styles.ticketTime}>{ticket.date} | {ticket.time}</Text>
-                  <Text style={styles.ticketSeat}>Zona: <Text style={{fontWeight: 'bold', color: COLORS.primary}}>{ticket.seat_label}</Text></Text>
+                  <Text style={styles.ticketEventTitle} numberOfLines={1}>{ticket.event_title || ticket.event_name || ticket.eventName || 'Espectáculo'}</Text>
+                  <Text style={styles.ticketVenue} numberOfLines={1}>{ticket.venue_name || ticket.venue || 'Recinto Central'}</Text>
+                  <Text style={styles.ticketTime}>{(ticket.date || ticket.event_date || 'Fecha')} | {(ticket.time || ticket.event_time || 'N/A')}</Text>
+                  <Text style={styles.ticketSeat}>Zona: <Text style={{fontWeight: 'bold', color: COLORS.primary}}>{ticket.seat_label || ticket.seat_id || 'N/A'}</Text></Text>
                 </View>
                 <TouchableOpacity style={styles.qrTrigger} onPress={() => handleOpenTicket(ticket)}>
                   <Ionicons name="qr-code" size={32} color="#FFFFFF" />
@@ -111,10 +139,10 @@ export const UserWalletScreen = () => {
               <Card key={ticket.id} style={StyleSheet.flatten([styles.ticketCard, { opacity: 0.6 }])}>
                 <View style={styles.ticketMain}>
                   <View style={styles.ticketLeft}>
-                    <Text style={styles.ticketEventTitle} numberOfLines={1}>{ticket.event_title}</Text>
-                    <Text style={styles.ticketVenue} numberOfLines={1}>{ticket.venue_name}</Text>
-                    <Text style={styles.ticketTime}>{ticket.date} | {ticket.time}</Text>
-                    <Text style={styles.ticketSeat}>Asiento: {ticket.seat_label}</Text>
+                    <Text style={styles.ticketEventTitle} numberOfLines={1}>{ticket.event_title || ticket.event_name || ticket.eventName || 'Espectáculo'}</Text>
+                    <Text style={styles.ticketVenue} numberOfLines={1}>{ticket.venue_name || ticket.venue || 'Recinto Central'}</Text>
+                    <Text style={styles.ticketTime}>{(ticket.date || ticket.event_date || 'Fecha')} | {(ticket.time || ticket.event_time || 'N/A')}</Text>
+                    <Text style={styles.ticketSeat}>Asiento: {ticket.seat_label || ticket.seat_id || 'N/A'}</Text>
                   </View>
                   <View style={styles.qrTriggerDisabled}>
                     <Ionicons name="lock-closed-outline" size={24} color={COLORS.dark.textMuted} />
@@ -157,25 +185,25 @@ export const UserWalletScreen = () => {
             {activeTicket && (
               <View style={styles.digitalPass}>
                 <View style={styles.passHeader}>
-                  <Text style={styles.passTitle}>{activeTicket.event_title}</Text>
-                  <Text style={styles.passVenue}>{activeTicket.venue_name}</Text>
+                  <Text style={styles.passTitle}>{activeTicket.event_title || activeTicket.event_name || activeTicket.eventName || 'Espectáculo'}</Text>
+                  <Text style={styles.passVenue}>{activeTicket.venue_name || activeTicket.venue || 'Recinto Central'}</Text>
                 </View>
                 
                 <View style={styles.passMetaGrid}>
                   <View style={styles.passMetaCol}>
                     <Text style={styles.passMetaLabel}>FECHA</Text>
-                    <Text style={styles.passMetaVal}>{activeTicket.date}</Text>
+                    <Text style={styles.passMetaVal}>{activeTicket.date || activeTicket.event_date || 'N/A'}</Text>
                   </View>
                   <View style={styles.passMetaCol}>
                     <Text style={styles.passMetaLabel}>HORA</Text>
-                    <Text style={styles.passMetaVal}>{activeTicket.time}</Text>
+                    <Text style={styles.passMetaVal}>{activeTicket.time || activeTicket.event_time || 'N/A'}</Text>
                   </View>
                 </View>
 
                 <View style={styles.passMetaGrid}>
                   <View style={styles.passMetaCol}>
                     <Text style={styles.passMetaLabel}>ZONA / ASIENTO</Text>
-                    <Text style={[styles.passMetaVal, { color: COLORS.primary }]}>{activeTicket.seat_label}</Text>
+                    <Text style={[styles.passMetaVal, { color: COLORS.primary }]}>{activeTicket.seat_label || activeTicket.seat_id || 'N/A'}</Text>
                   </View>
                   <View style={styles.passMetaCol}>
                     <Text style={styles.passMetaLabel}>PRECIO</Text>
@@ -452,6 +480,30 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: '#64748b',
     marginTop: 2,
+  },
+  guestContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SPACING.xl,
+    backgroundColor: '#070a13',
+  },
+  guestTitle: {
+    fontSize: TYPOGRAPHY.fontSizes.lg,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: '#FFFFFF',
+    marginBottom: SPACING.sm,
+  },
+  guestDesc: {
+    fontSize: TYPOGRAPHY.fontSizes.sm - 1,
+    color: COLORS.dark.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: SPACING.xl,
+    paddingHorizontal: SPACING.md,
+  },
+  guestBtn: {
+    width: '100%',
   },
 });
 
