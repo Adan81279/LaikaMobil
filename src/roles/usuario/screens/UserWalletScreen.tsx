@@ -7,6 +7,7 @@ import {
   ScrollView,
   FlatList,
   Modal,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../../styles/theme';
@@ -19,6 +20,8 @@ import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { useRouter } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
+import * as Clipboard from 'expo-clipboard';
+import Input from '../../../components/Input';
 
 export const UserWalletScreen = () => {
   const { isDarkMode, colors } = useTheme();
@@ -30,6 +33,85 @@ export const UserWalletScreen = () => {
   const [loading, setLoading] = useState(true);
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
   const [qrModalVisible, setQrModalVisible] = useState(false);
+
+  // Transfer state
+  const [transferModalVisible, setTransferModalVisible] = useState(false);
+  const [transferCode, setTransferCode] = useState('');
+  const [transferringTicketId, setTransferringTicketId] = useState('');
+
+  // Claim state
+  const [claimModalVisible, setClaimModalVisible] = useState(false);
+  const [inputTransferCode, setInputTransferCode] = useState('');
+  const [claimedTicket, setClaimedTicket] = useState<Ticket | null>(null);
+  const [showClaimSuccess, setShowClaimSuccess] = useState(false);
+
+  const handleTransferTicket = async (ticket: Ticket) => {
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (e) {}
+    
+    setLoading(true);
+    try {
+      const code = await usuarioService.transferTicket(ticket.id);
+      setTransferCode(code);
+      setTransferringTicketId(ticket.id);
+      setTransferModalVisible(true);
+      await fetchTickets();
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'No se pudo generar el código de transferencia.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCopyTransferCode = async () => {
+    try {
+      await Clipboard.setStringAsync(transferCode);
+      Alert.alert('Código Copiado', 'El código de transferencia se ha copiado al portapapeles.');
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch (e) {}
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo copiar el código.');
+    }
+  };
+
+  const handleCopyTicketCode = async () => {
+    if (!activeTicket) return;
+    try {
+      await Clipboard.setStringAsync(activeTicket.ticket_code);
+      Alert.alert('Código Copiado', 'El código del boleto se ha copiado al portapapeles.');
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch (e) {}
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo copiar el código.');
+    }
+  };
+
+  const handleClaimTicket = async () => {
+    if (!inputTransferCode.trim()) {
+      Alert.alert('Campo Incompleto', 'Por favor, ingrese el código de transferencia.');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const ticketClaimed = await usuarioService.claimTransferredTicket(inputTransferCode);
+      setClaimedTicket(ticketClaimed);
+      setShowClaimSuccess(true);
+      setClaimModalVisible(false);
+      setInputTransferCode('');
+      try {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (e) {}
+      await fetchTickets();
+    } catch (e: any) {
+      Alert.alert('Error al Canjear', e.message || 'No se pudo canjear el boleto.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (isFocused && user) {
@@ -88,8 +170,16 @@ export const UserWalletScreen = () => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Mis Boletos (Wallet)</Text>
-        <Text style={styles.headerSubtitle}>Tus accesos rápidos para eventos de Laika Club</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>Mis Boletos (Wallet)</Text>
+            <Text style={styles.headerSubtitle}>Tus accesos rápidos para eventos de Laika Club</Text>
+          </View>
+          <TouchableOpacity style={styles.claimHeaderBtn} onPress={() => setClaimModalVisible(true)}>
+            <Ionicons name="receipt-outline" size={16} color={colors.primary} />
+            <Text style={styles.claimHeaderBtnText}>Canjear</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -118,11 +208,34 @@ export const UserWalletScreen = () => {
                   <Text style={styles.ticketVenue} numberOfLines={1}>{ticket.venue_name || ticket.venue || 'Recinto Central'}</Text>
                   <Text style={styles.ticketTime}>{(ticket.date || ticket.event_date || 'Fecha')} | {(ticket.time || ticket.event_time || 'N/A')}</Text>
                   <Text style={styles.ticketSeat}>Zona: <Text style={{fontWeight: 'bold', color: colors.primary}}>{ticket.seat_label || ticket.seat_id || 'N/A'}</Text></Text>
+                  
+                  {ticket.transfer_code && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                      <Ionicons name="gift-outline" size={12} color={colors.secondary} />
+                      <Text style={{ fontSize: 9, color: colors.secondary, fontWeight: 'bold' }}>
+                        Pendiente transferir: {ticket.transfer_code}
+                      </Text>
+                    </View>
+                  )}
+                  {ticket.original_owner_name && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                      <Ionicons name="arrow-undo-outline" size={12} color={colors.textSecondary} />
+                      <Text style={{ fontSize: 9, color: colors.textSecondary }}>
+                        De: {ticket.original_owner_name}
+                      </Text>
+                    </View>
+                  )}
                 </View>
-                <TouchableOpacity style={styles.qrTrigger} onPress={() => handleOpenTicket(ticket)}>
-                  <Ionicons name="qr-code" size={32} color={colors.textPrimary} />
-                  <Text style={styles.qrTriggerText}>VER PASS</Text>
-                </TouchableOpacity>
+                <View style={{ gap: SPACING.xs, alignItems: 'center' }}>
+                  <TouchableOpacity style={styles.qrTrigger} onPress={() => handleOpenTicket(ticket)}>
+                    <Ionicons name="qr-code" size={16} color={colors.background || '#FFFFFF'} />
+                    <Text style={styles.qrTriggerText}>VER PASS</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.transferTrigger} onPress={() => handleTransferTicket(ticket)}>
+                    <Ionicons name="send" size={16} color={colors.secondary} />
+                    <Text style={styles.transferTriggerText}>TRANSFERIR</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
               {/* Ticket Jagged Border simulation */}
               <View style={styles.ticketDottedLine} />
@@ -231,7 +344,14 @@ export const UserWalletScreen = () => {
                     {/* Simulated QR grid with blocks */}
                     <Ionicons name="qr-code-sharp" size={160} color="#000000" />
                   </View>
-                  <Text style={styles.qrCodeString}>{activeTicket.ticket_code}</Text>
+                  
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm, marginTop: SPACING.xs }}>
+                    <Text style={[styles.qrCodeString, { marginTop: 0 }]}>{activeTicket.ticket_code}</Text>
+                    <TouchableOpacity onPress={handleCopyTicketCode} style={{ padding: 4, backgroundColor: colors.surfaceAlt, borderRadius: BORDER_RADIUS.sm, borderWidth: 1, borderColor: colors.border }}>
+                      <Ionicons name="copy-outline" size={12} color={colors.textPrimary} />
+                    </TouchableOpacity>
+                  </View>
+
                   <Text style={styles.qrHint}>Presenta este código en el lector de puerta</Text>
                 </View>
 
@@ -239,6 +359,194 @@ export const UserWalletScreen = () => {
                   title="Listo, Cerrar Pase"
                   onPress={() => setQrModalVisible(false)}
                   style={{ marginTop: SPACING.md }}
+                />
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* MODAL DE TRANSFERENCIA */}
+      <Modal
+        visible={transferModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setTransferModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalHeaderTitle}>Transferir Boleto</Text>
+              <TouchableOpacity style={styles.modalClose} onPress={() => setTransferModalVisible(false)}>
+                <Ionicons name="close" size={20} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ gap: SPACING.md, alignItems: 'center', paddingVertical: SPACING.sm }}>
+              <Ionicons name="gift-outline" size={60} color={colors.secondary} />
+              <Text style={{ color: colors.textPrimary, fontSize: 13, textAlign: 'center', fontWeight: 'bold' }}>
+                ¡Código de Transferencia Generado!
+              </Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 11, textAlign: 'center', paddingHorizontal: SPACING.sm }}>
+                Envía este código a la persona que deseas transferir el boleto. Quien lo canjee se convertirá en el nuevo dueño.
+              </Text>
+
+              <View style={{
+                backgroundColor: colors.surfaceAlt,
+                padding: SPACING.md,
+                borderRadius: BORDER_RADIUS.md,
+                borderWidth: 1,
+                borderColor: colors.border,
+                width: '100%',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginVertical: SPACING.xs
+              }}>
+                <Text style={{ color: colors.primary, fontSize: 18, fontWeight: 'bold', letterSpacing: 1.5 }}>
+                  {transferCode}
+                </Text>
+              </View>
+
+              <Button
+                title="Copiar Código"
+                variant="primary"
+                onPress={handleCopyTransferCode}
+                style={{ width: '100%' }}
+              />
+
+              <TouchableOpacity
+                onPress={() => setTransferModalVisible(false)}
+                style={{ marginTop: 4 }}
+              >
+                <Text style={{ color: colors.textSecondary, fontSize: 11 }}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* MODAL DE CANJE (COLOCAR CÓDIGO) */}
+      <Modal
+        visible={claimModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setClaimModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalHeaderTitle}>Canjear Boleto Transferido</Text>
+              <TouchableOpacity style={styles.modalClose} onPress={() => setClaimModalVisible(false)}>
+                <Ionicons name="close" size={20} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ gap: SPACING.md, paddingVertical: SPACING.xs }}>
+              <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
+                Ingresa el código de transferencia que te enviaron para reclamar el boleto y agregarlo a tu wallet:
+              </Text>
+
+              <Input
+                label="Código de Transferencia"
+                placeholder="XFER-XXXX-XXXX"
+                placeholderTextColor={colors.textMuted}
+                autoCapitalize="characters"
+                value={inputTransferCode}
+                onChangeText={setInputTransferCode}
+                leftIcon="gift-outline"
+              />
+
+              <Button
+                title="Canjear y Reclamar Boleto"
+                variant="primary"
+                onPress={handleClaimTicket}
+                style={{ marginTop: SPACING.xs }}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* MODAL DE ÉXITO DE CANJE */}
+      <Modal
+        visible={showClaimSuccess}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowClaimSuccess(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalHeaderTitle}>¡Canje Exitoso!</Text>
+              <TouchableOpacity style={styles.modalClose} onPress={() => setShowClaimSuccess(false)}>
+                <Ionicons name="close" size={20} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            {claimedTicket && (
+              <View style={{ gap: SPACING.md, alignItems: 'center', paddingVertical: SPACING.sm }}>
+                <Ionicons name="checkmark-circle-outline" size={64} color="#10B981" />
+                <Text style={{ color: colors.textPrimary, fontSize: 14, textAlign: 'center', fontWeight: 'bold' }}>
+                  ¡Has reclamado tu boleto correctamente!
+                </Text>
+
+                <View style={{
+                  backgroundColor: colors.surfaceAlt,
+                  padding: SPACING.md,
+                  borderRadius: BORDER_RADIUS.md,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  width: '100%',
+                  gap: 8,
+                }}>
+                  <View>
+                    <Text style={{ fontSize: 9, color: colors.textMuted }}>TE LO ENVIÓ</Text>
+                    <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.textPrimary }}>
+                      {claimedTicket.original_owner_name || 'Otro Usuario'}
+                    </Text>
+                  </View>
+                  
+                  <View style={{ height: 1, backgroundColor: colors.border }} />
+
+                  <View>
+                    <Text style={{ fontSize: 9, color: colors.textMuted }}>EVENTO</Text>
+                    <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.textPrimary }}>
+                      {claimedTicket.event_title || 'Espectáculo'}
+                    </Text>
+                  </View>
+
+                  <View style={{ height: 1, backgroundColor: colors.border }} />
+
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <View>
+                      <Text style={{ fontSize: 9, color: colors.textMuted }}>FECHA Y HORA</Text>
+                      <Text style={{ fontSize: 11, fontWeight: 'bold', color: colors.textPrimary }}>
+                        {claimedTicket.date} a las {claimedTicket.time}
+                      </Text>
+                    </View>
+                    <View>
+                      <Text style={{ fontSize: 9, color: colors.textMuted }}>ASIENTO/ZONA</Text>
+                      <Text style={{ fontSize: 11, fontWeight: 'bold', color: colors.primary }}>
+                        {claimedTicket.seat_label}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={{ height: 1, backgroundColor: colors.border }} />
+
+                  <View>
+                    <Text style={{ fontSize: 9, color: colors.textMuted }}>LUGAR</Text>
+                    <Text style={{ fontSize: 11, fontWeight: 'bold', color: colors.textPrimary }}>
+                      {claimedTicket.venue_name}
+                    </Text>
+                  </View>
+                </View>
+
+                <Button
+                  title="Entendido, Ir a Wallet"
+                  variant="primary"
+                  onPress={() => setShowClaimSuccess(false)}
+                  style={{ width: '100%', marginTop: SPACING.xs }}
                 />
               </View>
             )}
@@ -346,16 +654,50 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
-  qrTrigger: {
-    backgroundColor: colors.primary,
-    padding: SPACING.xs + 2,
-    borderRadius: BORDER_RADIUS.md,
+  claimHeaderBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: `${colors.primary}15`,
+    borderColor: colors.primary,
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.md,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     gap: 4,
   },
+  claimHeaderBtnText: {
+    color: colors.primary,
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  qrTrigger: {
+    backgroundColor: colors.primary,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: BORDER_RADIUS.md,
+    alignItems: 'center',
+    gap: 2,
+    width: 75,
+  },
   qrTriggerText: {
-    color: colors.background,
+    color: colors.background || '#FFFFFF',
     fontSize: 8,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+  },
+  transferTrigger: {
+    backgroundColor: `${colors.secondary}15`,
+    borderColor: colors.secondary,
+    borderWidth: 1,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: BORDER_RADIUS.md,
+    alignItems: 'center',
+    gap: 2,
+    width: 75,
+  },
+  transferTriggerText: {
+    color: colors.secondary,
+    fontSize: 7,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
   qrTriggerDisabled: {

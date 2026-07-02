@@ -327,6 +327,124 @@ export const OperadorDashboardScreen = () => {
           </View>
         </Card>
 
+        {/* VALIDATION RESULT PANEL */}
+        {validationResult && (
+          <Card 
+            style={StyleSheet.flatten([
+              styles.resultCard, 
+              validationResult.valid 
+                ? { borderColor: colors.success, backgroundColor: `${colors.success}15` }
+                : { borderColor: colors.warning, backgroundColor: `${colors.warning}15` }
+            ])}
+          >
+            <View style={styles.resultHeader}>
+              <Ionicons 
+                name={validationResult.valid ? "checkmark-circle" : "warning"} 
+                size={36} 
+                color={validationResult.valid ? colors.success : colors.warning} 
+              />
+              <View style={styles.resultMetaContainer}>
+                <Text style={[styles.resultTitleText, { color: validationResult.valid ? colors.success : colors.warning }]}>
+                  {validationResult.valid ? 'ACCESO PERMITIDO' : 'BOLETO YA REIVINDICADO'}
+                </Text>
+                <Text style={styles.resultCodeText}>Código: {validationResult.ticket_code}</Text>
+              </View>
+            </View>
+
+            <View style={styles.resultDetails}>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Titular Actual:</Text>
+                <Text style={styles.detailVal}>{validationResult.owner_name} {validationResult.owner_email ? `(${validationResult.owner_email})` : ''}</Text>
+              </View>
+
+              {validationResult.original_owner_name && validationResult.original_owner_name !== validationResult.owner_name && (
+                <View style={[styles.detailRow, { borderLeftWidth: 2, borderLeftColor: colors.secondary || colors.primary, paddingLeft: 6 }]}>
+                  <Text style={[styles.detailLabel, { color: colors.secondary || colors.primary, fontWeight: 'bold' }]}>Comprador Original:</Text>
+                  <Text style={[styles.detailVal, { color: colors.secondary || colors.primary, fontWeight: 'bold' }]}>
+                    {validationResult.original_owner_name} {validationResult.original_owner_email ? `(${validationResult.original_owner_email})` : ''}
+                  </Text>
+                </View>
+              )}
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Espectáculo:</Text>
+                <Text style={styles.detailVal} numberOfLines={1}>{validationResult.event_title}</Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Recinto / Lugar:</Text>
+                <Text style={styles.detailVal}>{validationResult.venue_name}</Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Zona / Asiento:</Text>
+                <Text style={styles.detailVal}>{validationResult.seat_label}</Text>
+              </View>
+
+              {validationResult.date && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Fecha y Hora:</Text>
+                  <Text style={styles.detailVal}>{validationResult.date} {validationResult.time ? `a las ${validationResult.time}` : ''}</Text>
+                </View>
+              )}
+
+              {validationResult.price !== undefined && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Precio Pagado:</Text>
+                  <Text style={styles.detailVal}>${validationResult.price} MXN</Text>
+                </View>
+              )}
+
+              {!validationResult.valid && validationResult.redeemed_at && (
+                <View style={[styles.detailRow, { borderTopWidth: 0.5, borderTopColor: colors.border, marginTop: 4, paddingTop: 4 }]}>
+                  <Text style={[styles.detailLabel, { color: colors.warning }]}>Redimido el:</Text>
+                  <Text style={[styles.detailVal, { color: colors.warning }]}>
+                    {new Date(validationResult.redeemed_at).toLocaleTimeString()} ({new Date(validationResult.redeemed_at).toLocaleDateString()})
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {!validationResult.valid && (
+              <Button
+                title="Registrar Incidencia"
+                variant="danger"
+                size="sm"
+                icon={<Ionicons name="shield-outline" size={14} color={colors.background} />}
+                onPress={() => router.push({
+                  pathname: '/(operador)/incidents',
+                  params: { code: validationResult.ticket_code }
+                } as any)}
+                style={styles.incidentBtn}
+              />
+            )}
+          </Card>
+        )}
+
+        {validationError && (
+          <Card style={StyleSheet.flatten([styles.resultCard, { borderColor: colors.error, backgroundColor: `${colors.error}15` }])}>
+            <View style={styles.resultHeader}>
+              <Ionicons name="close-circle" size={36} color={colors.error} />
+              <View style={styles.resultMetaContainer}>
+                <Text style={[styles.resultTitleText, { color: colors.error }]}>ACCESO DENEGADO</Text>
+                <Text style={styles.resultCodeText}>Error de Validación</Text>
+              </View>
+            </View>
+            <Text style={styles.errorText}>{validationError}</Text>
+            <Button
+              title="Reportar como Sospechoso"
+              variant="secondary"
+              size="sm"
+              icon={<Ionicons name="flag-outline" size={14} color={colors.textPrimary} />}
+              onPress={() => router.push({
+                pathname: '/(operador)/incidents',
+                params: { code: ticketCode || 'DESCONOCIDO' }
+              } as any)}
+              style={styles.incidentBtn}
+            />
+          </Card>
+        )}
+
         {/* MANUAL ATTENDEE SEARCH */}
         <Card style={styles.searchCard}>
           <Text style={styles.cardTitle}>Búsqueda Manual de Asistentes</Text>
@@ -426,92 +544,7 @@ export const OperadorDashboardScreen = () => {
           </View>
         </View>
 
-        {/* VALIDATION RESULT PANEL */}
-        {validationResult && (
-          <Card 
-            style={StyleSheet.flatten([
-              styles.resultCard, 
-              validationResult.valid 
-                ? { borderColor: colors.success, backgroundColor: `${colors.success}15` }
-                : { borderColor: colors.warning, backgroundColor: `${colors.warning}15` }
-            ])}
-          >
-            <View style={styles.resultHeader}>
-              <Ionicons 
-                name={validationResult.valid ? "checkmark-circle" : "warning"} 
-                size={36} 
-                color={validationResult.valid ? colors.success : colors.warning} 
-              />
-              <View style={styles.resultMetaContainer}>
-                <Text style={[styles.resultTitleText, { color: validationResult.valid ? colors.success : colors.warning }]}>
-                  {validationResult.valid ? 'ACCESO PERMITIDO' : 'BOLETO YA REIVINDICADO'}
-                </Text>
-                <Text style={styles.resultCodeText}>Código: {validationResult.ticket_code}</Text>
-              </View>
-            </View>
 
-            <View style={styles.resultDetails}>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Titular:</Text>
-                <Text style={styles.detailVal}>{validationResult.owner_name}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Espectáculo:</Text>
-                <Text style={styles.detailVal} numberOfLines={1}>{validationResult.event_title}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Recinto / Asiento:</Text>
-                <Text style={styles.detailVal}>{validationResult.venue_name} - {validationResult.seat_label}</Text>
-              </View>
-              {!validationResult.valid && validationResult.redeemed_at && (
-                <View style={[styles.detailRow, { borderTopWidth: 0.5, borderTopColor: colors.border, marginTop: 4, paddingTop: 4 }]}>
-                  <Text style={[styles.detailLabel, { color: colors.warning }]}>Redimido el:</Text>
-                  <Text style={[styles.detailVal, { color: colors.warning }]}>
-                    {new Date(validationResult.redeemed_at).toLocaleTimeString()} ({new Date(validationResult.redeemed_at).toLocaleDateString()})
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            {!validationResult.valid && (
-              <Button
-                title="Registrar Incidencia"
-                variant="danger"
-                size="sm"
-                icon={<Ionicons name="shield-outline" size={14} color={colors.background} />}
-                onPress={() => router.push({
-                  pathname: '/(operador)/incidents',
-                  params: { code: validationResult.ticket_code }
-                } as any)}
-                style={styles.incidentBtn}
-              />
-            )}
-          </Card>
-        )}
-
-        {validationError && (
-          <Card style={StyleSheet.flatten([styles.resultCard, { borderColor: colors.error, backgroundColor: `${colors.error}15` }])}>
-            <View style={styles.resultHeader}>
-              <Ionicons name="close-circle" size={36} color={colors.error} />
-              <View style={styles.resultMetaContainer}>
-                <Text style={[styles.resultTitleText, { color: colors.error }]}>ACCESO DENEGADO</Text>
-                <Text style={styles.resultCodeText}>Error de Validación</Text>
-              </View>
-            </View>
-            <Text style={styles.errorText}>{validationError}</Text>
-            <Button
-              title="Reportar como Sospechoso"
-              variant="secondary"
-              size="sm"
-              icon={<Ionicons name="flag-outline" size={14} color={colors.textPrimary} />}
-              onPress={() => router.push({
-                pathname: '/(operador)/incidents',
-                params: { code: ticketCode || 'DESCONOCIDO' }
-              } as any)}
-              style={styles.incidentBtn}
-            />
-          </Card>
-        )}
 
       </ScrollView>
       <EditProfileModal visible={isEditModalVisible} onClose={() => setIsEditModalVisible(false)} />

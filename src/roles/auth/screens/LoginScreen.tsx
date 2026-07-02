@@ -9,11 +9,13 @@ import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 import APP_CONFIG from '../../../core/config/app.config';
 import { BORDER_RADIUS, COLORS, SHADOWS, SPACING, TYPOGRAPHY } from '../../../styles/theme';
+import { useRouter } from 'expo-router';
 
 export const LoginScreen = () => {
   const { isDarkMode, colors } = useTheme();
   const styles = getStyles(colors, isDarkMode);
   const { login, loginMock } = useAuth();
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -143,6 +145,15 @@ export const LoginScreen = () => {
               onPress={handleLogin}
               style={styles.loginBtn}
             />
+
+            <TouchableOpacity 
+              onPress={() => router.push('/(auth)/register' as any)}
+              style={{ marginTop: SPACING.md, alignItems: 'center' }}
+            >
+              <Text style={{ color: colors.primary, fontSize: TYPOGRAPHY.fontSizes.xs - 1, fontWeight: 'bold' }}>
+                ¿No tienes cuenta? Regístrate aquí
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Quick Mock Credentials Section */}

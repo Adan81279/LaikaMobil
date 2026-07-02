@@ -142,8 +142,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
+    const trimmedEmail = email.trim().toLowerCase();
     try {
-      const response = await authService.login(email, password);
+      const response = await authService.login(trimmedEmail, password);
       
       await AsyncStorage.setItem(APP_CONFIG.STORAGE_KEYS.TOKEN, response.access_token);
       await AsyncStorage.setItem(APP_CONFIG.STORAGE_KEYS.USER, JSON.stringify(response.user));
@@ -153,6 +154,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(response.user);
       return true;
     } catch (error) {
+      console.warn('Network login failed, attempting offline fallback check...');
+      try {
+        const regStr = await AsyncStorage.getItem('@laika_registered_users');
+        if (regStr) {
+          const users = JSON.parse(regStr);
+          const found = users.find((u: any) => u.email === trimmedEmail && u.password === password);
+          if (found) {
+            const mockResponse = {
+              access_token: `mock_jwt_token_custom_${Date.now()}`,
+              token_type: 'bearer',
+              user: {
+                id: found.id,
+                email: found.email,
+                role: found.role,
+                name: found.name,
+                avatar: found.avatar,
+              }
+            };
+            await AsyncStorage.setItem(APP_CONFIG.STORAGE_KEYS.TOKEN, mockResponse.access_token);
+            await AsyncStorage.setItem(APP_CONFIG.STORAGE_KEYS.USER, JSON.stringify(mockResponse.user));
+            await AsyncStorage.setItem(APP_CONFIG.STORAGE_KEYS.LAST_ACTIVITY, String(Date.now()));
+
+            setToken(mockResponse.access_token);
+            setUser(mockResponse.user);
+            return true;
+          }
+        }
+      } catch (err) {
+        console.error('Offline custom login check failed:', err);
+      }
+      
       await handleLogout();
       throw error;
     } finally {

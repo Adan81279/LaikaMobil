@@ -26,7 +26,7 @@ export interface Ticket {
   price: number;
   ticket_code: string;
   purchased_at: string;
-  status: 'valid' | 'used' | 'refunded';
+  status: 'valid' | 'used' | 'refunded' | 'transferred';
   event_name?: string;
   eventName?: string;
   venue?: string;
@@ -34,6 +34,10 @@ export interface Ticket {
   event_time?: string;
   seat_id?: string;
   related_merch?: Array<{ id: string; title: string; price: number; quantity: number; image: string }>;
+  owner_email?: string;
+  transfer_code?: string;
+  original_owner_name?: string;
+  original_owner_email?: string;
 }
 
 export interface RefundRequest {
@@ -138,8 +142,30 @@ const initOfflineCache = async () => {
     const savedOpinions = await AsyncStorage.getItem(STORAGE_KEYS.OPINIONS);
     const savedArtists = await AsyncStorage.getItem(STORAGE_KEYS.ARTISTS);
 
-    if (savedTickets) mockTickets = JSON.parse(savedTickets);
-    else {
+    if (savedTickets) {
+      mockTickets = JSON.parse(savedTickets);
+      const hasMetallica = mockTickets.some((t: any) => t.ticket_code === 'TKT-VALID-905171');
+      if (!hasMetallica) {
+        mockTickets.push({
+          id: 'TKT-103',
+          event_id: '9',
+          event_title: 'Metallica - M72 World Tour',
+          venue_name: 'Arena Ciudad de México',
+          date: '18/10/2026',
+          time: '20:00',
+          seat_label: 'A-1 (VIP)',
+          price: 2850,
+          ticket_code: 'TKT-VALID-905171',
+          purchased_at: new Date(Date.now() - 86400000).toISOString(),
+          status: 'valid',
+          owner_email: 'cliente@laikaclub.com',
+          related_merch: [
+            { id: 'm-met-1', title: 'Gorra Metallica Black Album', price: 0, quantity: 1, image: '' }
+          ]
+        });
+        await AsyncStorage.setItem(STORAGE_KEYS.TICKETS, JSON.stringify(mockTickets));
+      }
+    } else {
       // Default sample tickets
       mockTickets = [
         {
@@ -153,7 +179,8 @@ const initOfflineCache = async () => {
           price: 2250, // VIP multiplier (1.5 * 1500)
           ticket_code: 'TKT-VALID-123',
           purchased_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-          status: 'valid'
+          status: 'valid',
+          owner_email: 'cliente@laikaclub.com'
         },
         {
           id: 'TKT-102',
@@ -166,7 +193,25 @@ const initOfflineCache = async () => {
           price: 650,
           ticket_code: 'TKT-USED-456',
           purchased_at: new Date(Date.now() - 86400000 * 5).toISOString(),
-          status: 'used'
+          status: 'used',
+          owner_email: 'cliente@laikaclub.com'
+        },
+        {
+          id: 'TKT-103',
+          event_id: '9',
+          event_title: 'Metallica - M72 World Tour',
+          venue_name: 'Arena Ciudad de México',
+          date: '18/10/2026',
+          time: '20:00',
+          seat_label: 'A-1 (VIP)',
+          price: 2850,
+          ticket_code: 'TKT-VALID-905171',
+          purchased_at: new Date(Date.now() - 86400000).toISOString(),
+          status: 'valid',
+          owner_email: 'cliente@laikaclub.com',
+          related_merch: [
+            { id: 'm-met-1', title: 'Gorra Metallica Black Album', price: 0, quantity: 1, image: '' }
+          ]
         }
       ];
       await AsyncStorage.setItem(STORAGE_KEYS.TICKETS, JSON.stringify(mockTickets));
@@ -1073,6 +1118,15 @@ class UsuarioService {
     const event = events.find(e => e.id === eventId);
     const basePrice = event?.price || 0;
     
+    let currentUserEmail = 'cliente@laikaclub.com';
+    try {
+      const userStr = await AsyncStorage.getItem('@laika_auth_user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        currentUserEmail = user.email || 'cliente@laikaclub.com';
+      }
+    } catch (e) {}
+
     const newTickets = seats.map((seat, index) => {
       const ticketId = `TKT-${Math.floor(100 + Math.random() * 900)}`;
       const randomCode = `TKT-VALID-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -1100,7 +1154,8 @@ class UsuarioService {
         ticket_code: randomCode,
         purchased_at: new Date().toISOString(),
         status: 'valid' as const,
-        related_merch: index === 0 ? relatedMerch : undefined // Store on the first ticket to avoid repetition
+        related_merch: index === 0 ? relatedMerch : undefined, // Store on the first ticket to avoid repetition
+        owner_email: currentUserEmail
       };
     });
 
@@ -1119,7 +1174,17 @@ class UsuarioService {
       const response = await apiService.get('/api/tickets/my-tickets', { timeout: 2000 });
       return response;
     } catch (e) {
-      return mockTickets;
+      let currentUserEmail = 'cliente@laikaclub.com';
+      try {
+        const userStr = await AsyncStorage.getItem('@laika_auth_user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          currentUserEmail = user.email || 'cliente@laikaclub.com';
+        }
+      } catch (err) {}
+      return mockTickets.filter(t => 
+        (t.owner_email === currentUserEmail) && t.status !== 'transferred'
+      );
     }
   }
 
@@ -1352,6 +1417,121 @@ class UsuarioService {
     );
     await saveArtistsToStorage(mockArtists);
     return mockArtists;
+  }
+
+  /**
+   * Generate a transfer code for a ticket
+   */
+  async transferTicket(ticketId: string): Promise<string> {
+    try {
+      // In a real API:
+      // const response = await apiService.post(`/api/tickets/${ticketId}/transfer`);
+      // return response.transfer_code;
+      throw new Error("API not available");
+    } catch (e) {
+      // Offline fallback:
+      const ticketIdx = mockTickets.findIndex(t => t.id === ticketId);
+      if (ticketIdx === -1) {
+        throw new Error("Boleto no encontrado.");
+      }
+      
+      if (mockTickets[ticketIdx].status !== 'valid') {
+        throw new Error("Solo se pueden transferir boletos válidos y activos.");
+      }
+
+      // Generate random code in format XFER-XXXX-XXXX
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let part1 = '';
+      let part2 = '';
+      for (let i = 0; i < 4; i++) {
+        part1 += chars.charAt(Math.floor(Math.random() * chars.length));
+        part2 += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      const transferCode = `XFER-${part1}-${part2}`;
+
+      mockTickets[ticketIdx].transfer_code = transferCode;
+      await saveTicketsToStorage(mockTickets);
+      return transferCode;
+    }
+  }
+
+  /**
+   * Claim a transferred ticket using a code
+   */
+  async claimTransferredTicket(transferCode: string): Promise<Ticket> {
+    try {
+      // In a real API:
+      // return await apiService.post('/api/tickets/claim', { transfer_code: transferCode });
+      throw new Error("API not available");
+    } catch (e) {
+      // Offline fallback:
+      const code = transferCode.trim().toUpperCase();
+      const ticketIdx = mockTickets.findIndex(t => t.transfer_code === code);
+      
+      if (ticketIdx === -1) {
+        throw new Error("Código de transferencia inválido o ya utilizado.");
+      }
+
+      const ticket = mockTickets[ticketIdx];
+      if (ticket.status !== 'valid') {
+        throw new Error("Este boleto ya no es válido.");
+      }
+
+      // Get current claimant details
+      let claimerEmail = 'cliente@laikaclub.com';
+      try {
+        const userStr = await AsyncStorage.getItem('@laika_auth_user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          claimerEmail = user.email || 'cliente@laikaclub.com';
+        }
+      } catch (err) {}
+
+      if (ticket.owner_email === claimerEmail) {
+        throw new Error("No puedes canjear un boleto que ya te pertenece.");
+      }
+
+      // Find original owner name/details
+      let originalOwnerName = ticket.original_owner_name || 'Otro Usuario';
+      if (ticket.owner_email === 'cliente@laikaclub.com') {
+        originalOwnerName = 'Lucia Usuario Final';
+      } else if (ticket.owner_email === 'operador@laikaclub.com') {
+        originalOwnerName = 'Carlos Operador Staff';
+      } else if (ticket.owner_email === 'admin@laikaclub.com') {
+        originalOwnerName = 'Adán Administrador';
+      } else if (ticket.owner_email === 'jimena@laikaclub.com' || ticket.owner_email === 'gestor@laikaclub.com') {
+        originalOwnerName = 'Jimena Gestor de Eventos';
+      } else if (ticket.owner_email) {
+        try {
+          const regStr = await AsyncStorage.getItem('@laika_registered_users');
+          if (regStr) {
+            const users = JSON.parse(regStr);
+            const foundUser = users.find((u: any) => u.email === ticket.owner_email);
+            if (foundUser) {
+              originalOwnerName = foundUser.name;
+            }
+          }
+        } catch (err) {}
+      }
+
+      // Update ticket fields for transfer
+      const updatedTicket: Ticket = {
+        ...ticket,
+        original_owner_email: ticket.owner_email,
+        original_owner_name: originalOwnerName,
+        owner_email: claimerEmail,
+        status: 'valid', // remains valid for the new user
+      };
+      
+      // Remove transfer code so it can't be reused
+      delete updatedTicket.transfer_code;
+
+      // Update the ticket in the mockTickets list
+      mockTickets[ticketIdx] = updatedTicket;
+      await saveTicketsToStorage(mockTickets);
+
+      return updatedTicket;
+    }
   }
 }
 

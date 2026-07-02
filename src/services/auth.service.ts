@@ -1,5 +1,6 @@
 import api from './api.service';
 import { UserRole } from '../core/config/roles.config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface UserProfile {
   id: number;
@@ -37,7 +38,31 @@ export const authService = {
    * Register a new user
    */
   async register(email: string, name: string, password: string): Promise<any> {
-    return api.post('/api/auth/register', { email, name, password });
+    try {
+      return await api.post('/api/auth/register', { email, name, password });
+    } catch (e) {
+      console.warn('Register API offline, saving mock registered user.');
+      const regStr = await AsyncStorage.getItem('@laika_registered_users');
+      let registeredUsers = regStr ? JSON.parse(regStr) : [];
+      
+      const emailLower = email.trim().toLowerCase();
+      if (registeredUsers.some((u: any) => u.email === emailLower)) {
+        throw new Error('El correo ya está registrado.');
+      }
+      
+      const newUser = {
+        id: Math.floor(Math.random() * 1000) + 100,
+        email: emailLower,
+        name: name.trim(),
+        password, // stored as cleartext in mock environment
+        role: 'usuario' as const,
+        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+      };
+      
+      registeredUsers.push(newUser);
+      await AsyncStorage.setItem('@laika_registered_users', JSON.stringify(registeredUsers));
+      return newUser;
+    }
   },
   
   /**
