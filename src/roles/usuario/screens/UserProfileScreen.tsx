@@ -34,7 +34,7 @@ import APP_CONFIG from '../../../core/config/app.config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 
-const AVAILABLE_GENRES = ['Música', 'Electrónica', 'Rock', 'Pop', 'Reggaeton', 'Indie', 'Convención'];
+const AVAILABLE_GENRES = ['Pop', 'Rock', 'Electrónica', 'Urbano', 'Convención', 'Indie'];
 
 export const UserProfileScreen = () => {
   const { user, logout, savedCard, saveCardDetails, clearSavedCard } = useAuth();
@@ -58,7 +58,7 @@ export const UserProfileScreen = () => {
   const [stats, setStats] = useState<UserStats | null>(null);
 
   // Preference states
-  const [selectedGenres, setSelectedGenres] = useState<string[]>(['Música', 'Electrónica']);
+  const [selectedGenres, setSelectedGenres] = useState<string[]>(['Pop', 'Electrónica']);
 
   // Refund request inputs
   const [selectedTicketId, setSelectedTicketId] = useState('');
@@ -599,6 +599,21 @@ export const UserProfileScreen = () => {
                           <Text style={styles.metaText}>{t.seat_label || t.seat_id || 'N/A'}</Text>
                         </View>
                       </View>
+                      {t.related_merch && t.related_merch.length > 0 && (
+                        <View style={{ marginTop: SPACING.sm, borderTopWidth: 1, borderTopColor: '#1f2937', paddingTop: SPACING.sm }}>
+                          <Text style={[styles.metaLabel, { marginBottom: 4 }]}>SOUVENIRS ADQUIRIDOS</Text>
+                          {t.related_merch.map((m, idx) => (
+                            <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                              <Text style={{ color: COLORS.dark.textSecondary, fontSize: 11 }}>
+                                • {m.title} (x{m.quantity})
+                              </Text>
+                              <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: 'bold' }}>
+                                ${m.price * m.quantity} MXN
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
                       {t.status === 'valid' && (
                         <Button
                           title="Ver Código QR Acceso"

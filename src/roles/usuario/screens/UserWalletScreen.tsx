@@ -211,6 +211,17 @@ export const UserWalletScreen = () => {
                   </View>
                 </View>
 
+                {activeTicket.related_merch && activeTicket.related_merch.length > 0 && (
+                  <View style={{ marginVertical: SPACING.xs, padding: SPACING.sm, backgroundColor: '#111827', borderRadius: BORDER_RADIUS.md, borderWidth: 1, borderColor: '#1f2937' }}>
+                    <Text style={[styles.passMetaLabel, { color: COLORS.primary, marginBottom: 2 }]}>SOUVENIRS VINCULADOS</Text>
+                    {activeTicket.related_merch.map((m, idx) => (
+                      <Text key={idx} style={{ color: '#FFFFFF', fontSize: 10, fontWeight: 'bold' }}>
+                        • {m.title} (x{m.quantity})
+                      </Text>
+                    ))}
+                  </View>
+                )}
+
                 {/* Simulated QR Code rendering */}
                 <View style={styles.qrContainer}>
                   <View style={styles.qrBox}>

@@ -14,7 +14,8 @@ import {
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../../styles/theme';
-import usuarioService, { EventInfo } from '../services/usuario.service';
+import usuarioService, { EventInfo, MerchItem } from '../services/usuario.service';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Card from '../../../components/Card';
 import Loader from '../../../components/Loader';
 import Button from '../../../components/Button';
@@ -37,6 +38,7 @@ export const UserEventsScreen = () => {
     eventId: string;
     event: EventInfo;
     seats: string[];
+    selectedMerch?: Array<{ id: string; title: string; price: number; quantity: number; image: string }>;
   }
 
   // Booking Modal & Seat Map States
@@ -45,10 +47,26 @@ export const UserEventsScreen = () => {
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [checkoutVisible, setCheckoutVisible] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [showDetailsStep, setShowDetailsStep] = useState(true);
+  const [useAnotherCard, setUseAnotherCard] = useState(false);
 
   // Shopping Cart States
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartModalVisible, setCartModalVisible] = useState(false);
+
+  // Bazaar merchandise items & selection
+  const [merchItems, setMerchItems] = useState<MerchItem[]>([]);
+  const [selectedMerch, setSelectedMerch] = useState<Record<string, number>>({});
+
+  // Save active event IDs to AsyncStorage for Bazaar filtering
+  const saveActiveEventIdsToStorage = async (currentCart: CartItem[]) => {
+    try {
+      const eventIds = currentCart.map(item => item.eventId);
+      await AsyncStorage.setItem('@Laika:cart_event_ids', JSON.stringify(eventIds));
+    } catch (e) {
+      console.error('Error saving active cart event ids', e);
+    }
+  };
 
   // Card Payment Form States
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal' | 'oxxo'>('card');
@@ -74,6 +92,8 @@ export const UserEventsScreen = () => {
     try {
       const data = await usuarioService.getPublicEvents();
       setEvents(data);
+      const mData = await usuarioService.getMerchandise();
+      setMerchItems(mData);
     } catch (e) {
       console.error(e);
     } finally {
@@ -81,7 +101,7 @@ export const UserEventsScreen = () => {
     }
   };
 
-  const categories = ['Todos', 'Música', 'Electrónica', 'Convención'];
+  const categories = ['Todos', 'Pop', 'Rock', 'Electrónica', 'Urbano', 'Convención', 'Indie'];
 
   const filteredEvents = events.filter((item) => {
     const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -93,8 +113,11 @@ export const UserEventsScreen = () => {
   const handleOpenBooking = (event: EventInfo) => {
     setActiveEvent(event);
     setSelectedSeats([]);
+    setSelectedMerch({});
     setCheckoutVisible(false);
     setPaymentSuccess(false);
+    setShowDetailsStep(true);
+    setUseAnotherCard(false);
 
     // Randomize occupied seats for this event
     const occupied: Record<string, boolean> = {};
@@ -142,10 +165,15 @@ export const UserEventsScreen = () => {
   };
 
   const calculateTotal = () => {
-    return selectedSeats.reduce((sum, seat) => {
+    const seatsTotal = selectedSeats.reduce((sum, seat) => {
       const row = seat.split('-')[0];
       return sum + getSeatPrice(row);
     }, 0);
+    const merchTotal = Object.entries(selectedMerch).reduce((sum, [id, qty]) => {
+      const prod = merchItems.find(p => p.id === id);
+      return sum + (prod ? prod.price * qty : 0);
+    }, 0);
+    return seatsTotal + merchTotal;
   };
 
   const handleProceedCheckout = () => {
@@ -161,16 +189,30 @@ export const UserEventsScreen = () => {
     setLoading(true);
     try {
       const totalAmount = calculateTotal();
+      
+      const itemsToAdd = Object.entries(selectedMerch).map(([id, qty]) => {
+        const prod = merchItems.find(p => p.id === id);
+        return {
+          id,
+          title: prod?.title || 'Producto',
+          price: prod?.price || 0,
+          quantity: qty,
+          image: prod?.image || '',
+        };
+      });
+
       const success = await usuarioService.purchaseTickets(
         activeEvent.id,
         selectedSeats,
-        totalAmount
+        totalAmount,
+        itemsToAdd
       );
       if (success) {
         try {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } catch (h) {}
         setPaymentSuccess(true);
+        await AsyncStorage.removeItem('@Laika:cart_event_ids');
       } else {
         Alert.alert('Error', 'No se pudo completar la compra del boleto.');
       }
@@ -238,8 +280,20 @@ export const UserEventsScreen = () => {
     }
     if (!activeEvent) return;
 
+    const itemsToAdd = Object.entries(selectedMerch).map(([id, qty]) => {
+      const prod = merchItems.find(p => p.id === id);
+      return {
+        id,
+        title: prod?.title || 'Producto',
+        price: prod?.price || 0,
+        quantity: qty,
+        image: prod?.image || '',
+      };
+    });
+
     setCart(prevCart => {
       const existingItemIndex = prevCart.findIndex(item => item.eventId === activeEvent.id);
+      let newCart = [...prevCart];
       if (existingItemIndex > -1) {
         const currentSeats = prevCart[existingItemIndex].seats;
         const mergedSeats = Array.from(new Set([...currentSeats, ...selectedSeats]));
@@ -247,21 +301,35 @@ export const UserEventsScreen = () => {
           Alert.alert('Límite excedido', 'Solo puedes comprar un máximo de 6 boletos por evento.');
           return prevCart;
         }
-        const updatedCart = [...prevCart];
-        updatedCart[existingItemIndex] = {
-          ...updatedCart[existingItemIndex],
+        
+        const existingMerch = prevCart[existingItemIndex].selectedMerch || [];
+        const newMerch = [...existingMerch];
+        itemsToAdd.forEach(item => {
+          const idx = newMerch.findIndex(m => m.id === item.id);
+          if (idx > -1) {
+            newMerch[idx] = { ...newMerch[idx], quantity: newMerch[idx].quantity + item.quantity };
+          } else {
+            newMerch.push(item);
+          }
+        });
+
+        newCart[existingItemIndex] = {
+          ...prevCart[existingItemIndex],
           seats: mergedSeats,
+          selectedMerch: newMerch,
         };
-        Alert.alert('Carrito actualizado', 'Los asientos han sido agregados a tu carrito.');
-        return updatedCart;
+        Alert.alert('Carrito actualizado', 'Los asientos y souvenirs han sido agregados a tu carrito.');
       } else {
-        Alert.alert('Agregado al carrito', 'El concierto y asientos han sido agregados a tu carrito.');
-        return [...prevCart, { eventId: activeEvent.id, event: activeEvent, seats: selectedSeats }];
+        newCart = [...prevCart, { eventId: activeEvent.id, event: activeEvent, seats: selectedSeats, selectedMerch: itemsToAdd }];
+        Alert.alert('Agregado al carrito', 'El concierto, asientos y souvenirs han sido agregados a tu carrito.');
       }
+      saveActiveEventIdsToStorage(newCart);
+      return newCart;
     });
 
     setBookingModalVisible(false);
     setSelectedSeats([]);
+    setSelectedMerch({});
   };
 
   // Add to cart and open checkout immediately
@@ -286,8 +354,20 @@ export const UserEventsScreen = () => {
     }
     if (!activeEvent) return;
 
+    const itemsToAdd = Object.entries(selectedMerch).map(([id, qty]) => {
+      const prod = merchItems.find(p => p.id === id);
+      return {
+        id,
+        title: prod?.title || 'Producto',
+        price: prod?.price || 0,
+        quantity: qty,
+        image: prod?.image || '',
+      };
+    });
+
     setCart(prevCart => {
       const existingItemIndex = prevCart.findIndex(item => item.eventId === activeEvent.id);
+      let newCart = [...prevCart];
       if (existingItemIndex > -1) {
         const currentSeats = prevCart[existingItemIndex].seats;
         const mergedSeats = Array.from(new Set([...currentSeats, ...selectedSeats]));
@@ -295,19 +375,33 @@ export const UserEventsScreen = () => {
           Alert.alert('Límite excedido', 'Solo puedes comprar un máximo de 6 boletos por evento.');
           return prevCart;
         }
-        const updatedCart = [...prevCart];
-        updatedCart[existingItemIndex] = {
-          ...updatedCart[existingItemIndex],
+        
+        const existingMerch = prevCart[existingItemIndex].selectedMerch || [];
+        const newMerch = [...existingMerch];
+        itemsToAdd.forEach(item => {
+          const idx = newMerch.findIndex(m => m.id === item.id);
+          if (idx > -1) {
+            newMerch[idx] = { ...newMerch[idx], quantity: newMerch[idx].quantity + item.quantity };
+          } else {
+            newMerch.push(item);
+          }
+        });
+
+        newCart[existingItemIndex] = {
+          ...prevCart[existingItemIndex],
           seats: mergedSeats,
+          selectedMerch: newMerch,
         };
-        return updatedCart;
       } else {
-        return [...prevCart, { eventId: activeEvent.id, event: activeEvent, seats: selectedSeats }];
+        newCart = [...prevCart, { eventId: activeEvent.id, event: activeEvent, seats: selectedSeats, selectedMerch: itemsToAdd }];
       }
+      saveActiveEventIdsToStorage(newCart);
+      return newCart;
     });
 
     setBookingModalVisible(false);
     setSelectedSeats([]);
+    setSelectedMerch({});
     setCheckoutVisible(true);
     setCartModalVisible(true);
   };
@@ -315,7 +409,7 @@ export const UserEventsScreen = () => {
   // Remove a single seat from a cart item
   const handleRemoveSeat = (eventId: string, seatId: string) => {
     setCart(prevCart => {
-      return prevCart.map(item => {
+      const nextCart = prevCart.map(item => {
         if (item.eventId === eventId) {
           return {
             ...item,
@@ -324,21 +418,31 @@ export const UserEventsScreen = () => {
         }
         return item;
       }).filter(item => item.seats.length > 0);
+      saveActiveEventIdsToStorage(nextCart);
+      return nextCart;
     });
   };
 
   // Remove whole event from cart
   const handleRemoveEvent = (eventId: string) => {
-    setCart(prevCart => prevCart.filter(item => item.eventId !== eventId));
+    setCart(prevCart => {
+      const nextCart = prevCart.filter(item => item.eventId !== eventId);
+      saveActiveEventIdsToStorage(nextCart);
+      return nextCart;
+    });
   };
 
   // Compute total amount for all cart contents
   const calculateCartTotal = () => {
     return cart.reduce((total, item) => {
-      return total + item.seats.reduce((sum, seat) => {
+      const seatsTotal = item.seats.reduce((sum, seat) => {
         const row = seat.split('-')[0];
         return sum + getCartItemSeatPrice(item.event, row);
       }, 0);
+      const merchTotal = (item.selectedMerch || []).reduce((sum, merch) => {
+        return sum + (merch.price * merch.quantity);
+      }, 0);
+      return total + seatsTotal + merchTotal;
     }, 0);
   };
 
@@ -360,7 +464,7 @@ export const UserEventsScreen = () => {
       return;
     }
     
-    if (paymentMethod === 'card' && !savedCard) {
+    if (paymentMethod === 'card' && (!savedCard || useAnotherCard)) {
       if (!cardHolder.trim()) {
         Alert.alert('Datos incompletos', 'Por favor ingresa el nombre del titular.');
         return;
@@ -386,20 +490,25 @@ export const UserEventsScreen = () => {
       try {
         // Send requests for all elements in cart
         for (const item of cart) {
-          const itemTotal = item.seats.reduce((sum, seat) => {
+          const seatsTotal = item.seats.reduce((sum, seat) => {
             const row = seat.split('-')[0];
             return sum + getCartItemSeatPrice(item.event, row);
           }, 0);
+          const merchTotal = (item.selectedMerch || []).reduce((sum, merch) => {
+            return sum + (merch.price * merch.quantity);
+          }, 0);
+          const itemTotal = seatsTotal + merchTotal;
           
           await usuarioService.purchaseTickets(
             item.eventId,
             item.seats,
-            itemTotal
+            itemTotal,
+            item.selectedMerch
           );
         }
 
         // Save card details if they entered a new one
-        if (paymentMethod === 'card' && !savedCard) {
+        if (paymentMethod === 'card' && (!savedCard || useAnotherCard)) {
           const newCard = {
             holder: cardHolder,
             number: cardNumber,
@@ -415,6 +524,7 @@ export const UserEventsScreen = () => {
 
         setPaymentSuccess(true);
         setCart([]); // Clear cart
+        await AsyncStorage.removeItem('@Laika:cart_event_ids');
       } catch (err) {
         Alert.alert('Error', 'Hubo un inconveniente al procesar la compra.');
       } finally {
@@ -426,6 +536,8 @@ export const UserEventsScreen = () => {
   if (loading && events.length === 0) {
     return <Loader visible={true} message="Cargando catálogo de eventos..." />;
   }
+
+  const relatedMerch = merchItems.filter(item => item.eventId === activeEvent?.id);
 
   return (
     <View style={styles.container}>
@@ -577,107 +689,238 @@ export const UserEventsScreen = () => {
             </View>
 
             {!checkoutVisible ? (
-              /* SEAT SELECTION VIEW */
-              <ScrollView contentContainerStyle={styles.bookingScroll}>
-                {/* Stage Indicator */}
-                <View style={styles.stageContainer}>
-                  <View style={styles.stageBorder} />
-                  <Text style={styles.stageText}>ESCENARIO</Text>
-                </View>
+              showDetailsStep ? (
+                /* DETAILS VIEW */
+                <ScrollView contentContainerStyle={styles.detailsScroll}>
+                  {activeEvent?.image && (
+                    <Image
+                      source={{ uri: activeEvent.image }}
+                      style={styles.detailImage}
+                      contentFit="cover"
+                    />
+                  )}
+                  
+                  <View style={styles.detailCategoryBadge}>
+                    <Text style={styles.detailCategoryText}>{activeEvent?.category}</Text>
+                  </View>
 
-                {/* Seat Map Grid */}
-                <View style={styles.gridCard}>
-                  {rows.map((row) => (
-                    <View key={row} style={styles.gridRow}>
-                      {/* Row Label */}
-                      <Text style={styles.rowLabel}>{row}</Text>
-                      
-                      {/* Seats */}
-                      {columns.map((col) => {
-                        const id = `${row}-${col}`;
-                        const isOccupied = occupiedSeats[id];
-                        const isSelected = selectedSeats.includes(id);
-                        const seatCat = getSeatCategoryName(row);
+                  <View style={styles.detailMetaRow}>
+                    <Ionicons name="calendar-outline" size={16} color={COLORS.primary} />
+                    <Text style={styles.detailMetaText}>{activeEvent?.date} a las {activeEvent?.time} hrs</Text>
+                  </View>
+                  
+                  <View style={styles.detailMetaRow}>
+                    <Ionicons name="location-outline" size={16} color={COLORS.primary} />
+                    <Text style={styles.detailMetaText}>{activeEvent?.venue}</Text>
+                  </View>
 
-                        let seatBg = '#1e293b';
-                        if (isOccupied) seatBg = '#475569';
-                        else if (isSelected) seatBg = COLORS.success;
-                        else if (seatCat === 'VIP') seatBg = '#f59e0b';
-                        else if (seatCat === 'GOLD') seatBg = '#a855f7';
+                  <Text style={styles.detailPrice}>Desde ${activeEvent?.price.toLocaleString()} MXN</Text>
 
-                        return (
-                          <TouchableOpacity
-                            key={id}
-                            style={[styles.seat, { backgroundColor: seatBg }]}
-                            disabled={isOccupied}
-                            onPress={() => toggleSeat(id)}
-                          >
-                            <Text style={styles.seatText}>{col}</Text>
-                          </TouchableOpacity>
-                        );
-                      })}
+                  <Text style={styles.detailSectionTitle}>Descripción del Evento</Text>
+                  <Text style={styles.detailDescription}>{activeEvent?.description}</Text>
+
+                  <Text style={styles.detailSectionTitle}>Información Relevante</Text>
+                  <View style={styles.infoList}>
+                    <View style={styles.infoItem}>
+                      <Ionicons name="shield-checkmark-outline" size={14} color={COLORS.success} />
+                      <Text style={styles.infoItemText}>
+                        <Text style={{ fontWeight: 'bold', color: '#FFFFFF' }}>Seguridad: </Text>
+                        Bolsos sujetos a revisión. Prohibido ingresar cámaras profesionales, objetos punzocortantes, alimentos y bebidas.
+                      </Text>
                     </View>
-                  ))}
-                </View>
-
-                {/* Color Legend */}
-                <View style={styles.legendContainer}>
-                  <View style={styles.legendItem}>
-                    <View style={[styles.legendDot, { backgroundColor: '#f59e0b' }]} />
-                    <Text style={styles.legendText}>VIP</Text>
-                  </View>
-                  <View style={styles.legendItem}>
-                    <View style={[styles.legendDot, { backgroundColor: '#a855f7' }]} />
-                    <Text style={styles.legendText}>Gold</Text>
-                  </View>
-                  <View style={styles.legendItem}>
-                    <View style={[styles.legendDot, { backgroundColor: '#1e293b' }]} />
-                    <Text style={styles.legendText}>Gral</Text>
-                  </View>
-                  <View style={styles.legendItem}>
-                    <View style={[styles.legendDot, { backgroundColor: COLORS.success }]} />
-                    <Text style={styles.legendText}>Mi Selección</Text>
-                  </View>
-                  <View style={styles.legendItem}>
-                    <View style={[styles.legendDot, { backgroundColor: '#475569' }]} />
-                    <Text style={styles.legendText}>Ocupado</Text>
-                  </View>
-                </View>
-
-                {/* Selected Info Summary */}
-                {selectedSeats.length > 0 && (
-                  <Card style={styles.summaryCard}>
-                    <Text style={styles.summaryHeader}>Boletos Seleccionados ({selectedSeats.length})</Text>
-                    <View style={styles.selectedSeatsRow}>
-                      {selectedSeats.map(s => (
-                        <View key={s} style={styles.seatBadge}>
-                          <Text style={styles.seatBadgeText}>{s}</Text>
-                        </View>
-                      ))}
+                    <View style={styles.infoItem}>
+                      <Ionicons name="ticket-outline" size={14} color={COLORS.primary} />
+                      <Text style={styles.infoItemText}>
+                        <Text style={{ fontWeight: 'bold', color: '#FFFFFF' }}>Acceso digital: </Text>
+                        Presenta tu boleto QR digital desde la Wallet. No requiere conexión a internet en la entrada.
+                      </Text>
                     </View>
-                    <View style={styles.priceSummaryRow}>
-                      <Text style={styles.totalLabel}>Total Estimado:</Text>
-                      <Text style={styles.totalVal}>${calculateTotal().toLocaleString()} MXN</Text>
+                    <View style={styles.infoItem}>
+                      <Ionicons name="time-outline" size={14} color="#f59e0b" />
+                      <Text style={styles.infoItemText}>
+                        <Text style={{ fontWeight: 'bold', color: '#FFFFFF' }}>Horarios: </Text>
+                        Las puertas abren 1.5 horas antes del espectáculo. Se recomienda llegar temprano.
+                      </Text>
                     </View>
-                  </Card>
-                )}
+                  </View>
 
-                <View style={styles.bookingActionRow}>
+                  {relatedMerch.length > 0 && (
+                    <View style={{ marginTop: SPACING.md, marginBottom: SPACING.md }}>
+                      <Text style={styles.detailSectionTitle}>Productos Oficiales del Evento</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.sm, paddingVertical: 4 }}>
+                        {relatedMerch.map(prod => {
+                          const qty = selectedMerch[prod.id] || 0;
+                          return (
+                            <View key={prod.id} style={styles.relatedMerchCard}>
+                              <Image source={{ uri: prod.image }} style={styles.relatedMerchImg} />
+                              <View style={styles.relatedMerchInfo}>
+                                <Text style={styles.relatedMerchTitle} numberOfLines={1}>{prod.title}</Text>
+                                <Text style={styles.relatedMerchPrice}>${prod.price} MXN</Text>
+                                
+                                {qty === 0 ? (
+                                  <TouchableOpacity
+                                    style={styles.relatedMerchAddBtn}
+                                    onPress={() => {
+                                      setSelectedMerch(prev => ({ ...prev, [prod.id]: 1 }));
+                                    }}
+                                  >
+                                    <Ionicons name="add" size={14} color="#FFFFFF" />
+                                    <Text style={styles.relatedMerchAddText}>Agregar</Text>
+                                  </TouchableOpacity>
+                                ) : (
+                                  <View style={styles.relatedMerchQtyRow}>
+                                    <TouchableOpacity
+                                      style={styles.relatedMerchQtyBtn}
+                                      onPress={() => {
+                                        setSelectedMerch(prev => {
+                                          const next = { ...prev };
+                                          if (qty <= 1) {
+                                            delete next[prod.id];
+                                          } else {
+                                            next[prod.id] = qty - 1;
+                                          }
+                                          return next;
+                                        });
+                                      }}
+                                    >
+                                      <Ionicons name="remove" size={12} color="#FFFFFF" />
+                                    </TouchableOpacity>
+                                    <Text style={styles.relatedMerchQtyText}>{qty}</Text>
+                                    <TouchableOpacity
+                                      style={styles.relatedMerchQtyBtn}
+                                      onPress={() => {
+                                        setSelectedMerch(prev => ({ ...prev, [prod.id]: qty + 1 }));
+                                      }}
+                                    >
+                                      <Ionicons name="add" size={12} color="#FFFFFF" />
+                                    </TouchableOpacity>
+                                  </View>
+                                )}
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </ScrollView>
+                    </View>
+                  )}
+
                   <Button
-                    title="Agregar al Carrito"
-                    variant="secondary"
-                    disabled={selectedSeats.length === 0}
-                    onPress={handleAddToCart}
-                    style={{ flex: 1 }}
+                    title="Reservar Lugar"
+                    onPress={() => setShowDetailsStep(false)}
+                    style={{ marginTop: SPACING.sm }}
                   />
-                  <Button
-                    title="Comprar Ahora"
-                    disabled={selectedSeats.length === 0}
-                    onPress={handleBuyNow}
-                    style={{ flex: 1.2 }}
-                  />
-                </View>
-              </ScrollView>
+                </ScrollView>
+              ) : (
+                /* SEAT SELECTION VIEW */
+                <ScrollView contentContainerStyle={styles.bookingScroll}>
+                  <TouchableOpacity
+                    style={styles.bookingBackButton}
+                    onPress={() => setShowDetailsStep(true)}
+                  >
+                    <Ionicons name="arrow-back" size={14} color={COLORS.primary} />
+                    <Text style={styles.bookingBackButtonText}>Volver a Detalles</Text>
+                  </TouchableOpacity>
+
+                  {/* Stage Indicator */}
+                  <View style={styles.stageContainer}>
+                    <View style={styles.stageBorder} />
+                    <Text style={styles.stageText}>ESCENARIO</Text>
+                  </View>
+
+                  {/* Seat Map Grid */}
+                  <View style={styles.gridCard}>
+                    {rows.map((row) => (
+                      <View key={row} style={styles.gridRow}>
+                        {/* Row Label */}
+                        <Text style={styles.rowLabel}>{row}</Text>
+                        
+                        {/* Seats */}
+                        {columns.map((col) => {
+                          const id = `${row}-${col}`;
+                          const isOccupied = occupiedSeats[id];
+                          const isSelected = selectedSeats.includes(id);
+                          const seatCat = getSeatCategoryName(row);
+
+                          let seatBg = '#1e293b';
+                          if (isOccupied) seatBg = '#475569';
+                          else if (isSelected) seatBg = COLORS.success;
+                          else if (seatCat === 'VIP') seatBg = '#f59e0b';
+                          else if (seatCat === 'GOLD') seatBg = '#a855f7';
+
+                          return (
+                            <TouchableOpacity
+                              key={id}
+                              style={[styles.seat, { backgroundColor: seatBg }]}
+                              disabled={isOccupied}
+                              onPress={() => toggleSeat(id)}
+                            >
+                              <Text style={styles.seatText}>{col}</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    ))}
+                  </View>
+
+                  {/* Color Legend */}
+                  <View style={styles.legendContainer}>
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendDot, { backgroundColor: '#f59e0b' }]} />
+                      <Text style={styles.legendText}>VIP</Text>
+                    </View>
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendDot, { backgroundColor: '#a855f7' }]} />
+                      <Text style={styles.legendText}>Gold</Text>
+                    </View>
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendDot, { backgroundColor: '#1e293b' }]} />
+                      <Text style={styles.legendText}>Gral</Text>
+                    </View>
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendDot, { backgroundColor: COLORS.success }]} />
+                      <Text style={styles.legendText}>Mi Selección</Text>
+                    </View>
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendDot, { backgroundColor: '#475569' }]} />
+                      <Text style={styles.legendText}>Ocupado</Text>
+                    </View>
+                  </View>
+
+                  {/* Selected Info Summary */}
+                  {selectedSeats.length > 0 && (
+                    <Card style={styles.summaryCard}>
+                      <Text style={styles.summaryHeader}>Boletos Seleccionados ({selectedSeats.length})</Text>
+                      <View style={styles.selectedSeatsRow}>
+                        {selectedSeats.map(s => (
+                          <View key={s} style={styles.seatBadge}>
+                            <Text style={styles.seatBadgeText}>{s}</Text>
+                          </View>
+                        ))}
+                      </View>
+                      <View style={styles.priceSummaryRow}>
+                        <Text style={styles.totalLabel}>Total Estimado:</Text>
+                        <Text style={styles.totalVal}>${calculateTotal().toLocaleString()} MXN</Text>
+                      </View>
+                    </Card>
+                  )}
+
+                  <View style={styles.bookingActionRow}>
+                    <Button
+                      title="Agregar al Carrito"
+                      variant="secondary"
+                      disabled={selectedSeats.length === 0}
+                      onPress={handleAddToCart}
+                      style={{ flex: 1 }}
+                    />
+                    <Button
+                      title="Comprar Ahora"
+                      disabled={selectedSeats.length === 0}
+                      onPress={handleBuyNow}
+                      style={{ flex: 1.2 }}
+                    />
+                  </View>
+                </ScrollView>
+              )
             ) : !paymentSuccess ? (
               /* CHECKOUT PANEL */
               <View style={styles.checkoutContainer}>
@@ -700,6 +943,20 @@ export const UserEventsScreen = () => {
                         </View>
                       );
                     })}
+                    {Object.entries(selectedMerch).length > 0 && (
+                      <View style={{ marginTop: SPACING.xs, borderTopWidth: 1, borderTopColor: '#1f2937', paddingTop: SPACING.xs }}>
+                        {Object.entries(selectedMerch).map(([id, qty]) => {
+                          const prod = merchItems.find(p => p.id === id);
+                          if (!prod) return null;
+                          return (
+                            <View key={id} style={styles.checkoutSeatItem}>
+                              <Text style={styles.checkoutSeatName}>{prod.title} (x{qty})</Text>
+                              <Text style={styles.checkoutSeatPrice}>${(prod.price * qty).toLocaleString()} MXN</Text>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    )}
                   </View>
 
                   <View style={styles.divider} />
@@ -749,6 +1006,14 @@ export const UserEventsScreen = () => {
                 <Card style={styles.successOrderSummary}>
                   <Text style={styles.orderSummaryEvent}>{activeEvent?.title}</Text>
                   <Text style={styles.orderSummarySeats}>Asientos: {selectedSeats.join(', ')}</Text>
+                  {Object.entries(selectedMerch).length > 0 && (
+                    <Text style={styles.orderSummarySeats}>
+                      Souvenirs: {Object.entries(selectedMerch).map(([id, qty]) => {
+                        const prod = merchItems.find(p => p.id === id);
+                        return prod ? `${prod.title} (x${qty})` : '';
+                      }).filter(Boolean).join(', ')}
+                    </Text>
+                  )}
                   <Text style={styles.orderSummaryTotal}>Total Cargado: ${calculateTotal().toLocaleString()} MXN</Text>
                 </Card>
 
@@ -849,13 +1114,52 @@ export const UserEventsScreen = () => {
                             ))}
                           </View>
                           
+                          {item.selectedMerch && item.selectedMerch.length > 0 && (
+                            <View style={{ marginTop: SPACING.sm, marginBottom: SPACING.xs }}>
+                              <Text style={styles.cartSeatsLabel}>Souvenirs Vinculados:</Text>
+                              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                                {item.selectedMerch.map(merch => (
+                                  <View key={merch.id} style={[styles.cartSeatBadge, { backgroundColor: '#111827', borderWidth: 1, borderColor: COLORS.primary }]}>
+                                    <Text style={[styles.cartSeatBadgeText, { color: '#FFFFFF' }]}>
+                                      {merch.title} (x{merch.quantity}) - ${merch.price * merch.quantity} MXN
+                                    </Text>
+                                    <TouchableOpacity 
+                                      onPress={() => {
+                                        setCart(prevCart => {
+                                          const nextCart = prevCart.map(prevItem => {
+                                            if (prevItem.eventId === item.eventId) {
+                                              return {
+                                                ...prevItem,
+                                                selectedMerch: (prevItem.selectedMerch || []).filter(m => m.id !== merch.id)
+                                              };
+                                            }
+                                            return prevItem;
+                                          });
+                                          saveActiveEventIdsToStorage(nextCart);
+                                          return nextCart;
+                                        });
+                                      }}
+                                    >
+                                      <Ionicons name="close-circle" size={14} color={COLORS.primary} style={{ marginLeft: 4 }} />
+                                    </TouchableOpacity>
+                                  </View>
+                                ))}
+                              </View>
+                            </View>
+                          )}
+                          
                           <View style={styles.cartSubtotalRow}>
                             <Text style={styles.cartSubtotalLabel}>Subtotal Evento:</Text>
                             <Text style={styles.cartSubtotalVal}>
-                              ${item.seats.reduce((sum, seat) => {
-                                const row = seat.split('-')[0];
-                                return sum + getCartItemSeatPrice(item.event, row);
-                              }, 0).toLocaleString()} MXN
+                              ${(
+                                item.seats.reduce((sum, seat) => {
+                                  const row = seat.split('-')[0];
+                                  return sum + getCartItemSeatPrice(item.event, row);
+                                }, 0) + 
+                                (item.selectedMerch || []).reduce((sum, merch) => {
+                                  return sum + (merch.price * merch.quantity);
+                                }, 0)
+                              ).toLocaleString()} MXN
                             </Text>
                           </View>
                         </Card>
@@ -906,6 +1210,11 @@ export const UserEventsScreen = () => {
                         <Text style={styles.checkoutSeatsListText}>
                           {item.seats.length} boletos ({item.seats.join(', ')})
                         </Text>
+                        {item.selectedMerch && item.selectedMerch.length > 0 && (
+                          <Text style={[styles.checkoutSeatsListText, { color: COLORS.primary }]}>
+                            + Souvenirs: {item.selectedMerch.map(m => `${m.title} (x${m.quantity})`).join(', ')}
+                          </Text>
+                        )}
                       </View>
                     ))}
                   </View>
@@ -948,7 +1257,7 @@ export const UserEventsScreen = () => {
                 {/* Form fields based on selection */}
                 {paymentMethod === 'card' && (
                   <Card style={styles.cardFormCard}>
-                    {savedCard ? (
+                    {savedCard && !useAnotherCard ? (
                       <View>
                         <Text style={styles.formTitle}>Método de Pago Registrado</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#151c2c', padding: SPACING.md, borderRadius: BORDER_RADIUS.md, marginBottom: SPACING.md }}>
@@ -958,17 +1267,24 @@ export const UserEventsScreen = () => {
                               {savedCard.brand} •••• {savedCard.number.slice(-4)}
                             </Text>
                             <Text style={{ color: COLORS.dark.textSecondary, fontSize: 10, marginTop: 2 }}>
-                              Titular: {savedCard.holder} | Vence: {savedCard.expiry}
+                              Titular: {savedCard.holder || savedCard.name} | Vence: {savedCard.expiry}
                             </Text>
                           </View>
-                          <TouchableOpacity onPress={() => clearSavedCard()}>
+                          <TouchableOpacity onPress={() => setUseAnotherCard(true)}>
                             <Text style={{ color: COLORS.primary, fontWeight: 'bold', fontSize: 11 }}>Cambiar</Text>
                           </TouchableOpacity>
                         </View>
                       </View>
                     ) : (
                       <View>
-                        <Text style={styles.formTitle}>Información de la Tarjeta</Text>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.sm }}>
+                          <Text style={styles.formTitle}>Información de la Tarjeta</Text>
+                          {savedCard && (
+                            <TouchableOpacity onPress={() => setUseAnotherCard(false)}>
+                              <Text style={{ color: COLORS.primary, fontSize: 11, fontWeight: 'bold' }}>Usar guardada</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
                         
                         <View style={styles.formGroup}>
                           <Text style={styles.inputLabel}>Titular de la Tarjeta</Text>
@@ -1085,6 +1401,22 @@ export const UserEventsScreen = () => {
                 <Text style={styles.successDesc}>
                   Todos tus boletos han sido generados con éxito y agregados a tu Wallet digital. Puedes presentarlos sin conexión en la puerta de acceso.
                 </Text>
+
+                {cart.length > 0 && (
+                  <Card style={{ ...styles.successOrderSummary, marginBottom: SPACING.md }}>
+                    {cart.map(item => (
+                      <View key={item.eventId} style={{ marginBottom: 4 }}>
+                        <Text style={styles.orderSummaryEvent}>{item.event.title}</Text>
+                        <Text style={styles.orderSummarySeats}>Asientos: {item.seats.join(', ')}</Text>
+                        {item.selectedMerch && item.selectedMerch.length > 0 && (
+                          <Text style={styles.orderSummarySeats}>
+                            Souvenirs: {item.selectedMerch.map(m => `${m.title} (x${m.quantity})`).join(', ')}
+                          </Text>
+                        )}
+                      </View>
+                    ))}
+                  </Card>
+                )}
                 <Button
                   title="Entendido, Ir a Eventos"
                   onPress={() => {
@@ -1804,6 +2136,175 @@ const styles = StyleSheet.create({
   loginHeaderBtnText: {
     color: '#FFFFFF',
     fontSize: 11,
+    fontWeight: 'bold',
+  },
+  detailsScroll: {
+    padding: SPACING.md,
+    paddingBottom: SPACING.xl * 2,
+  },
+  detailImage: {
+    width: '100%',
+    height: 180,
+    borderRadius: BORDER_RADIUS.md,
+    marginBottom: SPACING.md,
+  },
+  detailCategoryBadge: {
+    backgroundColor: 'rgba(255, 0, 127, 0.15)',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 4,
+    borderRadius: BORDER_RADIUS.round,
+    alignSelf: 'flex-start',
+    marginBottom: SPACING.xs,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 0, 127, 0.3)',
+  },
+  detailCategoryText: {
+    color: COLORS.primary,
+    fontSize: 10,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+  },
+  detailMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    marginBottom: SPACING.xs,
+  },
+  detailMetaText: {
+    color: COLORS.dark.textSecondary,
+    fontSize: 12,
+  },
+  detailPrice: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginTop: SPACING.xs,
+    marginBottom: SPACING.md,
+  },
+  detailSectionTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    marginTop: SPACING.md,
+    marginBottom: SPACING.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  detailDescription: {
+    color: '#cbd5e1',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: SPACING.sm,
+  },
+  infoList: {
+    gap: SPACING.xs,
+    backgroundColor: '#111827',
+    padding: SPACING.sm,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    marginBottom: SPACING.md,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING.xs,
+  },
+  infoItemText: {
+    color: COLORS.dark.textSecondary,
+    fontSize: 11,
+    lineHeight: 16,
+    flex: 1,
+  },
+  bookingBackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.sm,
+    alignSelf: 'flex-start',
+    marginBottom: SPACING.sm,
+  },
+  bookingBackButtonText: {
+    color: COLORS.primary,
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  changeCardLink: {
+    alignSelf: 'flex-end',
+    marginBottom: SPACING.sm,
+    paddingVertical: 4,
+  },
+  changeCardLinkText: {
+    color: COLORS.primary,
+    fontWeight: 'bold',
+    fontSize: 11,
+  },
+  relatedMerchCard: {
+    width: 140,
+    backgroundColor: '#111827',
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    overflow: 'hidden',
+    marginRight: SPACING.xs,
+  },
+  relatedMerchImg: {
+    width: '100%',
+    height: 90,
+  },
+  relatedMerchInfo: {
+    padding: SPACING.xs,
+    alignItems: 'center',
+    gap: 4,
+  },
+  relatedMerchTitle: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  relatedMerchPrice: {
+    color: COLORS.dark.textSecondary,
+    fontSize: 9,
+  },
+  relatedMerchAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: BORDER_RADIUS.sm,
+    marginTop: 4,
+    gap: 2,
+  },
+  relatedMerchAddText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: 'bold',
+  },
+  relatedMerchQtyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#1f2937',
+    borderRadius: BORDER_RADIUS.sm,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    marginTop: 4,
+    width: '100%',
+  },
+  relatedMerchQtyBtn: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 4,
+    padding: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  relatedMerchQtyText: {
+    color: '#FFFFFF',
+    fontSize: 10,
     fontWeight: 'bold',
   },
 });

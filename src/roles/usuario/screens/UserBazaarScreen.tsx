@@ -20,14 +20,18 @@ import Button from '../../../components/Button';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../../context/AuthContext';
 import { useRouter } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
 export const UserBazaarScreen = () => {
   const { user } = useAuth();
   const router = useRouter();
+  const isFocused = useIsFocused();
   const [items, setItems] = useState<MerchItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeCartEventIds, setActiveCartEventIds] = useState<string[]>([]);
 
   // Cart State (dict of itemId -> quantity)
   const [cart, setCart] = useState<Record<string, number>>({});
@@ -37,6 +41,34 @@ export const UserBazaarScreen = () => {
   useEffect(() => {
     fetchMerch();
   }, []);
+
+  useEffect(() => {
+    if (isFocused) {
+      loadActiveCartFilters();
+    }
+  }, [isFocused]);
+
+  const loadActiveCartFilters = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('@Laika:cart_event_ids');
+      if (stored) {
+        setActiveCartEventIds(JSON.parse(stored));
+      } else {
+        setActiveCartEventIds([]);
+      }
+    } catch (e) {
+      console.error('Error loading cart event filters', e);
+    }
+  };
+
+  const handleResetFilters = async () => {
+    try {
+      await AsyncStorage.removeItem('@Laika:cart_event_ids');
+      setActiveCartEventIds([]);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const fetchMerch = async () => {
     setLoading(true);
@@ -178,9 +210,25 @@ export const UserBazaarScreen = () => {
         </View>
       </View>
 
+      {/* Active Cart Filter Notice */}
+      {activeCartEventIds.length > 0 && (
+        <View style={styles.filterBanner}>
+          <Ionicons name="funnel-outline" size={16} color={COLORS.primary} style={{ marginRight: 6 }} />
+          <Text style={styles.filterBannerText} numberOfLines={1}>
+            Filtrado por eventos en carrito
+          </Text>
+          <TouchableOpacity onPress={handleResetFilters} style={styles.filterResetBtn}>
+            <Text style={styles.filterResetText}>Mostrar Todo</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Grid of items */}
       <FlatList
-        data={items}
+        data={items.filter(item => {
+          if (activeCartEventIds.length === 0) return true;
+          return item.eventId && activeCartEventIds.includes(item.eventId);
+        })}
         numColumns={2}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
@@ -572,6 +620,34 @@ const styles = StyleSheet.create({
   loginHeaderBtnText: {
     color: '#FFFFFF',
     fontSize: 11,
+    fontWeight: 'bold',
+  },
+  filterBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1f2937',
+    paddingVertical: 10,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    marginHorizontal: SPACING.md,
+    marginVertical: SPACING.sm,
+    justifyContent: 'space-between',
+  },
+  filterBannerText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: 'bold',
+    flex: 1,
+  },
+  filterResetBtn: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  filterResetText: {
+    color: '#FFFFFF',
+    fontSize: 10,
     fontWeight: 'bold',
   },
 });

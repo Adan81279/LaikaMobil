@@ -33,6 +33,7 @@ export interface Ticket {
   event_date?: string;
   event_time?: string;
   seat_id?: string;
+  related_merch?: Array<{ id: string; title: string; price: number; quantity: number; image: string }>;
 }
 
 export interface RefundRequest {
@@ -52,6 +53,7 @@ export interface MerchItem {
   image: string;
   stock: number;
   description: string;
+  eventId?: string;
 }
 
 export interface UserStats {
@@ -243,6 +245,783 @@ const saveArtistsToStorage = async (artists: Artist[]) => {
   } catch (e) {}
 };
 
+const offlineEvents: EventInfo[] = [
+  {
+    id: '1',
+    title: 'Duki - A.D.A. Tour 2026',
+    description: 'El referente mundial de la música urbana llega a México para presentar su nuevo álbum A.D.A. junto con sus mayores éxitos globales en una noche legendaria.',
+    date: '15/07/2026',
+    time: '21:00',
+    venue: 'Estadio Laika Arena',
+    price: 1500,
+    image: 'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=600&q=80',
+    category: 'Urbano',
+    available_seats: 450,
+    total_seats: 12000
+  },
+  {
+    id: '2',
+    title: 'Coldplay - Music of the Spheres Tour',
+    description: 'Disfruta de una experiencia inmersiva con luces LED, fuegos artificiales y una puesta en escena espectacular e inolvidable con conciencia ecológica.',
+    date: '02/08/2026',
+    time: '20:00',
+    venue: 'Foro Sol Monumental',
+    price: 2200,
+    image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=600&q=80',
+    category: 'Pop',
+    available_seats: 820,
+    total_seats: 55000
+  },
+  {
+    id: '3',
+    title: 'Steve Aoki - Neon Party',
+    description: 'El DJ y productor superestrella Steve Aoki llenará de beats electrónicos y lanzamientos de pasteles la pista en la mejor fiesta electrónica del año.',
+    date: '28/08/2026',
+    time: '23:00',
+    venue: 'Club Omnia Club',
+    price: 650,
+    image: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=600&q=80',
+    category: 'Electrónica',
+    available_seats: 120,
+    total_seats: 2500
+  },
+  {
+    id: '4',
+    title: 'Gamer Con 2026',
+    description: 'La convención anual de videojuegos y cosplay más importante del país. Zona de eSports, torneos retro, booths interactivos y conferencias de creadores.',
+    date: '10/09/2026',
+    time: '10:00',
+    venue: 'Centro de Exposiciones Laika Center',
+    price: 350,
+    image: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=600&q=80',
+    category: 'Convención',
+    available_seats: 2300,
+    total_seats: 8000
+  },
+  {
+    id: '5',
+    title: 'Bad Bunny - Most Wanted Tour',
+    description: 'El Conejo Malo regresa con un espectáculo sin precedentes dedicado a sus raíces trap y sus hits número uno a nivel mundial.',
+    date: '22/09/2026',
+    time: '20:30',
+    venue: 'Estadio Azteca',
+    price: 1800,
+    image: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?auto=format&fit=crop&w=600&q=80',
+    category: 'Urbano',
+    available_seats: 310,
+    total_seats: 80000
+  },
+  {
+    id: '6',
+    title: 'Taylor Swift - The Eras Tour',
+    description: 'Un viaje a través de todas las eras musicales de la carrera de Taylor Swift, con una producción masiva e inolvidable.',
+    date: '05/10/2026',
+    time: '19:30',
+    venue: 'Foro Sol Monumental',
+    price: 3500,
+    image: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=600&q=80',
+    category: 'Pop',
+    available_seats: 40,
+    total_seats: 60000
+  },
+  {
+    id: '7',
+    title: 'Metallica - M72 World Tour',
+    description: 'La legendaria banda de metal regresa con su icónico escenario circular y un setlist doble en dos noches inolvidables.',
+    date: '18/10/2026',
+    time: '20:00',
+    venue: 'Arena Ciudad de México',
+    price: 1900,
+    image: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?auto=format&fit=crop&w=600&q=80',
+    category: 'Rock',
+    available_seats: 150,
+    total_seats: 22000
+  },
+  {
+    id: '8',
+    title: 'Martin Garrix - Live Beats',
+    description: 'Disfruta de la magia electrónica de uno de los mejores DJs del mundo en una noche llena de luces, lásers y pirotecnia.',
+    date: '31/10/2026',
+    time: '22:00',
+    venue: 'Explanada Laika Park',
+    price: 750,
+    image: 'https://images.unsplash.com/photo-1482578008906-8d697d897d28?auto=format&fit=crop&w=600&q=80',
+    category: 'Electrónica',
+    available_seats: 980,
+    total_seats: 15000
+  },
+  {
+    id: '9',
+    title: 'Billie Eilish - Hit Me Hard and Soft',
+    description: 'Presentando su nuevo material discográfico con un show íntimo pero espectacular que destaca su inigualable rango vocal y estilo alternativo.',
+    date: '12/11/2026',
+    time: '20:30',
+    venue: 'Palacio de los Deportes',
+    price: 1600,
+    image: 'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?auto=format&fit=crop&w=600&q=80',
+    category: 'Pop',
+    available_seats: 200,
+    total_seats: 18000
+  },
+  {
+    id: '10',
+    title: 'Bruno Mars - Live in Concert',
+    description: 'El rey del funk y el pop regresa con su espectacular banda The Hooligans para hacernos bailar con su inigualable energía.',
+    date: '25/11/2026',
+    time: '21:00',
+    venue: 'Estadio Laika Arena',
+    price: 2400,
+    image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=600&q=80',
+    category: 'Pop',
+    available_seats: 180,
+    total_seats: 25000
+  },
+  {
+    id: '11',
+    title: 'Iron Maiden - Future Past Tour',
+    description: 'Un show épico que celebra lo mejor de Somewhere in Time, Senjutsu y sus mayores clásicos con Eddie en escena.',
+    date: '04/12/2026',
+    time: '20:00',
+    venue: 'Foro Sol Monumental',
+    price: 1700,
+    image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?auto=format&fit=crop&w=600&q=80',
+    category: 'Rock',
+    available_seats: 400,
+    total_seats: 50000
+  },
+  {
+    id: '12',
+    title: 'Daft Punk Tribute - Laser Show',
+    description: 'Una experiencia sensorial de luces y lásers sincronizada con los mayores éxitos de Daft Punk en vivo.',
+    date: '15/12/2026',
+    time: '22:00',
+    venue: 'Planetario Laika Dome',
+    price: 450,
+    image: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=600&q=80',
+    category: 'Electrónica',
+    available_seats: 80,
+    total_seats: 800
+  },
+  {
+    id: '13',
+    title: 'Karol G - Mañana Será Bonito',
+    description: 'La Bichota llega con su vibra positiva, tiernos animales mágicos en el escenario y todos sus éxitos urbanos.',
+    date: '10/01/2027',
+    time: '20:00',
+    venue: 'Estadio Azteca',
+    price: 1550,
+    image: 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=600&q=80',
+    category: 'Urbano',
+    available_seats: 600,
+    total_seats: 75000
+  },
+  {
+    id: '14',
+    title: 'The Weeknd - After Hours til Dawn',
+    description: 'Una noche teatral y cinematográfica que recorre el desierto de luces rojas y sintetizadores de The Weeknd.',
+    date: '28/01/2027',
+    time: '21:00',
+    venue: 'Foro Sol Monumental',
+    price: 2100,
+    image: 'https://images.unsplash.com/photo-1486591978090-58e619d37fe7?auto=format&fit=crop&w=600&q=80',
+    category: 'Pop',
+    available_seats: 250,
+    total_seats: 60000
+  },
+  {
+    id: '15',
+    title: 'Red Hot Chili Peppers - Unlimited Love',
+    description: 'Los californianos regresan con John Frusciante en la guitarra en una sesión pura de funk rock y energía ilimitada.',
+    date: '14/02/2027',
+    time: '20:30',
+    venue: 'Arena Ciudad de México',
+    price: 1650,
+    image: 'https://images.unsplash.com/photo-1511192336575-5a79af67a629?auto=format&fit=crop&w=600&q=80',
+    category: 'Rock',
+    available_seats: 330,
+    total_seats: 20000
+  },
+  {
+    id: '16',
+    title: 'Tomorrowland Unite México',
+    description: 'La conexión satelital en vivo con el festival de música electrónica más grande del mundo, con DJs en vivo locales e internacionales.',
+    date: '06/03/2027',
+    time: '16:00',
+    venue: 'Explanada Laika Park',
+    price: 1200,
+    image: 'https://images.unsplash.com/photo-1472653431158-6364773b2a56?auto=format&fit=crop&w=600&q=80',
+    category: 'Electrónica',
+    available_seats: 1200,
+    total_seats: 30000
+  },
+  {
+    id: '17',
+    title: 'Rock in Laika Festival',
+    description: 'Un festival dedicado enteramente al rock en español y alternativo. 12 bandas nacionales en un solo día.',
+    date: '20/03/2027',
+    time: '12:00',
+    venue: 'Centro de Exposiciones Laika Center',
+    price: 950,
+    image: 'https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=600&q=80',
+    category: 'Rock',
+    available_seats: 850,
+    total_seats: 15000
+  },
+  {
+    id: '18',
+    title: 'Indie Fest 2026',
+    description: 'Descubre los nuevos proyectos emergentes y consolidados del movimiento indie alternativo internacional.',
+    date: '04/04/2027',
+    time: '15:00',
+    venue: 'Jardines de Laika Arena',
+    price: 400,
+    image: 'https://images.unsplash.com/photo-1453090923802-60c3b538ee25?auto=format&fit=crop&w=600&q=80',
+    category: 'Indie',
+    available_seats: 190,
+    total_seats: 4000
+  },
+  {
+    id: '19',
+    title: 'Anime & Manga Fest',
+    description: 'La celebración de la cultura japonesa más grande del año. Cosplay, stands de venta oficiales, actores de doblaje y conciertos de anisong.',
+    date: '18/04/2027',
+    time: '10:00',
+    venue: 'Centro de Exposiciones Laika Center',
+    price: 300,
+    image: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=600&q=80',
+    category: 'Convención',
+    available_seats: 1400,
+    total_seats: 6000
+  },
+  {
+    id: '20',
+    title: 'Travis Scott - Utopia Tour',
+    description: 'Una experiencia audiovisual inmersiva y de alta intensidad. Vive la utopía trap con Travis Scott en vivo.',
+    date: '05/05/2027',
+    time: '21:00',
+    venue: 'Palacio de los Deportes',
+    price: 1850,
+    image: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?auto=format&fit=crop&w=600&q=80',
+    category: 'Urbano',
+    available_seats: 120,
+    total_seats: 16000
+  },
+  {
+    id: '21',
+    title: 'Eminem - The Resurrection Tour',
+    description: 'El dios del rap Slim Shady regresa a los escenarios en un show que resume sus mayores batallas y éxitos clásicos.',
+    date: '20/05/2027',
+    time: '20:00',
+    venue: 'Estadio Laika Arena',
+    price: 2250,
+    image: 'https://images.unsplash.com/photo-1508962914676-134849a727f0?auto=format&fit=crop&w=600&q=80',
+    category: 'Urbano',
+    available_seats: 160,
+    total_seats: 30000
+  },
+  {
+    id: '22',
+    title: 'Shakira - Las Mujeres Ya No Lloran',
+    description: 'La estrella mundial del pop latino regresa con un despliegue de baile, hits históricos y una producción de vanguardia.',
+    date: '10/06/2027',
+    time: '20:30',
+    venue: 'Estadio Azteca',
+    price: 2000,
+    image: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=600&q=80',
+    category: 'Pop',
+    available_seats: 320,
+    total_seats: 80000
+  },
+  {
+    id: '23',
+    title: 'Peso Pluma - Éxodo Tour',
+    description: 'La máxima estrella del regional mexicano y los corridos tumbados llega para una noche histórica de fiesta.',
+    date: '24/06/2027',
+    time: '21:00',
+    venue: 'Arena Ciudad de México',
+    price: 1300,
+    image: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=600&q=80',
+    category: 'Urbano',
+    available_seats: 430,
+    total_seats: 22000
+  },
+  {
+    id: '24',
+    title: 'Bizarrap - Live Session',
+    description: 'El productor estrella argentino Bizarrap presenta su aclamado espectáculo visual tocando sus sesiones más virales.',
+    date: '08/07/2027',
+    time: '22:00',
+    venue: 'Club Omnia Club',
+    price: 800,
+    image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=600&q=80',
+    category: 'Electrónica',
+    available_seats: 75,
+    total_seats: 3000
+  },
+  {
+    id: '25',
+    title: 'Justin Bieber - Justice Tour',
+    description: 'La superestrella del pop mundial regresa con su tour mundial Justice en una noche de hits coreados por miles.',
+    date: '25/07/2027',
+    time: '20:30',
+    venue: 'Foro Sol Monumental',
+    price: 1950,
+    image: 'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=600&q=80',
+    category: 'Pop',
+    available_seats: 540,
+    total_seats: 60000
+  }
+];
+
+const offlineMerch: MerchItem[] = [
+  {
+    id: 'm1',
+    title: 'Playera Oficial Duki A.D.A Tour',
+    price: 450,
+    image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=400&q=80',
+    stock: 45,
+    description: 'Algodón 100% premium, estampado de alta durabilidad en espalda y frente, edición limitada del tour.',
+    eventId: '1'
+  },
+  {
+    id: 'm2',
+    title: 'Gorra Laika Neon Black',
+    price: 320,
+    image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&w=400&q=80',
+    stock: 20,
+    description: 'Gorra ajustable tipo snapback con logo bordado en hilo neón de alta calidad.'
+  },
+  {
+    id: 'm3',
+    title: 'Lanyard Conmemorativa Laika VIP',
+    price: 120,
+    image: 'https://images.unsplash.com/photo-1628157582853-a796fa650a6a?auto=format&fit=crop&w=400&q=80',
+    stock: 150,
+    description: 'Ideal para colgar tu gafete o llaves, sublimación de doble vista con fibras recicladas.'
+  },
+  {
+    id: 'm4',
+    title: 'Termo de Acero Inoxidable Coldplay',
+    price: 550,
+    image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=400&q=80',
+    stock: 12,
+    description: 'Capacidad de 750ml, aislamiento de doble capa para mantener bebidas frías o calientes por 12 horas.',
+    eventId: '2'
+  },
+  {
+    id: 'm5',
+    title: 'Sudadera Bad Bunny "Most Wanted"',
+    price: 850,
+    image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=400&q=80',
+    stock: 35,
+    description: 'Sudadera con gorro y bolsa frontal, diseño exclusivo del tour "Most Wanted" en serigrafía.',
+    eventId: '5'
+  },
+  {
+    id: 'm6',
+    title: 'Pulsera LED Coldplay Neon',
+    price: 150,
+    image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=400&q=80',
+    stock: 200,
+    description: 'Pulsera interactiva con luz LED que parpadea al ritmo de los sensores de audio.',
+    eventId: '2'
+  },
+  {
+    id: 'm7',
+    title: 'Playera Metallica M72 Tour',
+    price: 480,
+    image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=400&q=80',
+    stock: 50,
+    description: 'Playera de manga corta con el imponente arte del tour mundial M72 de Metallica.',
+    eventId: '7'
+  },
+  {
+    id: 'm8',
+    title: 'Gorra Steve Aoki Cake',
+    price: 300,
+    image: 'https://images.unsplash.com/photo-1534215754734-18e55d13e346?auto=format&fit=crop&w=400&q=80',
+    stock: 40,
+    description: 'Gorra oficial con el divertido logo "Cake Me" del DJ Steve Aoki.',
+    eventId: '3'
+  },
+  {
+    id: 'm9',
+    title: 'Playera Taylor Swift The Eras Tour',
+    price: 500,
+    image: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?auto=format&fit=crop&w=400&q=80',
+    stock: 80,
+    description: 'Playera oficial con el collage de fotos de las eras de Taylor Swift.',
+    eventId: '6'
+  },
+  {
+    id: 'm10',
+    title: 'Tote Bag Billie Eilish Blohsh',
+    price: 250,
+    image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=400&q=80',
+    stock: 90,
+    description: 'Bolsa ecológica de lona resistente con el icónico isotipo Blohsh de Billie Eilish.',
+    eventId: '9'
+  },
+  {
+    id: 'm11',
+    title: 'Llavero Metálico Coldplay',
+    price: 90,
+    image: 'https://images.unsplash.com/photo-1582139329536-e7284fece509?auto=format&fit=crop&w=400&q=80',
+    stock: 120,
+    description: 'Llavero metálico grabado con el logotipo de Coldplay "Music of the Spheres".',
+    eventId: '2'
+  },
+  {
+    id: 'm12',
+    title: 'Sudadera Duki Diabla Negra',
+    price: 890,
+    image: 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?auto=format&fit=crop&w=400&q=80',
+    stock: 25,
+    description: 'Sudadera premium color negro con logo bordado en color rojo de la diabla.',
+    eventId: '1'
+  },
+  {
+    id: 'm13',
+    title: 'Poster Edición Limitada Steve Aoki',
+    price: 180,
+    image: 'https://images.unsplash.com/photo-1580136579312-94651dfd596d?auto=format&fit=crop&w=400&q=80',
+    stock: 60,
+    description: 'Poster con acabado metálico firmado digitalmente por Steve Aoki. Edición numerada.',
+    eventId: '3'
+  },
+  {
+    id: 'm14',
+    title: 'Vaso Coleccionable Gamer Con 2026',
+    price: 140,
+    image: 'https://images.unsplash.com/photo-1577937927133-66ef06acdf18?auto=format&fit=crop&w=400&q=80',
+    stock: 300,
+    description: 'Vaso de plástico rígido holográfico coleccionable de la convención de videojuegos.',
+    eventId: '4'
+  },
+  {
+    id: 'm15',
+    title: 'Playera Karol G Bichota Blanca',
+    price: 460,
+    image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=400&q=80',
+    stock: 55,
+    description: 'Playera blanca con diseño floral e impresión frontal del single "Bichota" de Karol G.',
+    eventId: '13'
+  },
+  {
+    id: 'm16',
+    title: 'Sudadera The Weeknd XO Logo',
+    price: 900,
+    image: 'https://images.unsplash.com/photo-1609873814058-a8928924184a?auto=format&fit=crop&w=400&q=80',
+    stock: 30,
+    description: 'Sudadera ultra suave con estampado del logo XO de The Weeknd en el pecho.',
+    eventId: '14'
+  },
+  {
+    id: 'm17',
+    title: 'Calcomanías Pack Rock & Metal',
+    price: 80,
+    image: 'https://images.unsplash.com/photo-1572375995501-4b0894dbe0d1?auto=format&fit=crop&w=400&q=80',
+    stock: 500,
+    description: 'Paquete con 12 calcomanías impermeables de vinilo con logos de bandas de rock y metal.',
+    eventId: '17'
+  },
+  {
+    id: 'm18',
+    title: 'Gorro de Lana Red Hot Chili Peppers',
+    price: 280,
+    image: 'https://images.unsplash.com/photo-1576871337622-98d48d4aa53e?auto=format&fit=crop&w=400&q=80',
+    stock: 65,
+    description: 'Gorro de lana tejido con el clásico isotipo del asterisco de los Red Hot Chili Peppers.',
+    eventId: '15'
+  },
+  {
+    id: 'm19',
+    title: 'Mochila Impermeable Tomorrowland',
+    price: 650,
+    image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=400&q=80',
+    stock: 18,
+    description: 'Mochila ligera e impermeable con el logotipo de Tomorrowland, perfecta para festivales.',
+    eventId: '16'
+  },
+  {
+    id: 'm20',
+    title: 'Playera Travis Scott Utopia',
+    price: 550,
+    image: 'https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?auto=format&fit=crop&w=400&q=80',
+    stock: 40,
+    description: 'Playera de corte holgado con tipografía exclusiva del disco Utopia de Travis Scott.',
+    eventId: '20'
+  },
+  {
+    id: 'm21',
+    title: 'Sudadera Eminem Shady Records',
+    price: 920,
+    image: 'https://images.unsplash.com/photo-1544923246-77307dd654cb?auto=format&fit=crop&w=400&q=80',
+    stock: 22,
+    description: 'Sudadera conmemorativa color gris jaspeado con el logo clásico de Shady Records.',
+    eventId: '21'
+  },
+  {
+    id: 'm22',
+    title: 'Playera Shakira Loba Edición',
+    price: 480,
+    image: 'https://images.unsplash.com/photo-1554568218-0f1715e72254?auto=format&fit=crop&w=400&q=80',
+    stock: 45,
+    description: 'Playera de colección de Shakira alusiva al icónico videoclip de "She Wolf".',
+    eventId: '22'
+  },
+  {
+    id: 'm23',
+    title: 'Gorra Peso Pluma Double P',
+    price: 340,
+    image: 'https://images.unsplash.com/photo-1521119989659-a83eee488004?auto=format&fit=crop&w=400&q=80',
+    stock: 80,
+    description: 'Gorra oficial tipo trucker con el bordado de las letras PP de Peso Pluma.',
+    eventId: '23'
+  },
+  {
+    id: 'm24',
+    title: 'Llavero Acrílico Bizarrap Session',
+    price: 95,
+    image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?auto=format&fit=crop&w=400&q=80',
+    stock: 140,
+    description: 'Llavero de acrílico de alta calidad con el logo oficial del productor Bizarrap.',
+    eventId: '24'
+  },
+  {
+    id: 'm25',
+    title: 'Playera Justin Bieber Justice Tour',
+    price: 490,
+    image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=400&q=80',
+    stock: 75,
+    description: 'Playera de color verde neón oficial de la gira mundial Justice de Justin Bieber.',
+    eventId: '25'
+  },
+  {
+    id: 'm26',
+    title: 'Playera Steve Aoki Neon Logo',
+    price: 420,
+    image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=400&q=80',
+    stock: 60,
+    description: 'Playera negra con logo Aoki impreso en tinta reactiva a la luz negra o ultravioleta.',
+    eventId: '3'
+  },
+  {
+    id: 'm27',
+    title: 'Sudadera Coldplay Spheres Blanca',
+    price: 880,
+    image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=400&q=80',
+    stock: 35,
+    description: 'Sudadera blanca con el arte planetario del tour "Music of the Spheres" impreso a color.',
+    eventId: '2'
+  },
+  {
+    id: 'm28',
+    title: 'Gorra Bad Bunny Corazón',
+    price: 330,
+    image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&w=400&q=80',
+    stock: 90,
+    description: 'Gorra de mezclilla con el parche bordado del corazón triste de "Un Verano Sin Ti".',
+    eventId: '5'
+  },
+  {
+    id: 'm29',
+    title: 'Termo Duki A.D.A Aluminio',
+    price: 520,
+    image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=400&q=80',
+    stock: 50,
+    description: 'Termo de aluminio para bebidas frías con la tipografía oficial del álbum A.D.A.',
+    eventId: '1'
+  },
+  {
+    id: 'm30',
+    title: 'Case iPhone Laika Club Oficial',
+    price: 190,
+    image: 'https://images.unsplash.com/photo-1601597111158-2fceff270190?auto=format&fit=crop&w=400&q=80',
+    stock: 120,
+    description: 'Funda protectora anticaídas compatible con iPhone con el logo neón de Laika Club.'
+  },
+  {
+    id: 'm31',
+    title: 'Playera Billie Eilish Oversized',
+    price: 470,
+    image: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?auto=format&fit=crop&w=400&q=80',
+    stock: 100,
+    description: 'Playera de corte holgado en color verde brillante característico de Billie Eilish.',
+    eventId: '9'
+  },
+  {
+    id: 'm32',
+    title: 'Taza de Cerámica Rock Legends',
+    price: 160,
+    image: 'https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?auto=format&fit=crop&w=400&q=80',
+    stock: 150,
+    description: 'Taza de cerámica de 11oz apta para microondas con collage impreso de bandas legendarias.',
+    eventId: '17'
+  },
+  {
+    id: 'm33',
+    title: 'Calcomanías Pack Anime Fest VIP',
+    price: 70,
+    image: 'https://images.unsplash.com/photo-1572375995501-4b0894dbe0d1?auto=format&fit=crop&w=400&q=80',
+    stock: 400,
+    description: 'Colección de pegatinas de vinil de las series de anime y manga más populares del momento.',
+    eventId: '19'
+  },
+  {
+    id: 'm34',
+    title: 'Pulsera de Tela Tomorrowland Gold',
+    price: 110,
+    image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=400&q=80',
+    stock: 250,
+    description: 'Pulsera de tela tejida de Tomorrowland con broche de seguridad de plástico. Conmemorativa.',
+    eventId: '16'
+  },
+  {
+    id: 'm35',
+    title: 'Playera Bruno Mars 24K Magic',
+    price: 490,
+    image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=400&q=80',
+    stock: 40,
+    description: 'Playera estampada con letras doradas inspiradas en el exitoso álbum 24K Magic.',
+    eventId: '10'
+  },
+  {
+    id: 'm36',
+    title: 'Gorra Metallica Black Album',
+    price: 320,
+    image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&w=400&q=80',
+    stock: 35,
+    description: 'Gorra bordada de color negro con la icónica serpiente de la portada de Metallica.',
+    eventId: '7'
+  },
+  {
+    id: 'm37',
+    title: 'Sudadera Karol G Bichota Rosa',
+    price: 860,
+    image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=400&q=80',
+    stock: 45,
+    description: 'Sudadera color rosa pastel con tipografía e ilustraciones de flores de Karol G.',
+    eventId: '13'
+  },
+  {
+    id: 'm38',
+    title: 'Playera The Weeknd Starboy Tour',
+    price: 450,
+    image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=400&q=80',
+    stock: 70,
+    description: 'Playera retro que rememora el icónico álbum y gira Starboy de The Weeknd.',
+    eventId: '14'
+  },
+  {
+    id: 'm39',
+    title: 'Termo Steve Aoki Dim Mak',
+    price: 540,
+    image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=400&q=80',
+    stock: 30,
+    description: 'Botella de vacío de acero inoxidable con el logo de la disquera Dim Mak de Aoki.',
+    eventId: '3'
+  },
+  {
+    id: 'm40',
+    title: 'Lanyard Duki SSJ Conmemorativa',
+    price: 120,
+    image: 'https://images.unsplash.com/photo-1628157582853-a796fa650a6a?auto=format&fit=crop&w=400&q=80',
+    stock: 180,
+    description: 'Correa para llaves o credenciales alusiva al clásico "Super Sangre Joven" de Duki.',
+    eventId: '1'
+  },
+  {
+    id: 'm41',
+    title: 'Llavero Funko Pop DJ Steve Aoki',
+    price: 290,
+    image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?auto=format&fit=crop&w=400&q=80',
+    stock: 50,
+    description: 'Llavero oficial coleccionable de vinilo en miniatura de la figura de Steve Aoki.',
+    eventId: '3'
+  },
+  {
+    id: 'm42',
+    title: 'Playera Oficial Rock in Laika',
+    price: 390,
+    image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=400&q=80',
+    stock: 100,
+    description: 'Playera del festival de rock con todas las bandas participantes impresas en la espalda.',
+    eventId: '17'
+  },
+  {
+    id: 'm43',
+    title: 'Poster Holográfico Daft Punk',
+    price: 220,
+    image: 'https://images.unsplash.com/photo-1580136579312-94651dfd596d?auto=format&fit=crop&w=400&q=80',
+    stock: 90,
+    description: 'Poster impreso sobre papel holográfico con los cascos de Daft Punk brillando en 3D.',
+    eventId: '12'
+  },
+  {
+    id: 'm44',
+    title: 'Sudadera Travis Scott Astroworld',
+    price: 950,
+    image: 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?auto=format&fit=crop&w=400&q=80',
+    stock: 15,
+    description: 'Sudadera conmemorativa multicolor con el lema "Wish You Were Here" bordado.',
+    eventId: '20'
+  },
+  {
+    id: 'm45',
+    title: 'Gorra Eminem Rap God bordada',
+    price: 350,
+    image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&w=400&q=80',
+    stock: 45,
+    description: 'Gorra plana de hip hop color negro bordada en 3D con el texto Rap God.',
+    eventId: '21'
+  },
+  {
+    id: 'm46',
+    title: 'Vaso Térmico Shakira Pies Descalzos',
+    price: 320,
+    image: 'https://images.unsplash.com/photo-1577937927133-66ef06acdf18?auto=format&fit=crop&w=400&q=80',
+    stock: 70,
+    description: 'Vaso térmico hermético de doble pared con design retro de la fundación Pies Descalzos.',
+    eventId: '22'
+  },
+  {
+    id: 'm47',
+    title: 'Playera Peso Pluma Génesis',
+    price: 450,
+    image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=400&q=80',
+    stock: 85,
+    description: 'Playera oficial alusiva al exitoso álbum Génesis de Peso Pluma. Ajuste holgado.',
+    eventId: '23'
+  },
+  {
+    id: 'm48',
+    title: 'Sudadera Bizarrap Session Oficial',
+    price: 890,
+    image: 'https://images.unsplash.com/photo-1609873814058-a8928924184a?auto=format&fit=crop&w=400&q=80',
+    stock: 40,
+    description: 'Sudadera premium unisex con capucha inspirada en las sesiones de Bizarrap.',
+    eventId: '24'
+  },
+  {
+    id: 'm49',
+    title: 'Termo Justin Bieber Peaches',
+    price: 480,
+    image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=400&q=80',
+    stock: 60,
+    description: 'Termo color melocotón de acero inoxidable con el single Peaches impreso.',
+    eventId: '25'
+  },
+  {
+    id: 'm50',
+    title: 'Set de Pines Retro Laika Club',
+    price: 130,
+    image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=400&q=80',
+    stock: 120,
+    description: 'Juego de 5 pines metálicos esmaltados con diferentes logotipos vintage de Laika.'
+  }
+];
+
 class UsuarioService {
   /**
    * Get public events list
@@ -253,68 +1032,19 @@ class UsuarioService {
       return response;
     } catch (e) {
       console.warn('Using offline mock events.');
-      // Return high quality mockup events
-      return [
-        {
-          id: '1',
-          title: 'Duki - A.D.A. Tour 2026',
-          description: 'El referente mundial de la música urbana llega a México para presentar su nuevo álbum A.D.A. junto con sus mayores éxitos globales en una noche legendaria.',
-          date: '15/07/2026',
-          time: '21:00',
-          venue: 'Estadio Laika Arena',
-          price: 1500,
-          image: 'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=600&q=80',
-          category: 'Música',
-          available_seats: 450,
-          total_seats: 12000
-        },
-        {
-          id: '2',
-          title: 'Coldplay - Music of the Spheres Tour',
-          description: 'Disfruta de una experiencia inmersiva con luces LED, fuegos artificiales y una puesta en escena espectacular e inolvidable con conciencia ecológica.',
-          date: '02/08/2026',
-          time: '20:00',
-          venue: 'Foro Sol Monumental',
-          price: 2200,
-          image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=600&q=80',
-          category: 'Música',
-          available_seats: 820,
-          total_seats: 55000
-        },
-        {
-          id: '3',
-          title: 'Steve Aoki - Neon Party',
-          description: 'El DJ y productor superestrella Steve Aoki llenará de beats electrónicos y lanzamientos de pasteles la pista en la mejor fiesta electrónica del año.',
-          date: '28/08/2026',
-          time: '23:00',
-          venue: 'Club Omnia Club',
-          price: 650,
-          image: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=600&q=80',
-          category: 'Electrónica',
-          available_seats: 120,
-          total_seats: 2500
-        },
-        {
-          id: '4',
-          title: 'Gamer Con 2026',
-          description: 'La convención anual de videojuegos y cosplay más importante del país. Zona de eSports, torneos retro, booths interactivos y conferencias de creadores.',
-          date: '10/09/2026',
-          time: '10:00',
-          venue: 'Centro de Exposiciones Laika Center',
-          price: 350,
-          image: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=600&q=80',
-          category: 'Convención',
-          available_seats: 2300,
-          total_seats: 8000
-        }
-      ];
+      return offlineEvents;
     }
   }
 
   /**
    * Purchase seats for an event
    */
-  async purchaseTickets(eventId: string, seats: string[], price: number): Promise<boolean> {
+  async purchaseTickets(
+    eventId: string, 
+    seats: string[], 
+    price: number, 
+    relatedMerch?: Array<{ id: string; title: string; price: number; quantity: number; image: string }>
+  ): Promise<boolean> {
     try {
       // Simulate API call
       await apiService.post('/api/tickets/purchase', {
@@ -324,16 +1054,21 @@ class UsuarioService {
       }, { timeout: 2000 });
       
       // Keep mock synchronization
-      await this.saveMockTickets(eventId, seats, price);
+      await this.saveMockTickets(eventId, seats, price, relatedMerch);
       return true;
     } catch (e) {
       console.warn('Purchase API timed out, performing offline mock transaction.');
-      await this.saveMockTickets(eventId, seats, price);
+      await this.saveMockTickets(eventId, seats, price, relatedMerch);
       return true;
     }
   }
 
-  private async saveMockTickets(eventId: string, seats: string[], price: number) {
+  private async saveMockTickets(
+    eventId: string, 
+    seats: string[], 
+    price: number,
+    relatedMerch?: Array<{ id: string; title: string; price: number; quantity: number; image: string }>
+  ) {
     const events = await this.getPublicEvents();
     const event = events.find(e => e.id === eventId);
     const basePrice = event?.price || 0;
@@ -364,7 +1099,8 @@ class UsuarioService {
         price: seatPrice,
         ticket_code: randomCode,
         purchased_at: new Date().toISOString(),
-        status: 'valid' as const
+        status: 'valid' as const,
+        related_merch: index === 0 ? relatedMerch : undefined // Store on the first ticket to avoid repetition
       };
     });
 
@@ -449,40 +1185,7 @@ class UsuarioService {
       const response = await apiService.get('/api/merchandise/', { timeout: 2000 });
       return response;
     } catch (e) {
-      return [
-        {
-          id: 'm1',
-          title: 'Playera Oficial Duki A.D.A Tour',
-          price: 450,
-          image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=400&q=80',
-          stock: 45,
-          description: 'Algodón 100% premium, estampado de alta durabilidad en espalda y frente, edición limitada del tour.'
-        },
-        {
-          id: 'm2',
-          title: 'Gorra Laika Neon Black',
-          price: 320,
-          image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&w=400&q=80',
-          stock: 20,
-          description: 'Gorra ajustable tipo snapback con logo bordado en hilo neón de alta calidad.'
-        },
-        {
-          id: 'm3',
-          title: 'Lanyard Conmemorativa Laika VIP',
-          price: 120,
-          image: 'https://images.unsplash.com/photo-1628157582853-a796fa650a6a?auto=format&fit=crop&w=400&q=80',
-          stock: 150,
-          description: 'Ideal para colgar tu gafete o llaves, sublimación de doble vista con fibras recicladas.'
-        },
-        {
-          id: 'm4',
-          title: 'Termo de Acero Inoxidable Coldplay',
-          price: 550,
-          image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=400&q=80',
-          stock: 12,
-          description: 'Capacidad de 750ml, aislamiento de doble capa para mantener bebidas frías o calientes por 12 horas.'
-        }
-      ];
+      return offlineMerch;
     }
   }
 
