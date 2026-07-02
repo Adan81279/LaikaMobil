@@ -16,7 +16,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../../styles/theme';
-import operadorService, { TicketValidationResponse, OperatorStats } from '../services/operador.service';
+import operadorService, { 
+  TicketValidationResponse, 
+  OperatorStats,
+  AttendeeSearchResult 
+} from '../services/operador.service';
 import Card from '../../../components/Card';
 import Loader from '../../../components/Loader';
 import Button from '../../../components/Button';
@@ -29,11 +33,17 @@ import { StatusBar } from 'expo-status-bar';
 export const OperadorDashboardScreen = () => {
   const router = useRouter();
   const { user, logout } = useAuth();
-  const { isDarkMode, colors } = useTheme();
+  const { isDarkMode, colors, toggleTheme } = useTheme();
+  
   const [ticketCode, setTicketCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<OperatorStats | null>(null);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+
+  // Attendee manual search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<AttendeeSearchResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -148,6 +158,23 @@ export const OperadorDashboardScreen = () => {
     handleValidate(code);
   };
 
+  const handleSearch = async () => {
+    const q = searchQuery.trim();
+    if (!q) {
+      setSearchResults([]);
+      return;
+    }
+    setSearchLoading(true);
+    try {
+      const results = await operadorService.searchAttendees(q);
+      setSearchResults(results);
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo realizar la búsqueda de asistentes.');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
   const laserY = laserAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [10, 170], // Height of scanning window bounds
@@ -168,6 +195,18 @@ export const OperadorDashboardScreen = () => {
             <Text style={styles.subtitle}>Escaneo en puerta del recinto y registro de boletos.</Text>
           </View>
           <View style={styles.headerActions}>
+            {/* Theme Toggle Button */}
+            <TouchableOpacity 
+              style={styles.statsShortcut} 
+              onPress={toggleTheme}
+            >
+              <Ionicons 
+                name={isDarkMode ? 'sunny-outline' : 'moon-outline'} 
+                size={20} 
+                color={colors.textPrimary} 
+              />
+            </TouchableOpacity>
+
             <TouchableOpacity 
               style={styles.statsShortcut} 
               onPress={() => router.push('/(operador)/stats' as any)}
@@ -288,6 +327,75 @@ export const OperadorDashboardScreen = () => {
           </View>
         </Card>
 
+        {/* MANUAL ATTENDEE SEARCH */}
+        <Card style={styles.searchCard}>
+          <Text style={styles.cardTitle}>Búsqueda Manual de Asistentes</Text>
+          <View style={styles.searchRow}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar por Nombre, Correo o Código..."
+              placeholderTextColor={colors.textMuted}
+              value={searchQuery}
+              onChangeText={(text) => {
+                setSearchQuery(text);
+                if (!text) setSearchResults([]);
+              }}
+              onSubmitEditing={handleSearch}
+            />
+            <TouchableOpacity style={styles.searchBtn} onPress={handleSearch} disabled={searchLoading}>
+              <Ionicons name="search-outline" size={20} color={colors.background} />
+            </TouchableOpacity>
+          </View>
+
+          {searchLoading && <Text style={styles.searchStatus}>Buscando...</Text>}
+
+          {searchResults.length > 0 && (
+            <View style={styles.searchResultsContainer}>
+              {searchResults.map((item) => {
+                const isActive = item.status === 'active';
+                const isUsed = item.status === 'used';
+
+                return (
+                  <View key={item.ticket_code} style={styles.resultItem}>
+                    <View style={styles.resultMainInfo}>
+                      <Text style={styles.resultOwner}>{item.owner_name}</Text>
+                      <Text style={styles.resultEmail}>{item.owner_email}</Text>
+                      <Text style={styles.resultMeta} numberOfLines={1}>
+                        {item.event_title} • {item.seat_label}
+                      </Text>
+                      <Text style={styles.resultCode}>{item.ticket_code}</Text>
+                    </View>
+                    
+                    <View style={styles.resultActionCol}>
+                      {isActive ? (
+                        <TouchableOpacity
+                          style={styles.validateManualBtn}
+                          onPress={() => {
+                            handleValidate(item.ticket_code);
+                            // Clear search to focus on validation card
+                            setSearchResults([]);
+                            setSearchQuery('');
+                          }}
+                        >
+                          <Text style={styles.validateManualText}>Validar</Text>
+                        </TouchableOpacity>
+                      ) : isUsed ? (
+                        <View style={[styles.statusTag, styles.statusTagUsed]}>
+                          <Text style={styles.statusTagUsedText}>Usado</Text>
+                        </View>
+                      ) : (
+                        <View style={[styles.statusTag, styles.statusTagRefunded]}>
+                          <Text style={styles.statusTagRefundedText}>Devuelto</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+        </Card>
+
         {/* SIMULATOR PRESET BADGES */}
         <View style={styles.presetSection}>
           <Text style={styles.presetTitle}>Simulación de Escaneo (Desarrollo)</Text>
@@ -334,7 +442,7 @@ export const OperadorDashboardScreen = () => {
                 size={36} 
                 color={validationResult.valid ? colors.success : colors.warning} 
               />
-              <View style={styles.resultMeta}>
+              <View style={styles.resultMetaContainer}>
                 <Text style={[styles.resultTitleText, { color: validationResult.valid ? colors.success : colors.warning }]}>
                   {validationResult.valid ? 'ACCESO PERMITIDO' : 'BOLETO YA REIVINDICADO'}
                 </Text>
@@ -385,7 +493,7 @@ export const OperadorDashboardScreen = () => {
           <Card style={StyleSheet.flatten([styles.resultCard, { borderColor: colors.error, backgroundColor: `${colors.error}15` }])}>
             <View style={styles.resultHeader}>
               <Ionicons name="close-circle" size={36} color={colors.error} />
-              <View style={styles.resultMeta}>
+              <View style={styles.resultMetaContainer}>
                 <Text style={[styles.resultTitleText, { color: colors.error }]}>ACCESO DENEGADO</Text>
                 <Text style={styles.resultCodeText}>Error de Validación</Text>
               </View>
@@ -633,7 +741,7 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     borderBottomColor: colors.border,
     paddingBottom: SPACING.sm,
   },
-  resultMeta: {
+  resultMetaContainer: {
     flex: 1,
   },
   resultTitleText: {
@@ -721,6 +829,113 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     fontWeight: TYPOGRAPHY.fontWeights.bold,
     color: colors.background,
     marginTop: 4,
+  },
+
+  // Manual Search styles
+  searchCard: {
+    padding: SPACING.md,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    gap: SPACING.xs,
+  },
+  searchInput: {
+    flex: 1,
+    height: 44,
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    color: colors.textPrimary,
+    fontSize: TYPOGRAPHY.fontSizes.sm,
+  },
+  searchBtn: {
+    width: 44,
+    height: 44,
+    backgroundColor: colors.primary,
+    borderRadius: BORDER_RADIUS.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.sm,
+  },
+  searchStatus: {
+    marginTop: SPACING.xs,
+    fontSize: TYPOGRAPHY.fontSizes.xs,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  searchResultsContainer: {
+    marginTop: SPACING.md,
+    gap: SPACING.sm,
+  },
+  resultItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: SPACING.sm,
+    borderBottomWidth: 0.5,
+    borderBottomColor: colors.border,
+  },
+  resultMainInfo: {
+    flex: 1,
+    marginRight: SPACING.sm,
+  },
+  resultOwner: {
+    fontSize: TYPOGRAPHY.fontSizes.sm,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: colors.textPrimary,
+  },
+  resultEmail: {
+    fontSize: 10,
+    color: colors.textSecondary,
+  },
+  resultMeta: {
+    fontSize: 9,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  resultCode: {
+    fontSize: 9,
+    fontWeight: TYPOGRAPHY.fontWeights.bold,
+    color: colors.primary,
+    marginTop: 2,
+  },
+  resultActionCol: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  validateManualBtn: {
+    backgroundColor: colors.primary,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  validateManualText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: colors.background,
+  },
+  statusTag: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  statusTagUsed: {
+    backgroundColor: colors.border,
+  },
+  statusTagUsedText: {
+    fontSize: 8,
+    color: colors.textSecondary,
+    fontWeight: 'bold',
+  },
+  statusTagRefunded: {
+    backgroundColor: `${colors.error}15`,
+  },
+  statusTagRefundedText: {
+    fontSize: 8,
+    color: colors.error,
+    fontWeight: 'bold',
   },
 });
 
