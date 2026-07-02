@@ -16,10 +16,13 @@ import Loader from '../../../components/Loader';
 import Button from '../../../components/Button';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../../context/AuthContext';
+import { useTheme } from '../../../context/ThemeContext';
 import { useRouter } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 
 export const UserWalletScreen = () => {
+  const { isDarkMode, colors } = useTheme();
+  const styles = getStyles(colors, isDarkMode);
   const { user } = useAuth();
   const router = useRouter();
   const isFocused = useIsFocused();
@@ -51,7 +54,7 @@ export const UserWalletScreen = () => {
     return (
       <View style={styles.container}>
         <View style={styles.guestContainer}>
-          <Ionicons name="wallet-outline" size={80} color={COLORS.dark.textMuted} style={{ marginBottom: SPACING.md }} />
+          <Ionicons name="wallet-outline" size={80} color={colors.textMuted} style={{ marginBottom: SPACING.md }} />
           <Text style={styles.guestTitle}>Mi Wallet Laika Club</Text>
           <Text style={styles.guestDesc}>
             Inicia sesión o regístrate para poder visualizar tus boletos comprados, generar tus códigos QR y acceder sin conexión a los eventos.
@@ -92,7 +95,7 @@ export const UserWalletScreen = () => {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         {/* Connection Notice */}
         <View style={styles.offlineNotice}>
-          <Ionicons name="cloud-offline-outline" size={16} color={COLORS.primary} />
+          <Ionicons name="cloud-offline-outline" size={16} color={colors.primary} />
           <Text style={styles.offlineNoticeText}>
             Acceso Offline Habilitado: Muestra tus boletos sin internet.
           </Text>
@@ -102,7 +105,7 @@ export const UserWalletScreen = () => {
         <Text style={styles.sectionTitle}>Próximos Espectáculos ({activeTickets.length})</Text>
         {activeTickets.length === 0 ? (
           <Card style={styles.emptyCard}>
-            <Ionicons name="ticket-outline" size={36} color={COLORS.dark.textMuted} />
+            <Ionicons name="ticket-outline" size={36} color={colors.textMuted} />
             <Text style={styles.emptyText}>No tienes boletos vigentes en tu wallet.</Text>
             <Text style={styles.emptySubtext}>Ve al catálogo de eventos para conseguir tus accesos.</Text>
           </Card>
@@ -114,10 +117,10 @@ export const UserWalletScreen = () => {
                   <Text style={styles.ticketEventTitle} numberOfLines={1}>{ticket.event_title || ticket.event_name || ticket.eventName || 'Espectáculo'}</Text>
                   <Text style={styles.ticketVenue} numberOfLines={1}>{ticket.venue_name || ticket.venue || 'Recinto Central'}</Text>
                   <Text style={styles.ticketTime}>{(ticket.date || ticket.event_date || 'Fecha')} | {(ticket.time || ticket.event_time || 'N/A')}</Text>
-                  <Text style={styles.ticketSeat}>Zona: <Text style={{fontWeight: 'bold', color: COLORS.primary}}>{ticket.seat_label || ticket.seat_id || 'N/A'}</Text></Text>
+                  <Text style={styles.ticketSeat}>Zona: <Text style={{fontWeight: 'bold', color: colors.primary}}>{ticket.seat_label || ticket.seat_id || 'N/A'}</Text></Text>
                 </View>
                 <TouchableOpacity style={styles.qrTrigger} onPress={() => handleOpenTicket(ticket)}>
-                  <Ionicons name="qr-code" size={32} color="#FFFFFF" />
+                  <Ionicons name="qr-code" size={32} color={colors.textPrimary} />
                   <Text style={styles.qrTriggerText}>VER PASS</Text>
                 </TouchableOpacity>
               </View>
@@ -145,7 +148,7 @@ export const UserWalletScreen = () => {
                     <Text style={styles.ticketSeat}>Asiento: {ticket.seat_label || ticket.seat_id || 'N/A'}</Text>
                   </View>
                   <View style={styles.qrTriggerDisabled}>
-                    <Ionicons name="lock-closed-outline" size={24} color={COLORS.dark.textMuted} />
+                    <Ionicons name="lock-closed-outline" size={24} color={colors.textMuted} />
                   </View>
                 </View>
                 <View style={styles.ticketDottedLine} />
@@ -177,7 +180,7 @@ export const UserWalletScreen = () => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalHeaderTitle}>Pase Digital de Acceso</Text>
               <TouchableOpacity style={styles.modalClose} onPress={() => setQrModalVisible(false)}>
-                <Ionicons name="close" size={20} color="#FFFFFF" />
+                <Ionicons name="close" size={20} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
 
@@ -203,7 +206,7 @@ export const UserWalletScreen = () => {
                 <View style={styles.passMetaGrid}>
                   <View style={styles.passMetaCol}>
                     <Text style={styles.passMetaLabel}>ZONA / ASIENTO</Text>
-                    <Text style={[styles.passMetaVal, { color: COLORS.primary }]}>{activeTicket.seat_label || activeTicket.seat_id || 'N/A'}</Text>
+                    <Text style={[styles.passMetaVal, { color: colors.primary }]}>{activeTicket.seat_label || activeTicket.seat_id || 'N/A'}</Text>
                   </View>
                   <View style={styles.passMetaCol}>
                     <Text style={styles.passMetaLabel}>PRECIO</Text>
@@ -212,10 +215,10 @@ export const UserWalletScreen = () => {
                 </View>
 
                 {activeTicket.related_merch && activeTicket.related_merch.length > 0 && (
-                  <View style={{ marginVertical: SPACING.xs, padding: SPACING.sm, backgroundColor: '#111827', borderRadius: BORDER_RADIUS.md, borderWidth: 1, borderColor: '#1f2937' }}>
-                    <Text style={[styles.passMetaLabel, { color: COLORS.primary, marginBottom: 2 }]}>SOUVENIRS VINCULADOS</Text>
+                  <View style={{ marginVertical: SPACING.xs, padding: SPACING.sm, backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, borderWidth: 1, borderColor: colors.border }}>
+                    <Text style={[styles.passMetaLabel, { color: colors.primary, marginBottom: 2 }]}>SOUVENIRS VINCULADOS</Text>
                     {activeTicket.related_merch.map((m, idx) => (
-                      <Text key={idx} style={{ color: '#FFFFFF', fontSize: 10, fontWeight: 'bold' }}>
+                      <Text key={idx} style={{ color: colors.textPrimary, fontSize: 10, fontWeight: 'bold' }}>
                         • {m.title} (x{m.quantity})
                       </Text>
                     ))}
@@ -246,26 +249,26 @@ export const UserWalletScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#070a13',
+    backgroundColor: colors.background,
   },
   header: {
     padding: SPACING.md,
-    backgroundColor: '#0b0f19',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderColor: '#151c2c',
+    borderColor: colors.surfaceAlt,
     paddingTop: 45,
   },
   headerTitle: {
     fontSize: TYPOGRAPHY.fontSizes.lg + 2,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   headerSubtitle: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   scrollContainer: {
@@ -275,8 +278,8 @@ const styles = StyleSheet.create({
   offlineNotice: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: `${COLORS.primary}10`,
-    borderColor: `${COLORS.primary}30`,
+    backgroundColor: `${colors.primary}10`,
+    borderColor: `${colors.primary}30`,
     borderWidth: 1,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.sm,
@@ -285,12 +288,12 @@ const styles = StyleSheet.create({
   },
   offlineNoticeText: {
     fontSize: 10,
-    color: COLORS.dark.textPrimary,
+    color: colors.textPrimary,
   },
   sectionTitle: {
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginBottom: SPACING.sm,
     textTransform: 'uppercase',
   },
@@ -300,13 +303,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyText: {
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     fontSize: TYPOGRAPHY.fontSizes.sm,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
     marginTop: SPACING.sm,
   },
   emptySubtext: {
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     fontSize: 10,
     marginTop: 2,
   },
@@ -328,35 +331,35 @@ const styles = StyleSheet.create({
   ticketEventTitle: {
     fontSize: TYPOGRAPHY.fontSizes.sm + 1,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   ticketVenue: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
   },
   ticketTime: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
   },
   ticketSeat: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   qrTrigger: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     padding: SPACING.xs + 2,
     borderRadius: BORDER_RADIUS.md,
     alignItems: 'center',
     gap: 4,
   },
   qrTriggerText: {
-    color: '#FFFFFF',
+    color: colors.background,
     fontSize: 8,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
   qrTriggerDisabled: {
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
     width: 48,
     height: 48,
     borderRadius: BORDER_RADIUS.md,
@@ -367,7 +370,7 @@ const styles = StyleSheet.create({
     height: 1,
     borderStyle: 'dashed',
     borderWidth: 0.8,
-    borderColor: '#1e293b',
+    borderColor: colors.border,
     marginHorizontal: SPACING.md,
   },
   ticketFooter: {
@@ -376,11 +379,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: SPACING.sm,
     paddingHorizontal: SPACING.md,
-    backgroundColor: '#090d18',
+    backgroundColor: colors.surfaceAlt,
   },
   ticketCode: {
     fontSize: 9,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
   },
   statusBadge: {
     fontSize: 8,
@@ -390,16 +393,16 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.sm,
   },
   statusValid: {
-    backgroundColor: `${COLORS.success}20`,
-    color: COLORS.success,
+    backgroundColor: `${colors.success}20`,
+    color: colors.success,
   },
   statusUsed: {
-    backgroundColor: '#334155',
-    color: '#94a3b8',
+    backgroundColor: colors.border,
+    color: colors.textSecondary,
   },
   statusRefunded: {
-    backgroundColor: `${COLORS.error}20`,
-    color: COLORS.error,
+    backgroundColor: `${colors.error}20`,
+    color: colors.error,
   },
   modalOverlay: {
     flex: 1,
@@ -408,7 +411,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#0b0f19',
+    backgroundColor: colors.surface,
     borderRadius: BORDER_RADIUS.lg,
     width: '90%',
     maxHeight: '85%',
@@ -419,17 +422,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderColor: '#151c2c',
+    borderColor: colors.surfaceAlt,
     paddingBottom: SPACING.sm,
     marginBottom: SPACING.md,
   },
   modalHeaderTitle: {
     fontSize: TYPOGRAPHY.fontSizes.sm,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
   },
   modalClose: {
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
     width: 28,
     height: 28,
     borderRadius: BORDER_RADIUS.round,
@@ -445,11 +448,11 @@ const styles = StyleSheet.create({
   passTitle: {
     fontSize: TYPOGRAPHY.fontSizes.md + 1,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   passVenue: {
     fontSize: 11,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
   },
   passMetaGrid: {
     flexDirection: 'row',
@@ -460,13 +463,13 @@ const styles = StyleSheet.create({
   },
   passMetaLabel: {
     fontSize: 8,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     letterSpacing: 1,
   },
   passMetaVal: {
     fontSize: 12,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginTop: 2,
   },
   qrContainer: {
@@ -497,17 +500,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.xl,
-    backgroundColor: '#070a13',
+    backgroundColor: colors.background,
   },
   guestTitle: {
     fontSize: TYPOGRAPHY.fontSizes.lg,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: SPACING.sm,
   },
   guestDesc: {
     fontSize: TYPOGRAPHY.fontSizes.sm - 1,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
     marginBottom: SPACING.xl,

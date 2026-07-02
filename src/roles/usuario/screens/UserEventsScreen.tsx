@@ -21,11 +21,14 @@ import Loader from '../../../components/Loader';
 import Button from '../../../components/Button';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../../context/AuthContext';
+import { useTheme } from '../../../context/ThemeContext';
 import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
 export const UserEventsScreen = () => {
+  const { isDarkMode, colors } = useTheme();
+  const styles = getStyles(colors, isDarkMode);
   const { user, savedCard, saveCardDetails, clearSavedCard } = useAuth();
   const router = useRouter();
   const [events, setEvents] = useState<EventInfo[]>([]);
@@ -554,7 +557,7 @@ export const UserEventsScreen = () => {
                 style={styles.loginHeaderBtn}
                 onPress={() => router.replace('/(auth)/login' as any)}
               >
-                <Ionicons name="log-in-outline" size={16} color="#FFFFFF" />
+                <Ionicons name="log-in-outline" size={16} color={colors.background} />
                 <Text style={styles.loginHeaderBtnText}>Entrar</Text>
               </TouchableOpacity>
             )}
@@ -562,7 +565,7 @@ export const UserEventsScreen = () => {
               style={styles.cartHeaderBtn}
               onPress={() => setCartModalVisible(true)}
             >
-              <Ionicons name="cart-outline" size={22} color="#FFFFFF" />
+              <Ionicons name="cart-outline" size={22} color={colors.textPrimary} />
               {cart.length > 0 && (
                 <View style={styles.cartBadgeCount}>
                   <Text style={styles.cartBadgeCountText}>
@@ -575,17 +578,17 @@ export const UserEventsScreen = () => {
         </View>
         
         <View style={styles.searchBar}>
-          <Ionicons name="search-outline" size={20} color={COLORS.dark.textSecondary} />
+          <Ionicons name="search-outline" size={20} color={colors.textSecondary} />
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar conciertos, complejos..."
-            placeholderTextColor={COLORS.dark.textMuted}
+            placeholderTextColor={colors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery !== '' && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={18} color={COLORS.dark.textSecondary} />
+              <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
@@ -626,7 +629,7 @@ export const UserEventsScreen = () => {
         contentContainerStyle={styles.listContainer}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="calendar-outline" size={48} color={COLORS.dark.textMuted} />
+            <Ionicons name="calendar-outline" size={48} color={colors.textMuted} />
             <Text style={styles.emptyText}>No se encontraron eventos disponibles</Text>
           </View>
         }
@@ -640,12 +643,12 @@ export const UserEventsScreen = () => {
               <Text style={styles.eventTitle}>{item.title}</Text>
               
               <View style={styles.eventDetailRow}>
-                <Ionicons name="location-outline" size={14} color={COLORS.dark.textSecondary} />
+                <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
                 <Text style={styles.eventDetailText} numberOfLines={1}>{item.venue}</Text>
               </View>
 
               <View style={styles.eventDetailRow}>
-                <Ionicons name="time-outline" size={14} color={COLORS.dark.textSecondary} />
+                <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
                 <Text style={styles.eventDetailText}>{item.date} a las {item.time}</Text>
               </View>
 
@@ -684,7 +687,7 @@ export const UserEventsScreen = () => {
                 style={styles.closeBtn} 
                 onPress={() => setBookingModalVisible(false)}
               >
-                <Ionicons name="close" size={20} color="#FFFFFF" />
+                <Ionicons name="close" size={20} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
 
@@ -705,12 +708,12 @@ export const UserEventsScreen = () => {
                   </View>
 
                   <View style={styles.detailMetaRow}>
-                    <Ionicons name="calendar-outline" size={16} color={COLORS.primary} />
+                    <Ionicons name="calendar-outline" size={16} color={colors.primary} />
                     <Text style={styles.detailMetaText}>{activeEvent?.date} a las {activeEvent?.time} hrs</Text>
                   </View>
                   
                   <View style={styles.detailMetaRow}>
-                    <Ionicons name="location-outline" size={16} color={COLORS.primary} />
+                    <Ionicons name="location-outline" size={16} color={colors.primary} />
                     <Text style={styles.detailMetaText}>{activeEvent?.venue}</Text>
                   </View>
 
@@ -722,23 +725,23 @@ export const UserEventsScreen = () => {
                   <Text style={styles.detailSectionTitle}>Información Relevante</Text>
                   <View style={styles.infoList}>
                     <View style={styles.infoItem}>
-                      <Ionicons name="shield-checkmark-outline" size={14} color={COLORS.success} />
+                      <Ionicons name="shield-checkmark-outline" size={14} color={colors.success} />
                       <Text style={styles.infoItemText}>
-                        <Text style={{ fontWeight: 'bold', color: '#FFFFFF' }}>Seguridad: </Text>
+                        <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>Seguridad: </Text>
                         Bolsos sujetos a revisión. Prohibido ingresar cámaras profesionales, objetos punzocortantes, alimentos y bebidas.
                       </Text>
                     </View>
                     <View style={styles.infoItem}>
-                      <Ionicons name="ticket-outline" size={14} color={COLORS.primary} />
+                      <Ionicons name="ticket-outline" size={14} color={colors.primary} />
                       <Text style={styles.infoItemText}>
-                        <Text style={{ fontWeight: 'bold', color: '#FFFFFF' }}>Acceso digital: </Text>
+                        <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>Acceso digital: </Text>
                         Presenta tu boleto QR digital desde la Wallet. No requiere conexión a internet en la entrada.
                       </Text>
                     </View>
                     <View style={styles.infoItem}>
                       <Ionicons name="time-outline" size={14} color="#f59e0b" />
                       <Text style={styles.infoItemText}>
-                        <Text style={{ fontWeight: 'bold', color: '#FFFFFF' }}>Horarios: </Text>
+                        <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>Horarios: </Text>
                         Las puertas abren 1.5 horas antes del espectáculo. Se recomienda llegar temprano.
                       </Text>
                     </View>
@@ -764,7 +767,7 @@ export const UserEventsScreen = () => {
                                       setSelectedMerch(prev => ({ ...prev, [prod.id]: 1 }));
                                     }}
                                   >
-                                    <Ionicons name="add" size={14} color="#FFFFFF" />
+                                    <Ionicons name="add" size={14} color={colors.background} />
                                     <Text style={styles.relatedMerchAddText}>Agregar</Text>
                                   </TouchableOpacity>
                                 ) : (
@@ -783,7 +786,7 @@ export const UserEventsScreen = () => {
                                         });
                                       }}
                                     >
-                                      <Ionicons name="remove" size={12} color="#FFFFFF" />
+                                      <Ionicons name="remove" size={12} color={colors.textPrimary} />
                                     </TouchableOpacity>
                                     <Text style={styles.relatedMerchQtyText}>{qty}</Text>
                                     <TouchableOpacity
@@ -792,7 +795,7 @@ export const UserEventsScreen = () => {
                                         setSelectedMerch(prev => ({ ...prev, [prod.id]: qty + 1 }));
                                       }}
                                     >
-                                      <Ionicons name="add" size={12} color="#FFFFFF" />
+                                      <Ionicons name="add" size={12} color={colors.textPrimary} />
                                     </TouchableOpacity>
                                   </View>
                                 )}
@@ -817,7 +820,7 @@ export const UserEventsScreen = () => {
                     style={styles.bookingBackButton}
                     onPress={() => setShowDetailsStep(true)}
                   >
-                    <Ionicons name="arrow-back" size={14} color={COLORS.primary} />
+                    <Ionicons name="arrow-back" size={14} color={colors.primary} />
                     <Text style={styles.bookingBackButtonText}>Volver a Detalles</Text>
                   </TouchableOpacity>
 
@@ -841,9 +844,9 @@ export const UserEventsScreen = () => {
                           const isSelected = selectedSeats.includes(id);
                           const seatCat = getSeatCategoryName(row);
 
-                          let seatBg = '#1e293b';
+                          let seatBg = colors.border;
                           if (isOccupied) seatBg = '#475569';
-                          else if (isSelected) seatBg = COLORS.success;
+                          else if (isSelected) seatBg = colors.success;
                           else if (seatCat === 'VIP') seatBg = '#f59e0b';
                           else if (seatCat === 'GOLD') seatBg = '#a855f7';
 
@@ -873,11 +876,11 @@ export const UserEventsScreen = () => {
                       <Text style={styles.legendText}>Gold</Text>
                     </View>
                     <View style={styles.legendItem}>
-                      <View style={[styles.legendDot, { backgroundColor: '#1e293b' }]} />
+                      <View style={[styles.legendDot, { backgroundColor: colors.border }]} />
                       <Text style={styles.legendText}>Gral</Text>
                     </View>
                     <View style={styles.legendItem}>
-                      <View style={[styles.legendDot, { backgroundColor: COLORS.success }]} />
+                      <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
                       <Text style={styles.legendText}>Mi Selección</Text>
                     </View>
                     <View style={styles.legendItem}>
@@ -944,7 +947,7 @@ export const UserEventsScreen = () => {
                       );
                     })}
                     {Object.entries(selectedMerch).length > 0 && (
-                      <View style={{ marginTop: SPACING.xs, borderTopWidth: 1, borderTopColor: '#1f2937', paddingTop: SPACING.xs }}>
+                      <View style={{ marginTop: SPACING.xs, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: SPACING.xs }}>
                         {Object.entries(selectedMerch).map(([id, qty]) => {
                           const prod = merchItems.find(p => p.id === id);
                           if (!prod) return null;
@@ -971,12 +974,12 @@ export const UserEventsScreen = () => {
                 <Text style={styles.checkoutSectionTitle}>Método de Pago</Text>
                 <Card style={styles.paymentCard}>
                   <View style={styles.paymentMethodRow}>
-                    <Ionicons name="card" size={24} color={COLORS.primary} />
+                    <Ionicons name="card" size={24} color={colors.primary} />
                     <View style={{ flex: 1, marginLeft: SPACING.sm }}>
                       <Text style={styles.paymentMethodName}>Bypass Gateway LaikaPay</Text>
                       <Text style={styles.paymentMethodDesc}>Confirmación instantánea de balance</Text>
                     </View>
-                    <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
+                    <Ionicons name="checkmark-circle" size={20} color={colors.success} />
                   </View>
                 </Card>
 
@@ -997,7 +1000,7 @@ export const UserEventsScreen = () => {
             ) : (
               /* ORDER COMPLETED VIEW */
               <View style={styles.successContainer}>
-                <Ionicons name="checkmark-circle-outline" size={80} color={COLORS.success} />
+                <Ionicons name="checkmark-circle-outline" size={80} color={colors.success} />
                 <Text style={styles.successTitle}>¡Compra Exitosa!</Text>
                 <Text style={styles.successDesc}>
                   Tus boletos han sido generados y agregados a tu Wallet digital. Puedes presentarlos sin conexión en la puerta de acceso del recinto.
@@ -1061,7 +1064,7 @@ export const UserEventsScreen = () => {
                     setPaymentSuccess(false);
                   }}
                 >
-                  <Ionicons name="close" size={20} color="#FFFFFF" />
+                  <Ionicons name="close" size={20} color={colors.textPrimary} />
                 </TouchableOpacity>
               )}
             </View>
@@ -1071,7 +1074,7 @@ export const UserEventsScreen = () => {
               <View style={{ flex: 1 }}>
                 {cart.length === 0 ? (
                   <View style={styles.emptyCartContainer}>
-                    <Ionicons name="cart-outline" size={64} color={COLORS.dark.textMuted} />
+                    <Ionicons name="cart-outline" size={64} color={colors.textMuted} />
                     <Text style={styles.emptyCartText}>Tu carrito está vacío</Text>
                     <Text style={styles.emptyCartSub}>Agrega asientos de cualquier evento para iniciar.</Text>
                     <Button
@@ -1096,7 +1099,7 @@ export const UserEventsScreen = () => {
                               onPress={() => handleRemoveEvent(item.eventId)}
                               style={styles.cartDeleteAllBtn}
                             >
-                              <Ionicons name="trash-outline" size={18} color={COLORS.error} />
+                              <Ionicons name="trash-outline" size={18} color={colors.error} />
                             </TouchableOpacity>
                           </View>
                           
@@ -1108,7 +1111,7 @@ export const UserEventsScreen = () => {
                               <View key={seat} style={styles.cartSeatBadge}>
                                 <Text style={styles.cartSeatBadgeText}>{seat}</Text>
                                 <TouchableOpacity onPress={() => handleRemoveSeat(item.eventId, seat)}>
-                                  <Ionicons name="close-circle" size={14} color="#FFFFFF" style={{ marginLeft: 4 }} />
+                                  <Ionicons name="close-circle" size={14} color={colors.textPrimary} style={{ marginLeft: 4 }} />
                                 </TouchableOpacity>
                               </View>
                             ))}
@@ -1119,8 +1122,8 @@ export const UserEventsScreen = () => {
                               <Text style={styles.cartSeatsLabel}>Souvenirs Vinculados:</Text>
                               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
                                 {item.selectedMerch.map(merch => (
-                                  <View key={merch.id} style={[styles.cartSeatBadge, { backgroundColor: '#111827', borderWidth: 1, borderColor: COLORS.primary }]}>
-                                    <Text style={[styles.cartSeatBadgeText, { color: '#FFFFFF' }]}>
+                                  <View key={merch.id} style={[styles.cartSeatBadge, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.primary }]}>
+                                    <Text style={[styles.cartSeatBadgeText, { color: colors.textPrimary }]}>
                                       {merch.title} (x{merch.quantity}) - ${merch.price * merch.quantity} MXN
                                     </Text>
                                     <TouchableOpacity 
@@ -1140,7 +1143,7 @@ export const UserEventsScreen = () => {
                                         });
                                       }}
                                     >
-                                      <Ionicons name="close-circle" size={14} color={COLORS.primary} style={{ marginLeft: 4 }} />
+                                      <Ionicons name="close-circle" size={14} color={colors.primary} style={{ marginLeft: 4 }} />
                                     </TouchableOpacity>
                                   </View>
                                 ))}
@@ -1211,7 +1214,7 @@ export const UserEventsScreen = () => {
                           {item.seats.length} boletos ({item.seats.join(', ')})
                         </Text>
                         {item.selectedMerch && item.selectedMerch.length > 0 && (
-                          <Text style={[styles.checkoutSeatsListText, { color: COLORS.primary }]}>
+                          <Text style={[styles.checkoutSeatsListText, { color: colors.primary }]}>
                             + Souvenirs: {item.selectedMerch.map(m => `${m.title} (x${m.quantity})`).join(', ')}
                           </Text>
                         )}
@@ -1233,7 +1236,7 @@ export const UserEventsScreen = () => {
                     style={[styles.methodSelectorBtn, paymentMethod === 'card' && styles.methodSelectorBtnActive]}
                     onPress={() => setPaymentMethod('card')}
                   >
-                    <Ionicons name="card-outline" size={20} color={paymentMethod === 'card' ? '#FFFFFF' : COLORS.dark.textSecondary} />
+                    <Ionicons name="card-outline" size={20} color={paymentMethod === 'card' ? colors.background : colors.textSecondary} />
                     <Text style={[styles.methodSelectorText, paymentMethod === 'card' && styles.methodSelectorTextActive]}>Tarjeta</Text>
                   </TouchableOpacity>
 
@@ -1241,7 +1244,7 @@ export const UserEventsScreen = () => {
                     style={[styles.methodSelectorBtn, paymentMethod === 'paypal' && styles.methodSelectorBtnActive]}
                     onPress={() => setPaymentMethod('paypal')}
                   >
-                    <Ionicons name="logo-paypal" size={20} color={paymentMethod === 'paypal' ? '#FFFFFF' : COLORS.dark.textSecondary} />
+                    <Ionicons name="logo-paypal" size={20} color={paymentMethod === 'paypal' ? colors.background : colors.textSecondary} />
                     <Text style={[styles.methodSelectorText, paymentMethod === 'paypal' && styles.methodSelectorTextActive]}>PayPal</Text>
                   </TouchableOpacity>
 
@@ -1249,7 +1252,7 @@ export const UserEventsScreen = () => {
                     style={[styles.methodSelectorBtn, paymentMethod === 'oxxo' && styles.methodSelectorBtnActive]}
                     onPress={() => setPaymentMethod('oxxo')}
                   >
-                    <Ionicons name="barcode-outline" size={20} color={paymentMethod === 'oxxo' ? '#FFFFFF' : COLORS.dark.textSecondary} />
+                    <Ionicons name="barcode-outline" size={20} color={paymentMethod === 'oxxo' ? colors.background : colors.textSecondary} />
                     <Text style={[styles.methodSelectorText, paymentMethod === 'oxxo' && styles.methodSelectorTextActive]}>OXXO Pay</Text>
                   </TouchableOpacity>
                 </View>
@@ -1260,18 +1263,18 @@ export const UserEventsScreen = () => {
                     {savedCard && !useAnotherCard ? (
                       <View>
                         <Text style={styles.formTitle}>Método de Pago Registrado</Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#151c2c', padding: SPACING.md, borderRadius: BORDER_RADIUS.md, marginBottom: SPACING.md }}>
-                          <Ionicons name="card" size={28} color={COLORS.primary} style={{ marginRight: SPACING.sm }} />
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surfaceAlt, padding: SPACING.md, borderRadius: BORDER_RADIUS.md, marginBottom: SPACING.md }}>
+                          <Ionicons name="card" size={28} color={colors.primary} style={{ marginRight: SPACING.sm }} />
                           <View style={{ flex: 1 }}>
-                            <Text style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: 13 }}>
+                            <Text style={{ color: colors.background, fontWeight: 'bold', fontSize: 13 }}>
                               {savedCard.brand} •••• {savedCard.number.slice(-4)}
                             </Text>
-                            <Text style={{ color: COLORS.dark.textSecondary, fontSize: 10, marginTop: 2 }}>
+                            <Text style={{ color: colors.textSecondary, fontSize: 10, marginTop: 2 }}>
                               Titular: {savedCard.holder || savedCard.name} | Vence: {savedCard.expiry}
                             </Text>
                           </View>
                           <TouchableOpacity onPress={() => setUseAnotherCard(true)}>
-                            <Text style={{ color: COLORS.primary, fontWeight: 'bold', fontSize: 11 }}>Cambiar</Text>
+                            <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 11 }}>Cambiar</Text>
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -1281,7 +1284,7 @@ export const UserEventsScreen = () => {
                           <Text style={styles.formTitle}>Información de la Tarjeta</Text>
                           {savedCard && (
                             <TouchableOpacity onPress={() => setUseAnotherCard(false)}>
-                              <Text style={{ color: COLORS.primary, fontSize: 11, fontWeight: 'bold' }}>Usar guardada</Text>
+                              <Text style={{ color: colors.primary, fontSize: 11, fontWeight: 'bold' }}>Usar guardada</Text>
                             </TouchableOpacity>
                           )}
                         </View>
@@ -1291,7 +1294,7 @@ export const UserEventsScreen = () => {
                           <TextInput
                             style={styles.cardInput}
                             placeholder="Nombre completo impreso"
-                            placeholderTextColor={COLORS.dark.textMuted}
+                            placeholderTextColor={colors.textMuted}
                             value={cardHolder}
                             onChangeText={setCardHolder}
                           />
@@ -1303,7 +1306,7 @@ export const UserEventsScreen = () => {
                             <TextInput
                               style={[styles.cardInput, { flex: 1 }]}
                               placeholder="0000 0000 0000 0000"
-                              placeholderTextColor={COLORS.dark.textMuted}
+                              placeholderTextColor={colors.textMuted}
                               keyboardType="numeric"
                               value={cardNumber}
                               onChangeText={handleCardNumberChange}
@@ -1320,7 +1323,7 @@ export const UserEventsScreen = () => {
                             <TextInput
                               style={styles.cardInput}
                               placeholder="MM/AA"
-                              placeholderTextColor={COLORS.dark.textMuted}
+                              placeholderTextColor={colors.textMuted}
                               keyboardType="numeric"
                               value={cardExpiry}
                               onChangeText={handleCardExpiryChange}
@@ -1332,7 +1335,7 @@ export const UserEventsScreen = () => {
                             <TextInput
                               style={styles.cardInput}
                               placeholder="123"
-                              placeholderTextColor={COLORS.dark.textMuted}
+                              placeholderTextColor={colors.textMuted}
                               keyboardType="numeric"
                               secureTextEntry
                               value={cardCvv}
@@ -1345,7 +1348,7 @@ export const UserEventsScreen = () => {
 
                     {/* Trust badges */}
                     <View style={styles.trustBadges}>
-                      <Ionicons name="lock-closed" size={12} color={COLORS.success} />
+                      <Ionicons name="lock-closed" size={12} color={colors.success} />
                       <Text style={styles.trustText}>Conexión Encriptada SSL. Cumple con norma PCI-DSS.</Text>
                     </View>
                   </Card>
@@ -1396,7 +1399,7 @@ export const UserEventsScreen = () => {
             ) : (
               /* ORDER COMPLETED VIEW */
               <View style={styles.successContainer}>
-                <Ionicons name="checkmark-circle-outline" size={80} color={COLORS.success} />
+                <Ionicons name="checkmark-circle-outline" size={80} color={colors.success} />
                 <Text style={styles.successTitle}>¡Compra Exitosa!</Text>
                 <Text style={styles.successDesc}>
                   Todos tus boletos han sido generados con éxito y agregados a tu Wallet digital. Puedes presentarlos sin conexión en la puerta de acceso.
@@ -1436,33 +1439,33 @@ export const UserEventsScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#070a13',
+    backgroundColor: colors.background,
   },
   header: {
     padding: SPACING.md,
-    backgroundColor: '#0b0f19',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderColor: '#151c2c',
+    borderColor: colors.surfaceAlt,
     paddingTop: 45,
   },
   headerTitle: {
     fontSize: TYPOGRAPHY.fontSizes.lg + 2,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   headerSubtitle: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
     marginBottom: SPACING.sm,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.sm,
     height: 40,
@@ -1470,7 +1473,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: TYPOGRAPHY.fontSizes.sm,
   },
   categoriesContainer: {
@@ -1480,18 +1483,18 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: SPACING.sm + 4,
     borderRadius: BORDER_RADIUS.round,
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
   },
   categoryChipActive: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
   },
   categoryText: {
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.medium,
   },
   categoryTextActive: {
-    color: '#FFFFFF',
+    color: colors.background,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
   listContainer: {
@@ -1504,7 +1507,7 @@ const styles = StyleSheet.create({
     paddingVertical: 50,
   },
   emptyText: {
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     fontSize: TYPOGRAPHY.fontSizes.sm,
     marginTop: SPACING.sm,
   },
@@ -1521,21 +1524,21 @@ const styles = StyleSheet.create({
   },
   categoryBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: `${COLORS.primary}20`,
+    backgroundColor: `${colors.primary}20`,
     paddingVertical: 2,
     paddingHorizontal: 8,
     borderRadius: BORDER_RADIUS.sm,
     marginBottom: SPACING.xs,
   },
   categoryBadgeText: {
-    color: COLORS.primary,
+    color: colors.primary,
     fontSize: 9,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
   eventTitle: {
     fontSize: TYPOGRAPHY.fontSizes.md,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: SPACING.sm,
   },
   eventDetailRow: {
@@ -1546,7 +1549,7 @@ const styles = StyleSheet.create({
   },
   eventDetailText: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
   },
   eventFooter: {
     flexDirection: 'row',
@@ -1554,17 +1557,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: SPACING.md,
     borderTopWidth: 1,
-    borderColor: '#151c2c',
+    borderColor: colors.surfaceAlt,
     paddingTop: SPACING.sm,
   },
   priceLabel: {
     fontSize: 9,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
   },
   priceText: {
     fontSize: TYPOGRAPHY.fontSizes.md,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.success,
+    color: colors.success,
   },
   modalOverlay: {
     flex: 1,
@@ -1572,7 +1575,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#0b0f19',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: BORDER_RADIUS.lg,
     borderTopRightRadius: BORDER_RADIUS.lg,
     height: '85%',
@@ -1583,21 +1586,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderColor: '#151c2c',
+    borderColor: colors.surfaceAlt,
     paddingBottom: SPACING.sm,
     marginBottom: SPACING.md,
   },
   modalTitle: {
     fontSize: TYPOGRAPHY.fontSizes.md + 2,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   modalSubtitle: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
   },
   closeBtn: {
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
     width: 32,
     height: 32,
     borderRadius: BORDER_RADIUS.round,
@@ -1614,10 +1617,10 @@ const styles = StyleSheet.create({
   stageBorder: {
     width: '70%',
     height: 8,
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.border,
     borderBottomLeftRadius: 8,
     borderBottomRightRadius: 8,
-    shadowColor: COLORS.primary,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.8,
     shadowRadius: 10,
@@ -1625,13 +1628,13 @@ const styles = StyleSheet.create({
   stageText: {
     fontSize: 9,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     marginTop: 4,
     letterSpacing: 2,
   },
   gridCard: {
-    backgroundColor: '#070a13',
-    borderColor: '#151c2c',
+    backgroundColor: colors.background,
+    borderColor: colors.surfaceAlt,
     borderWidth: 1,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
@@ -1648,7 +1651,7 @@ const styles = StyleSheet.create({
     width: 20,
     fontSize: TYPOGRAPHY.fontSizes.xs,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     textAlign: 'center',
   },
   seat: {
@@ -1661,7 +1664,7 @@ const styles = StyleSheet.create({
   seatText: {
     fontSize: 8,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   legendContainer: {
     flexDirection: 'row',
@@ -1683,7 +1686,7 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
   },
   summaryCard: {
     marginBottom: SPACING.md,
@@ -1691,7 +1694,7 @@ const styles = StyleSheet.create({
   summaryHeader: {
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: SPACING.xs,
   },
   selectedSeatsRow: {
@@ -1701,13 +1704,13 @@ const styles = StyleSheet.create({
     marginVertical: SPACING.xs,
   },
   seatBadge: {
-    backgroundColor: COLORS.success,
+    backgroundColor: colors.success,
     paddingVertical: 3,
     paddingHorizontal: 8,
     borderRadius: BORDER_RADIUS.sm,
   },
   seatBadgeText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 10,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
@@ -1716,17 +1719,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: SPACING.sm,
     borderTopWidth: 1,
-    borderColor: '#151c2c',
+    borderColor: colors.surfaceAlt,
     paddingTop: SPACING.xs,
   },
   totalLabel: {
     fontSize: 11,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
   },
   totalVal: {
     fontSize: TYPOGRAPHY.fontSizes.sm,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.success,
+    color: colors.success,
   },
   actionBtn: {
     marginTop: SPACING.xs,
@@ -1738,7 +1741,7 @@ const styles = StyleSheet.create({
   checkoutSectionTitle: {
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: SPACING.xs,
   },
   checkoutCard: {
@@ -1747,16 +1750,16 @@ const styles = StyleSheet.create({
   eventTicketTitle: {
     fontSize: TYPOGRAPHY.fontSizes.sm + 1,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   eventTicketMeta: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   divider: {
     height: 1,
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
     marginVertical: SPACING.sm,
   },
   checkoutSeatsList: {
@@ -1768,12 +1771,12 @@ const styles = StyleSheet.create({
   },
   checkoutSeatName: {
     fontSize: 11,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
   },
   checkoutSeatPrice: {
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.medium,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   checkoutTotalRow: {
     flexDirection: 'row',
@@ -1782,12 +1785,12 @@ const styles = StyleSheet.create({
   checkoutTotalLabel: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   checkoutTotalVal: {
     fontSize: TYPOGRAPHY.fontSizes.sm,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.success,
+    color: colors.success,
   },
   paymentCard: {
     padding: SPACING.sm,
@@ -1800,11 +1803,11 @@ const styles = StyleSheet.create({
   paymentMethodName: {
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   paymentMethodDesc: {
     fontSize: 9,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     marginTop: 1,
   },
   checkoutActionRow: {
@@ -1820,11 +1823,11 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: TYPOGRAPHY.fontSizes.lg,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.success,
+    color: colors.success,
   },
   successDesc: {
     fontSize: 11,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 16,
     paddingHorizontal: SPACING.sm,
@@ -1836,17 +1839,17 @@ const styles = StyleSheet.create({
   orderSummaryEvent: {
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   orderSummarySeats: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: 4,
   },
   orderSummaryTotal: {
     fontSize: 10,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.success,
+    color: colors.success,
     marginTop: 2,
   },
   successBtn: {
@@ -1859,31 +1862,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cartHeaderBtn: {
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
     width: 42,
     height: 42,
     borderRadius: BORDER_RADIUS.md,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
-    borderColor: '#2a364f',
+    borderColor: colors.border,
     borderWidth: 1,
   },
   cartBadgeCount: {
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: COLORS.secondary,
+    backgroundColor: colors.secondary,
     borderRadius: 10,
     width: 18,
     height: 18,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#0b0f19',
+    borderColor: colors.surface,
   },
   cartBadgeCountText: {
-    color: '#FFFFFF',
+    color: colors.background,
     fontSize: 8,
     fontWeight: 'bold',
   },
@@ -1899,13 +1902,13 @@ const styles = StyleSheet.create({
     paddingVertical: 50,
   },
   emptyCartText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: TYPOGRAPHY.fontSizes.md,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
     marginTop: SPACING.md,
   },
   emptyCartSub: {
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     fontSize: TYPOGRAPHY.fontSizes.xs,
     marginTop: 4,
     textAlign: 'center',
@@ -1921,17 +1924,17 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   cartEventTitle: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: TYPOGRAPHY.fontSizes.sm + 1,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
   cartEventVenue: {
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     fontSize: 10,
     marginTop: 2,
   },
   cartEventTime: {
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     fontSize: 10,
     marginTop: 1,
   },
@@ -1944,7 +1947,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cartSeatsLabel: {
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     fontSize: 10,
     fontWeight: 'bold',
     marginBottom: SPACING.xs,
@@ -1956,7 +1959,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   cartSeatBadge: {
-    backgroundColor: COLORS.success,
+    backgroundColor: colors.success,
     paddingVertical: 2,
     paddingHorizontal: 8,
     borderRadius: BORDER_RADIUS.sm,
@@ -1964,7 +1967,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cartSeatBadgeText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 10,
     fontWeight: 'bold',
   },
@@ -1972,26 +1975,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderColor: '#151c2c',
+    borderColor: colors.surfaceAlt,
     paddingTop: SPACING.xs,
     marginTop: SPACING.xs,
   },
   cartSubtotalLabel: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
   },
   cartSubtotalVal: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.success,
+    color: colors.success,
   },
   checkoutEventName: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 11,
     fontWeight: 'bold',
   },
   checkoutSeatsListText: {
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     fontSize: 10,
     marginTop: 1,
   },
@@ -2002,32 +2005,32 @@ const styles = StyleSheet.create({
   },
   methodSelectorBtn: {
     flex: 1,
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
-    borderColor: '#2a364f',
+    borderColor: colors.border,
     paddingVertical: SPACING.sm,
     alignItems: 'center',
     gap: 4,
   },
   methodSelectorBtnActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primaryLight,
+    backgroundColor: colors.primary,
+    borderColor: colors.primaryLight,
   },
   methodSelectorText: {
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     fontSize: 10,
     fontWeight: 'bold',
   },
   methodSelectorTextActive: {
-    color: '#FFFFFF',
+    color: colors.background,
   },
   cardFormCard: {
     padding: SPACING.md,
     marginBottom: SPACING.md,
   },
   formTitle: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: TYPOGRAPHY.fontSizes.xs + 1,
     fontWeight: 'bold',
     marginBottom: SPACING.sm,
@@ -2040,13 +2043,13 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   cardInput: {
-    backgroundColor: '#070a13',
-    borderColor: '#151c2c',
+    backgroundColor: colors.background,
+    borderColor: colors.surfaceAlt,
     borderWidth: 1,
     borderRadius: BORDER_RADIUS.sm,
     height: 40,
     paddingHorizontal: SPACING.sm,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: TYPOGRAPHY.fontSizes.xs + 1,
     marginTop: 4,
   },
@@ -2059,13 +2062,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: SPACING.sm,
     top: 14,
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: BORDER_RADIUS.sm,
   },
   cardTypeText: {
-    color: COLORS.primaryLight,
+    color: colors.primaryLight,
     fontSize: 8,
     fontWeight: 'bold',
   },
@@ -2076,11 +2079,11 @@ const styles = StyleSheet.create({
     marginTop: SPACING.sm,
   },
   trustText: {
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     fontSize: 8,
   },
   paymentMethodDescText: {
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     fontSize: 10,
     lineHeight: 14,
     marginBottom: SPACING.sm,
@@ -2118,11 +2121,11 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 10,
     fontWeight: 'bold',
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   loginHeaderBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2130,11 +2133,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.sm + 2,
     height: 42,
     borderRadius: BORDER_RADIUS.md,
-    borderColor: COLORS.primaryLight,
+    borderColor: colors.primaryLight,
     borderWidth: 1,
   },
   loginHeaderBtnText: {
-    color: '#FFFFFF',
+    color: colors.background,
     fontSize: 11,
     fontWeight: 'bold',
   },
@@ -2159,7 +2162,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 0, 127, 0.3)',
   },
   detailCategoryText: {
-    color: COLORS.primary,
+    color: colors.primary,
     fontSize: 10,
     fontWeight: 'bold',
     textTransform: 'uppercase',
@@ -2171,38 +2174,38 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xs,
   },
   detailMetaText: {
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     fontSize: 12,
   },
   detailPrice: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginTop: SPACING.xs,
     marginBottom: SPACING.md,
   },
   detailSectionTitle: {
     fontSize: 13,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: colors.primary,
     marginTop: SPACING.md,
     marginBottom: SPACING.xs,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   detailDescription: {
-    color: '#cbd5e1',
+    color: colors.textSecondary,
     fontSize: 12,
     lineHeight: 18,
     marginBottom: SPACING.sm,
   },
   infoList: {
     gap: SPACING.xs,
-    backgroundColor: '#111827',
+    backgroundColor: colors.surface,
     padding: SPACING.sm,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
-    borderColor: '#1f2937',
+    borderColor: colors.border,
     marginBottom: SPACING.md,
   },
   infoItem: {
@@ -2211,7 +2214,7 @@ const styles = StyleSheet.create({
     gap: SPACING.xs,
   },
   infoItemText: {
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     fontSize: 11,
     lineHeight: 16,
     flex: 1,
@@ -2226,7 +2229,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   bookingBackButtonText: {
-    color: COLORS.primary,
+    color: colors.primary,
     fontSize: 11,
     fontWeight: 'bold',
   },
@@ -2236,7 +2239,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   changeCardLinkText: {
-    color: COLORS.primary,
+    color: colors.primary,
     fontWeight: 'bold',
     fontSize: 11,
   },
@@ -2245,7 +2248,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827',
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
-    borderColor: '#1f2937',
+    borderColor: colors.border,
     overflow: 'hidden',
     marginRight: SPACING.xs,
   },
@@ -2259,20 +2262,20 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   relatedMerchTitle: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 10,
     fontWeight: 'bold',
     textAlign: 'center',
   },
   relatedMerchPrice: {
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     fontSize: 9,
   },
   relatedMerchAddBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: BORDER_RADIUS.sm,
@@ -2280,7 +2283,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   relatedMerchAddText: {
-    color: '#FFFFFF',
+    color: colors.background,
     fontSize: 9,
     fontWeight: 'bold',
   },
@@ -2288,7 +2291,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1f2937',
+    backgroundColor: colors.border,
     borderRadius: BORDER_RADIUS.sm,
     paddingHorizontal: 4,
     paddingVertical: 2,
@@ -2296,14 +2299,14 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   relatedMerchQtyBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     borderRadius: 4,
     padding: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   relatedMerchQtyText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 10,
     fontWeight: 'bold',
   },

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../styles/theme';
+import { useTheme } from '../context/ThemeContext';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -36,6 +37,7 @@ export const Input: React.FC<InputProps> = ({
   onFocus,
   ...props
 }) => {
+  const { colors } = useTheme();
   const [isFocused, setIsFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -52,22 +54,30 @@ export const Input: React.FC<InputProps> = ({
   const hasLeftIcon = !!leftIcon;
   const hasRightIcon = !!rightIcon || isPassword;
 
+  // Dynamic style calculations
+  const dynamicLabelStyle = {
+    color: colors.textPrimary,
+  };
+
+  const dynamicInputContainerStyle = {
+    borderColor: isFocused ? colors.primary : error ? COLORS.error : colors.border,
+    backgroundColor: colors.surface,
+  };
+
+  const dynamicInputStyle = {
+    color: colors.textPrimary,
+  };
+
   return (
     <View style={[styles.container, containerStyle]}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && <Text style={[styles.label, dynamicLabelStyle]}>{label}</Text>}
       
-      <View
-        style={[
-          styles.inputContainer,
-          isFocused && styles.inputFocused,
-          error ? styles.inputError : null,
-        ]}
-      >
+      <View style={[styles.inputContainer, dynamicInputContainerStyle]}>
         {leftIcon && (
           <Ionicons
             name={leftIcon}
             size={20}
-            color={error ? COLORS.error : isFocused ? COLORS.primary : COLORS.dark.textSecondary}
+            color={error ? COLORS.error : isFocused ? colors.primary : colors.textSecondary}
             style={styles.leftIcon}
           />
         )}
@@ -77,9 +87,10 @@ export const Input: React.FC<InputProps> = ({
             styles.input,
             hasLeftIcon && styles.inputWithLeftIcon,
             hasRightIcon && styles.inputWithRightIcon,
+            dynamicInputStyle,
             inputStyle,
           ]}
-          placeholderTextColor={COLORS.dark.textMuted}
+          placeholderTextColor={colors.textMuted}
           secureTextEntry={isPassword && !showPassword}
           onFocus={handleFocus}
           onBlur={handleBlur}
@@ -95,7 +106,7 @@ export const Input: React.FC<InputProps> = ({
             <Ionicons
               name={showPassword ? 'eye-off-outline' : 'eye-outline'}
               size={20}
-              color={COLORS.dark.textSecondary}
+              color={colors.textSecondary}
             />
           </TouchableOpacity>
         ) : rightIcon ? (
@@ -105,7 +116,7 @@ export const Input: React.FC<InputProps> = ({
             disabled={!onRightIconPress}
             activeOpacity={0.7}
           >
-            <Ionicons name={rightIcon} size={20} color={COLORS.dark.textSecondary} />
+            <Ionicons name={rightIcon} size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -122,7 +133,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: TYPOGRAPHY.fontSizes.sm,
-    color: COLORS.dark.textPrimary,
     fontWeight: TYPOGRAPHY.fontWeights.medium,
     marginBottom: SPACING.xs,
   },
@@ -131,21 +141,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 52,
     borderWidth: 1.5,
-    borderColor: COLORS.dark.border,
     borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.dark.surface,
     paddingHorizontal: SPACING.md,
-  },
-  inputFocused: {
-    borderColor: COLORS.primary,
-  },
-  inputError: {
-    borderColor: COLORS.error,
   },
   input: {
     flex: 1,
     height: '100%',
-    color: COLORS.dark.textPrimary,
     fontSize: TYPOGRAPHY.fontSizes.md,
   },
   inputWithLeftIcon: {
@@ -168,4 +169,5 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
   },
 });
+
 export default Input;

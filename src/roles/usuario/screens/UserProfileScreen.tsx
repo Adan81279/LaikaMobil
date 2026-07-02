@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../../styles/theme';
 import { useAuth } from '../../../context/AuthContext';
+import { useTheme } from '../../../context/ThemeContext';
 import usuarioService, {
   Ticket,
   RefundRequest,
@@ -37,6 +38,8 @@ import { useIsFocused } from '@react-navigation/native';
 const AVAILABLE_GENRES = ['Pop', 'Rock', 'Electrónica', 'Urbano', 'Convención', 'Indie'];
 
 export const UserProfileScreen = () => {
+  const { isDarkMode, colors, toggleTheme } = useTheme();
+  const styles = getStyles(colors, isDarkMode);
   const { user, logout, savedCard, saveCardDetails, clearSavedCard } = useAuth();
   const router = useRouter();
   const isFocused = useIsFocused();
@@ -134,7 +137,7 @@ export const UserProfileScreen = () => {
     return (
       <View style={styles.container}>
         <View style={styles.guestContainer}>
-          <Ionicons name="person-circle-outline" size={80} color={COLORS.dark.textMuted} style={{ marginBottom: SPACING.md }} />
+          <Ionicons name="person-circle-outline" size={80} color={colors.textMuted} style={{ marginBottom: SPACING.md }} />
           <Text style={styles.guestTitle}>Mi Cuenta Laika Club</Text>
           <Text style={styles.guestDesc}>
             Inicia sesión o regístrate para poder comprar boletos, recibir reembolsos, registrar tus pases y acceder a tu Wallet digital.
@@ -314,7 +317,7 @@ export const UserProfileScreen = () => {
               </Text>
             )}
             <View style={styles.avatarEditBadge}>
-              <Ionicons name="camera" size={10} color="#FFFFFF" />
+              <Ionicons name="camera" size={10} color={colors.background} />
             </View>
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
@@ -337,7 +340,7 @@ export const UserProfileScreen = () => {
             style={[styles.tabBtn, activeTab === 'profile' && styles.tabBtnActive]}
             onPress={() => setActiveTab('profile')}
           >
-            <Ionicons name="cog-outline" size={16} color={activeTab === 'profile' ? '#FFFFFF' : COLORS.dark.textSecondary} />
+            <Ionicons name="cog-outline" size={16} color={activeTab === 'profile' ? colors.background : colors.textSecondary} />
             <Text style={[styles.tabText, activeTab === 'profile' && styles.tabTextActive]}>
               Ajustes
             </Text>
@@ -346,7 +349,7 @@ export const UserProfileScreen = () => {
             style={[styles.tabBtn, activeTab === 'history' && styles.tabBtnActive]}
             onPress={() => setActiveTab('history')}
           >
-            <Ionicons name="receipt-outline" size={16} color={activeTab === 'history' ? '#FFFFFF' : COLORS.dark.textSecondary} />
+            <Ionicons name="receipt-outline" size={16} color={activeTab === 'history' ? colors.background : colors.textSecondary} />
             <Text style={[styles.tabText, activeTab === 'history' && styles.tabTextActive]}>
               Historial
             </Text>
@@ -355,7 +358,7 @@ export const UserProfileScreen = () => {
             style={[styles.tabBtn, activeTab === 'explore' && styles.tabBtnActive]}
             onPress={() => setActiveTab('explore')}
           >
-            <Ionicons name="compass-outline" size={16} color={activeTab === 'explore' ? '#FFFFFF' : COLORS.dark.textSecondary} />
+            <Ionicons name="compass-outline" size={16} color={activeTab === 'explore' ? colors.background : colors.textSecondary} />
             <Text style={[styles.tabText, activeTab === 'explore' && styles.tabTextActive]}>
               Descubrir
             </Text>
@@ -364,7 +367,7 @@ export const UserProfileScreen = () => {
             style={[styles.tabBtn, activeTab === 'benefits' && styles.tabBtnActive]}
             onPress={() => setActiveTab('benefits')}
           >
-            <Ionicons name="gift-outline" size={16} color={activeTab === 'benefits' ? '#FFFFFF' : COLORS.dark.textSecondary} />
+            <Ionicons name="gift-outline" size={16} color={activeTab === 'benefits' ? colors.background : colors.textSecondary} />
             <Text style={[styles.tabText, activeTab === 'benefits' && styles.tabTextActive]}>
               Beneficios
             </Text>
@@ -420,34 +423,47 @@ export const UserProfileScreen = () => {
                 }}
                 style={styles.editLink}
               >
-                <Ionicons name="create-outline" size={14} color={COLORS.primary} />
+                <Ionicons name="create-outline" size={14} color={colors.primary} />
                 <Text style={styles.editLinkText}>Editar Perfil</Text>
               </TouchableOpacity>
             </View>
             <Card>
               <View style={styles.settingsRow}>
-                <Ionicons name="person-outline" size={18} color={COLORS.primary} />
+                <Ionicons name="person-outline" size={18} color={colors.primary} />
                 <View style={styles.settingsMeta}>
                   <Text style={styles.settingsLabel}>Nombre de usuario</Text>
                   <Text style={styles.settingsVal}>{user?.name || 'Usuario'}</Text>
                 </View>
               </View>
               <View style={styles.settingsRow}>
-                <Ionicons name="mail-outline" size={18} color={COLORS.primary} />
+                <Ionicons name="mail-outline" size={18} color={colors.primary} />
                 <View style={styles.settingsMeta}>
                   <Text style={styles.settingsLabel}>Correo electrónico</Text>
                   <Text style={styles.settingsVal}>{user?.email || 'usuario@laika.com'}</Text>
                 </View>
               </View>
               <View style={[styles.settingsRow, { borderBottomWidth: 0 }]}>
-                <Ionicons name="key-outline" size={18} color={COLORS.primary} />
+                <Ionicons name="key-outline" size={18} color={colors.primary} />
                 <View style={styles.settingsMeta}>
                   <Text style={styles.settingsLabel}>Rol en el sistema</Text>
-                  <Text style={[styles.settingsVal, { textTransform: 'uppercase', color: COLORS.success }]}>
+                  <Text style={[styles.settingsVal, { textTransform: 'uppercase', color: colors.success }]}>
                     {user?.role || 'usuario'}
                   </Text>
                 </View>
               </View>
+            </Card>
+
+            {/* Preferencia de Tema */}
+            <Text style={[styles.sectionTitle, { marginTop: SPACING.sm }]}>Preferencia de Tema</Text>
+            <Card style={{ paddingVertical: 4 }}>
+              <TouchableOpacity style={[styles.settingsRow, { borderBottomWidth: 0, paddingVertical: SPACING.sm }]} onPress={toggleTheme}>
+                <Ionicons name={isDarkMode ? 'moon-outline' : 'sunny-outline'} size={18} color={colors.primary} />
+                <View style={styles.settingsMeta}>
+                  <Text style={styles.settingsLabel}>Modo de visualización</Text>
+                  <Text style={styles.settingsVal}>{isDarkMode ? 'Oscuro (Monocromático)' : 'Claro (Monocromático)'}</Text>
+                </View>
+                <Ionicons name="swap-horizontal-outline" size={16} color={colors.textSecondary} />
+              </TouchableOpacity>
             </Card>
 
             {/* Payment Method Manager */}
@@ -457,11 +473,11 @@ export const UserProfileScreen = () => {
                 <View style={styles.savedCardContainer}>
                   <View style={styles.cardHeaderRow}>
                     <View style={styles.cardHeaderLeft}>
-                      <Ionicons name="card" size={24} color={COLORS.primary} />
+                      <Ionicons name="card" size={24} color={colors.primary} />
                       <Text style={styles.cardInfoBrand}>Visa •••• {savedCard.number.slice(-4)}</Text>
                     </View>
                     <TouchableOpacity onPress={handleRemoveCard} style={styles.deleteCardBtn}>
-                      <Ionicons name="trash-outline" size={16} color={COLORS.error} />
+                      <Ionicons name="trash-outline" size={16} color={colors.error} />
                     </TouchableOpacity>
                   </View>
                   <View style={styles.cardDetailsRow}>
@@ -479,7 +495,7 @@ export const UserProfileScreen = () => {
                 </View>
               ) : (
                 <View style={styles.noCardContainer}>
-                  <Ionicons name="card-outline" size={32} color={COLORS.dark.textMuted} style={{ marginBottom: 4 }} />
+                  <Ionicons name="card-outline" size={32} color={colors.textMuted} style={{ marginBottom: 4 }} />
                   <Text style={styles.noCardTitle}>No tienes tarjetas guardadas</Text>
                   <Text style={styles.noCardDesc}>
                     Para guardar una tarjeta haz una compra de boletos o registra una tarjeta de pruebas aquí.
@@ -512,7 +528,7 @@ export const UserProfileScreen = () => {
                       <Ionicons
                         name={active ? 'checkmark-circle' : 'add-circle-outline'}
                         size={12}
-                        color={active ? '#FFFFFF' : COLORS.dark.textSecondary}
+                        color={active ? colors.background : colors.textSecondary}
                         style={{ marginRight: 4 }}
                       />
                       <Text style={[styles.genreTagText, active && styles.genreTagTextActive]}>
@@ -528,7 +544,7 @@ export const UserProfileScreen = () => {
               title="Cerrar Sesión"
               variant="danger"
               onPress={handleLogout}
-              icon={<Ionicons name="log-out-outline" size={18} color="#FFFFFF" />}
+              icon={<Ionicons name="log-out-outline" size={18} color={colors.background} />}
               style={styles.logoutBtn}
             />
           </View>
@@ -600,14 +616,14 @@ export const UserProfileScreen = () => {
                         </View>
                       </View>
                       {t.related_merch && t.related_merch.length > 0 && (
-                        <View style={{ marginTop: SPACING.sm, borderTopWidth: 1, borderTopColor: '#1f2937', paddingTop: SPACING.sm }}>
+                        <View style={{ marginTop: SPACING.sm, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: SPACING.sm }}>
                           <Text style={[styles.metaLabel, { marginBottom: 4 }]}>SOUVENIRS ADQUIRIDOS</Text>
                           {t.related_merch.map((m, idx) => (
                             <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                              <Text style={{ color: COLORS.dark.textSecondary, fontSize: 11 }}>
+                              <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
                                 • {m.title} (x{m.quantity})
                               </Text>
-                              <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: 'bold' }}>
+                              <Text style={{ color: colors.background, fontSize: 11, fontWeight: 'bold' }}>
                                 ${m.price * m.quantity} MXN
                               </Text>
                             </View>
@@ -618,7 +634,7 @@ export const UserProfileScreen = () => {
                         <Button
                           title="Ver Código QR Acceso"
                           variant="secondary"
-                          icon={<Ionicons name="qr-code-outline" size={14} color="#FFFFFF" />}
+                          icon={<Ionicons name="qr-code-outline" size={14} color={colors.background} />}
                           onPress={() => {
                             try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
                             setSelectedTicketForQR(t);
@@ -730,7 +746,7 @@ export const UserProfileScreen = () => {
                         <Ionicons
                           name={star <= reviewRating ? 'star' : 'star-outline'}
                           size={28}
-                          color={star <= reviewRating ? COLORS.success : COLORS.dark.textMuted}
+                          color={star <= reviewRating ? colors.success : colors.textMuted}
                         />
                       </TouchableOpacity>
                     ))}
@@ -743,7 +759,7 @@ export const UserProfileScreen = () => {
                     multiline
                     numberOfLines={3}
                     placeholder="Comparte tu experiencia acerca del show, audio del recinto, organización..."
-                    placeholderTextColor={COLORS.dark.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     value={reviewComment}
                     onChangeText={setReviewComment}
                   />
@@ -773,7 +789,7 @@ export const UserProfileScreen = () => {
                               key={star}
                               name={star <= op.rating ? 'star' : 'star-outline'}
                               size={10}
-                              color={star <= op.rating ? COLORS.success : COLORS.dark.textMuted}
+                              color={star <= op.rating ? colors.success : colors.textMuted}
                             />
                           ))}
                         </View>
@@ -813,7 +829,7 @@ export const UserProfileScreen = () => {
                     <Ionicons
                       name={art.isFollowing ? 'checkmark-done-circle' : 'add-outline'}
                       size={12}
-                      color={art.isFollowing ? COLORS.success : '#FFFFFF'}
+                      color={art.isFollowing ? colors.success : colors.background}
                     />
                     <Text style={[styles.artistFollowText, art.isFollowing && styles.artistFollowTextActive]}>
                       {art.isFollowing ? 'Siguiendo' : 'Seguir'}
@@ -884,7 +900,7 @@ export const UserProfileScreen = () => {
                     <Text style={styles.couponExpiry}>Expira: {c.expiry}</Text>
                   </View>
                   <TouchableOpacity onPress={() => handleCopyCoupon(c.code)} style={styles.couponCopyBtn}>
-                    <Ionicons name="copy-outline" size={18} color={COLORS.primary} />
+                    <Ionicons name="copy-outline" size={18} color={colors.primary} />
                   </TouchableOpacity>
                 </View>
               ))
@@ -944,7 +960,7 @@ export const UserProfileScreen = () => {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Boleto Digital Acceso</Text>
                 <TouchableOpacity onPress={() => setIsQRModalVisible(false)}>
-                  <Ionicons name="close-circle" size={24} color="#FFFFFF" />
+                  <Ionicons name="close-circle" size={24} color={colors.textPrimary} />
                 </TouchableOpacity>
               </View>
 
@@ -954,7 +970,7 @@ export const UserProfileScreen = () => {
                 
                 {/* Simulated QR Code structure */}
                 <View style={styles.qrBox}>
-                  <Ionicons name="qr-code" size={160} color="#070a13" />
+                  <Ionicons name="qr-code" size={160} color={colors.background} />
                   <View style={styles.qrScannerHelper} />
                 </View>
 
@@ -970,7 +986,7 @@ export const UserProfileScreen = () => {
                 </View>
 
                 <View style={styles.instructionBox}>
-                  <Ionicons name="information-circle-outline" size={16} color={COLORS.primary} />
+                  <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
                   <Text style={styles.instructionText}>
                     Presenta este código en el escáner del recinto. Se recomienda brillo de pantalla al máximo.
                   </Text>
@@ -987,15 +1003,15 @@ export const UserProfileScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#070a13',
+    backgroundColor: colors.background,
   },
   header: {
-    backgroundColor: '#0b0f19',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderColor: '#151c2c',
+    borderColor: colors.surfaceAlt,
     paddingTop: 45,
   },
   profileMeta: {
@@ -1005,7 +1021,7 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   avatarCircle: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     width: 48,
     height: 48,
     borderRadius: 24,
@@ -1022,28 +1038,28 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: -4,
     bottom: -4,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     width: 16,
     height: 16,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#070a13',
+    borderColor: colors.background,
   },
   avatarInitial: {
-    color: '#FFFFFF',
+    color: colors.background,
     fontSize: TYPOGRAPHY.fontSizes.md + 2,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
   profileName: {
     fontSize: TYPOGRAPHY.fontSizes.md,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   profileEmail: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   loyaltyBadgeSmall: {
@@ -1064,7 +1080,7 @@ const styles = StyleSheet.create({
   tabsRow: {
     flexDirection: 'row',
     borderTopWidth: 1,
-    borderColor: '#151c2c',
+    borderColor: colors.surfaceAlt,
   },
   tabBtn: {
     flex: 1,
@@ -1077,15 +1093,15 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   tabBtnActive: {
-    borderBottomColor: COLORS.primary,
+    borderBottomColor: colors.primary,
   },
   tabText: {
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     fontSize: 9,
     fontWeight: TYPOGRAPHY.fontWeights.medium,
   },
   tabTextActive: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
   scrollContainer: {
@@ -1096,8 +1112,8 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   loyaltyCard: {
-    backgroundColor: '#0f1424',
-    borderColor: '#1e294b',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
     borderWidth: 1,
     marginBottom: SPACING.md,
   },
@@ -1117,29 +1133,29 @@ const styles = StyleSheet.create({
   loyaltyLabel: {
     fontSize: 8,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.primary,
+    color: colors.primary,
     letterSpacing: 0.5,
   },
   loyaltyTitle: {
     fontSize: TYPOGRAPHY.fontSizes.md - 1,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginTop: 1,
   },
   loyaltyCountBadge: {
-    backgroundColor: '#1e294b',
+    backgroundColor: colors.border,
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: BORDER_RADIUS.sm,
   },
   loyaltyCountText: {
     fontSize: 9,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
   loyaltyDesc: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 14,
     marginBottom: SPACING.md,
   },
@@ -1153,16 +1169,16 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     fontSize: 9,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
   },
   progressVal: {
     fontSize: 9,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   progressBarBg: {
     height: 6,
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -1178,7 +1194,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     textTransform: 'uppercase',
   },
   editLink: {
@@ -1189,14 +1205,14 @@ const styles = StyleSheet.create({
   editLinkText: {
     fontSize: 11,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: colors.primary,
   },
   settingsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: SPACING.sm,
     borderBottomWidth: 1,
-    borderColor: '#151c2c',
+    borderColor: colors.surfaceAlt,
     gap: SPACING.md,
   },
   settingsMeta: {
@@ -1204,12 +1220,12 @@ const styles = StyleSheet.create({
   },
   settingsLabel: {
     fontSize: 9,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
   },
   settingsVal: {
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginTop: 2,
   },
   logoutBtn: {
@@ -1230,7 +1246,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   cardInfoBrand: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 12,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
@@ -1244,13 +1260,13 @@ const styles = StyleSheet.create({
   },
   cardDetailsLabel: {
     fontSize: 7,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     letterSpacing: 0.5,
   },
   cardDetailsText: {
     fontSize: 10,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginTop: 2,
   },
   noCardContainer: {
@@ -1258,14 +1274,14 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
   },
   noCardTitle: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
     marginTop: 4,
   },
   noCardDesc: {
     fontSize: 9,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     textAlign: 'center',
     marginTop: 2,
     paddingHorizontal: SPACING.lg,
@@ -1273,7 +1289,7 @@ const styles = StyleSheet.create({
   },
   cardDesc: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 14,
   },
   genresContainer: {
@@ -1285,25 +1301,25 @@ const styles = StyleSheet.create({
   genreTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: BORDER_RADIUS.round,
   },
   genreTagActive: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
   },
   genreTagText: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
   },
   genreTagTextActive: {
-    color: '#FFFFFF',
+    color: colors.background,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
   subTabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#0b0f19',
+    backgroundColor: colors.surface,
     borderRadius: BORDER_RADIUS.md,
     padding: 4,
     gap: 4,
@@ -1315,15 +1331,15 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.sm,
   },
   subTabBtnActive: {
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
   },
   subTabText: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     fontWeight: TYPOGRAPHY.fontWeights.medium,
   },
   subTabTextActive: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
   emptyCard: {
@@ -1333,30 +1349,30 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 10,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     textAlign: 'center',
     lineHeight: 14,
   },
   ticketHistoryCard: {
-    backgroundColor: '#101625',
+    backgroundColor: colors.surface,
   },
   ticketHistoryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     borderBottomWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: colors.border,
     paddingBottom: SPACING.sm,
     marginBottom: SPACING.sm,
   },
   ticketEventTitle: {
     fontSize: 12,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   ticketVenue: {
     fontSize: 9,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   ticketStatusText: {
@@ -1368,15 +1384,15 @@ const styles = StyleSheet.create({
   },
   statusValid: {
     backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    color: COLORS.success,
+    color: colors.success,
   },
   statusUsed: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
   },
   statusRefunded: {
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    color: COLORS.error,
+    color: colors.error,
   },
   ticketMetaGrid: {
     flexDirection: 'row',
@@ -1384,16 +1400,16 @@ const styles = StyleSheet.create({
   },
   metaLabel: {
     fontSize: 7,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
   },
   metaText: {
     fontSize: 10,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginTop: 1,
   },
   orderCard: {
-    backgroundColor: '#101625',
+    backgroundColor: colors.surface,
   },
   orderHeader: {
     flexDirection: 'row',
@@ -1404,7 +1420,7 @@ const styles = StyleSheet.create({
   orderId: {
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   orderStatusBadge: {
     paddingVertical: 2,
@@ -1420,11 +1436,11 @@ const styles = StyleSheet.create({
   orderStatusText: {
     fontSize: 8,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   orderDate: {
     fontSize: 9,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     marginBottom: SPACING.md,
   },
   orderItemRow: {
@@ -1433,28 +1449,28 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     paddingVertical: SPACING.xs,
     borderBottomWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: colors.border,
   },
   orderItemThumb: {
     width: 32,
     height: 32,
     borderRadius: BORDER_RADIUS.sm,
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.border,
   },
   orderItemTitle: {
     fontSize: 10,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   orderItemQuantity: {
     fontSize: 8,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: 1,
   },
   orderItemSubtotal: {
     fontSize: 10,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   orderFooter: {
     flexDirection: 'row',
@@ -1465,17 +1481,17 @@ const styles = StyleSheet.create({
   orderTotalLabel: {
     fontSize: 9,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
   },
   orderTotalVal: {
     fontSize: 12,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   inputLabel: {
     fontSize: 9,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginBottom: SPACING.xs,
   },
   pickerContainer: {
@@ -1483,27 +1499,27 @@ const styles = StyleSheet.create({
   },
   pickerPlaceholder: {
     fontSize: 10,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     textAlign: 'center',
     paddingVertical: SPACING.sm,
   },
   pickerItem: {
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
     borderRadius: BORDER_RADIUS.md,
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.md,
   },
   pickerItemActive: {
     backgroundColor: 'rgba(79, 70, 229, 0.15)',
-    borderColor: COLORS.primary,
+    borderColor: colors.primary,
     borderWidth: 1,
   },
   pickerItemText: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
   },
   pickerItemTextActive: {
-    color: '#FFFFFF',
+    color: colors.background,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
   ratingStarsRow: {
@@ -1512,16 +1528,16 @@ const styles = StyleSheet.create({
     marginVertical: SPACING.xs,
   },
   textArea: {
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.sm,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 10,
     minHeight: 65,
     textAlignVertical: 'top',
   },
   opinionHistoryCard: {
-    backgroundColor: '#101625',
+    backgroundColor: colors.surface,
   },
   opinionHeaderRow: {
     flexDirection: 'row',
@@ -1531,7 +1547,7 @@ const styles = StyleSheet.create({
   opinionEvent: {
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     flex: 1,
   },
   opinionStars: {
@@ -1540,13 +1556,13 @@ const styles = StyleSheet.create({
   },
   opinionComment: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     fontStyle: 'italic',
     marginTop: SPACING.xs,
   },
   opinionMeta: {
     fontSize: 8,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     marginTop: 4,
   },
   artistsScrollContainer: {
@@ -1554,11 +1570,11 @@ const styles = StyleSheet.create({
   },
   artistCard: {
     width: 100,
-    backgroundColor: '#0b0f19',
+    backgroundColor: colors.surface,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.sm,
     alignItems: 'center',
-    borderColor: '#151c2c',
+    borderColor: colors.surfaceAlt,
     borderWidth: 1,
     position: 'relative',
   },
@@ -1566,32 +1582,32 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
     marginBottom: SPACING.xs,
   },
   artistName: {
     fontSize: 10,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     textAlign: 'center',
   },
   artistGenre: {
     fontSize: 8,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     marginTop: 1,
   },
   alertTourBadge: {
     position: 'absolute',
     top: 4,
     right: 4,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     borderRadius: 4,
     paddingVertical: 1,
     paddingHorizontal: 4,
   },
   alertTourText: {
     fontSize: 6,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
   artistFollowBtn: {
@@ -1599,7 +1615,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: BORDER_RADIUS.sm,
@@ -1609,24 +1625,24 @@ const styles = StyleSheet.create({
   },
   artistFollowText: {
     fontSize: 8,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   artistFollowTextActive: {
-    color: COLORS.success,
+    color: colors.success,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
   recomCard: {
-    backgroundColor: '#0b0f19',
+    backgroundColor: colors.surface,
     borderRadius: BORDER_RADIUS.md,
     overflow: 'hidden',
-    borderColor: '#151c2c',
+    borderColor: colors.surfaceAlt,
     borderWidth: 1,
     marginBottom: SPACING.sm,
   },
   recomImage: {
     width: '100%',
     height: 100,
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
   },
   recomMetaContainer: {
     flexDirection: 'row',
@@ -1641,26 +1657,26 @@ const styles = StyleSheet.create({
   recomCategory: {
     fontSize: 8,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.primary,
+    color: colors.primary,
     textTransform: 'uppercase',
   },
   recomDate: {
     fontSize: 8,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
   },
   recomTitle: {
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginTop: 2,
   },
   recomVenue: {
     fontSize: 8,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: 1,
   },
   recomPriceBadge: {
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: BORDER_RADIUS.sm,
@@ -1668,17 +1684,17 @@ const styles = StyleSheet.create({
   },
   recomPriceLabel: {
     fontSize: 6,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
   },
   recomPriceVal: {
     fontSize: 10,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   couponTicket: {
     flexDirection: 'row',
-    backgroundColor: '#0f1424',
-    borderColor: '#1e294b',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
     borderWidth: 1,
     borderRadius: BORDER_RADIUS.md,
     overflow: 'hidden',
@@ -1696,12 +1712,12 @@ const styles = StyleSheet.create({
   couponDisc: {
     fontSize: 16,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   couponDiscSub: {
     fontSize: 8,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   couponMiddle: {
     flex: 1,
@@ -1710,16 +1726,16 @@ const styles = StyleSheet.create({
   couponCode: {
     fontSize: 12,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   couponDescrip: {
     fontSize: 9,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   couponExpiry: {
     fontSize: 7,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     marginTop: 4,
   },
   couponCopyBtn: {
@@ -1728,8 +1744,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dealCard: {
-    backgroundColor: '#181124',
-    borderColor: '#37185e',
+    backgroundColor: isDarkMode ? '#181124' : '#F3E8FF',
+    borderColor: isDarkMode ? '#37185e' : '#C084FC',
     borderWidth: 1,
   },
   dealHeaderRow: {
@@ -1739,35 +1755,35 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xs,
   },
   dealHeaderBadge: {
-    backgroundColor: COLORS.error,
+    backgroundColor: colors.error,
     borderRadius: BORDER_RADIUS.sm,
     paddingVertical: 2,
     paddingHorizontal: 6,
   },
   dealBadgeText: {
     fontSize: 8,
-    color: '#FFFFFF',
+    color: colors.background,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
   dealExpiryText: {
     fontSize: 8,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
   },
   dealTitle: {
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   dealDesc: {
     fontSize: 9,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 13,
     marginTop: 2,
   },
   notificationRow: {
     paddingVertical: SPACING.sm,
     borderBottomWidth: 1,
-    borderColor: '#151c2c',
+    borderColor: colors.surfaceAlt,
   },
   notHeaderRow: {
     flexDirection: 'row',
@@ -1783,23 +1799,23 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
   },
   notTitle: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
   },
   notTitleUnread: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
   notTime: {
     fontSize: 8,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
   },
   notBody: {
     fontSize: 9,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     marginTop: 2,
     lineHeight: 12,
   },
@@ -1808,17 +1824,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.xl,
-    backgroundColor: '#070a13',
+    backgroundColor: colors.background,
   },
   guestTitle: {
     fontSize: TYPOGRAPHY.fontSizes.lg,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: SPACING.sm,
   },
   guestDesc: {
     fontSize: TYPOGRAPHY.fontSizes.sm - 1,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
     marginBottom: SPACING.xl,
@@ -1835,11 +1851,11 @@ const styles = StyleSheet.create({
     padding: SPACING.xl,
   },
   modalContent: {
-    backgroundColor: '#0b0f19',
+    backgroundColor: colors.surface,
     borderRadius: BORDER_RADIUS.lg,
     width: '100%',
     maxWidth: 320,
-    borderColor: '#1e294b',
+    borderColor: colors.border,
     borderWidth: 1,
     overflow: 'hidden',
   },
@@ -1847,16 +1863,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#0f1424',
+    backgroundColor: colors.surface,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.md,
     borderBottomWidth: 1,
-    borderColor: '#1e294b',
+    borderColor: colors.border,
   },
   modalTitle: {
     fontSize: 12,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   qrContainer: {
     padding: SPACING.lg,
@@ -1865,12 +1881,12 @@ const styles = StyleSheet.create({
   qrEventTitle: {
     fontSize: 14,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     textAlign: 'center',
   },
   qrVenue: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
     textAlign: 'center',
   },
@@ -1888,7 +1904,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 2,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     opacity: 0.7,
   },
   qrMetaRow: {
@@ -1896,18 +1912,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     width: '100%',
     borderTopWidth: 1,
-    borderColor: '#151c2c',
+    borderColor: colors.surfaceAlt,
     paddingTop: SPACING.sm,
     marginBottom: SPACING.md,
   },
   qrMetaLabel: {
     fontSize: 7,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
   },
   qrMetaVal: {
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginTop: 2,
   },
   instructionBox: {
@@ -1920,7 +1936,7 @@ const styles = StyleSheet.create({
   },
   instructionText: {
     fontSize: 8.5,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     flex: 1,
     lineHeight: 12,
   },

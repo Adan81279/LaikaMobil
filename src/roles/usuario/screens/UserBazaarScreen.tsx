@@ -19,6 +19,7 @@ import Loader from '../../../components/Loader';
 import Button from '../../../components/Button';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../../context/AuthContext';
+import { useTheme } from '../../../context/ThemeContext';
 import { useRouter } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -26,6 +27,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const { width } = Dimensions.get('window');
 
 export const UserBazaarScreen = () => {
+  const { isDarkMode, colors } = useTheme();
+  const styles = getStyles(colors, isDarkMode);
   const { user } = useAuth();
   const router = useRouter();
   const isFocused = useIsFocused();
@@ -194,12 +197,12 @@ export const UserBazaarScreen = () => {
                 style={styles.loginHeaderBtn}
                 onPress={() => router.replace('/(auth)/login' as any)}
               >
-                <Ionicons name="log-in-outline" size={16} color="#FFFFFF" />
+                <Ionicons name="log-in-outline" size={16} color={colors.background} />
                 <Text style={styles.loginHeaderBtnText}>Entrar</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity style={styles.cartIconContainer} onPress={() => setCartOpen(true)}>
-              <Ionicons name="cart-outline" size={24} color="#FFFFFF" />
+              <Ionicons name="cart-outline" size={24} color={colors.textPrimary} />
               {getCartTotalItems() > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>{getCartTotalItems()}</Text>
@@ -213,7 +216,7 @@ export const UserBazaarScreen = () => {
       {/* Active Cart Filter Notice */}
       {activeCartEventIds.length > 0 && (
         <View style={styles.filterBanner}>
-          <Ionicons name="funnel-outline" size={16} color={COLORS.primary} style={{ marginRight: 6 }} />
+          <Ionicons name="funnel-outline" size={16} color={colors.primary} style={{ marginRight: 6 }} />
           <Text style={styles.filterBannerText} numberOfLines={1}>
             Filtrado por eventos en carrito
           </Text>
@@ -246,7 +249,7 @@ export const UserBazaarScreen = () => {
               <View style={styles.itemFooter}>
                 <Text style={styles.itemPrice}>${item.price} MXN</Text>
                 <TouchableOpacity style={styles.addBtn} onPress={() => addToCart(item.id)}>
-                  <Ionicons name="add" size={16} color="#FFFFFF" />
+                  <Ionicons name="add" size={16} color={colors.background} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -267,7 +270,7 @@ export const UserBazaarScreen = () => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Mi Carrito de Compras</Text>
               <TouchableOpacity style={styles.closeBtn} onPress={handleCloseCart}>
-                <Ionicons name="close" size={20} color="#FFFFFF" />
+                <Ionicons name="close" size={20} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
 
@@ -277,7 +280,7 @@ export const UserBazaarScreen = () => {
                 <ScrollView contentContainerStyle={styles.cartScroll}>
                   {Object.keys(cart).length === 0 ? (
                     <View style={styles.emptyCartContainer}>
-                      <Ionicons name="cart-outline" size={60} color={COLORS.dark.textMuted} />
+                      <Ionicons name="cart-outline" size={60} color={colors.textMuted} />
                       <Text style={styles.emptyCartText}>El carrito está vacío</Text>
                     </View>
                   ) : (
@@ -299,14 +302,14 @@ export const UserBazaarScreen = () => {
                                 style={styles.qtyBtn}
                                 onPress={() => removeFromCart(id)}
                               >
-                                <Ionicons name="remove" size={12} color="#FFFFFF" />
+                                <Ionicons name="remove" size={12} color={colors.textPrimary} />
                               </TouchableOpacity>
                               <Text style={styles.qtyText}>{qty}</Text>
                               <TouchableOpacity
                                 style={styles.qtyBtn}
                                 onPress={() => addToCart(id)}
                               >
-                                <Ionicons name="add" size={12} color="#FFFFFF" />
+                                <Ionicons name="add" size={12} color={colors.textPrimary} />
                               </TouchableOpacity>
                             </View>
                           </View>
@@ -344,7 +347,7 @@ export const UserBazaarScreen = () => {
             ) : (
               /* SUCCESS ORDER VIEW */
               <View style={styles.successContainer}>
-                <Ionicons name="checkmark-circle-outline" size={72} color={COLORS.success} />
+                <Ionicons name="checkmark-circle-outline" size={72} color={colors.success} />
                 <Text style={styles.successTitle}>¡Pedido Registrado!</Text>
                 <Text style={styles.successDesc}>
                   Tu orden de souvenirs ha sido procesada con éxito. Puedes recoger tu mercancía en los stands del club en la entrada del evento mostrando tu nombre de usuario.
@@ -363,16 +366,16 @@ export const UserBazaarScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#070a13',
+    backgroundColor: colors.background,
   },
   header: {
     padding: SPACING.md,
-    backgroundColor: '#0b0f19',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderColor: '#151c2c',
+    borderColor: colors.surfaceAlt,
     paddingTop: 45,
   },
   headerRow: {
@@ -383,15 +386,15 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: TYPOGRAPHY.fontSizes.lg + 2,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   headerSubtitle: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   cartIconContainer: {
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
     width: 40,
     height: 40,
     borderRadius: BORDER_RADIUS.round,
@@ -403,7 +406,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     borderRadius: BORDER_RADIUS.round,
     minWidth: 16,
     height: 16,
@@ -412,7 +415,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
   },
   badgeText: {
-    color: '#FFFFFF',
+    color: colors.background,
     fontSize: 8,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
@@ -431,7 +434,7 @@ const styles = StyleSheet.create({
   itemImg: {
     width: '100%',
     height: 100,
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.surface,
   },
   itemInfo: {
     padding: SPACING.sm,
@@ -439,11 +442,11 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   itemDesc: {
     fontSize: 9,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
     lineHeight: 12,
   },
@@ -456,10 +459,10 @@ const styles = StyleSheet.create({
   itemPrice: {
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.success,
+    color: colors.success,
   },
   addBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     width: 22,
     height: 22,
     borderRadius: 6,
@@ -472,7 +475,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#0b0f19',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: BORDER_RADIUS.lg,
     borderTopRightRadius: BORDER_RADIUS.lg,
     height: '75%',
@@ -483,17 +486,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderColor: '#151c2c',
+    borderColor: colors.surfaceAlt,
     paddingBottom: SPACING.sm,
     marginBottom: SPACING.md,
   },
   modalTitle: {
     fontSize: TYPOGRAPHY.fontSizes.md,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   closeBtn: {
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
     width: 32,
     height: 32,
     borderRadius: BORDER_RADIUS.round,
@@ -510,7 +513,7 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyCartText: {
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     fontSize: TYPOGRAPHY.fontSizes.sm,
     marginTop: SPACING.sm,
   },
@@ -532,11 +535,11 @@ const styles = StyleSheet.create({
   cartItemTitle: {
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   cartItemPrice: {
     fontSize: 10,
-    color: COLORS.success,
+    color: colors.success,
     fontWeight: TYPOGRAPHY.fontWeights.semibold,
   },
   qtyContainer: {
@@ -546,7 +549,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   qtyBtn: {
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
     width: 18,
     height: 18,
     borderRadius: 4,
@@ -555,12 +558,12 @@ const styles = StyleSheet.create({
   },
   qtyText: {
     fontSize: 11,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
   cartFooter: {
     borderTopWidth: 1,
-    borderColor: '#151c2c',
+    borderColor: colors.surfaceAlt,
     paddingTop: SPACING.sm,
     marginTop: SPACING.sm,
   },
@@ -572,12 +575,12 @@ const styles = StyleSheet.create({
   cartTotalLabel: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   cartTotalVal: {
     fontSize: TYPOGRAPHY.fontSizes.sm,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.success,
+    color: colors.success,
   },
   checkoutActionRow: {
     flexDirection: 'row',
@@ -592,11 +595,11 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: TYPOGRAPHY.fontSizes.md + 2,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.success,
+    color: colors.success,
   },
   successDesc: {
     fontSize: 11,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 16,
     paddingHorizontal: SPACING.sm,
@@ -606,7 +609,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
   },
   loginHeaderBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -614,18 +617,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.sm + 2,
     height: 40,
     borderRadius: BORDER_RADIUS.round,
-    borderColor: COLORS.primaryLight,
+    borderColor: colors.primaryLight,
     borderWidth: 1,
   },
   loginHeaderBtnText: {
-    color: '#FFFFFF',
+    color: colors.background,
     fontSize: 11,
     fontWeight: 'bold',
   },
   filterBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1f2937',
+    backgroundColor: colors.border,
     paddingVertical: 10,
     paddingHorizontal: SPACING.md,
     borderRadius: BORDER_RADIUS.md,
@@ -634,19 +637,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   filterBannerText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 11,
     fontWeight: 'bold',
     flex: 1,
   },
   filterResetBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: BORDER_RADIUS.sm,
   },
   filterResetText: {
-    color: '#FFFFFF',
+    color: colors.background,
     fontSize: 10,
     fontWeight: 'bold',
   },

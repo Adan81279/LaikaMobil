@@ -12,12 +12,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../../styles/theme';
+import { COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../../../styles/theme';
 import operadorService, { IncidentReport } from '../services/operador.service';
 import Card from '../../../components/Card';
 import Button from '../../../components/Button';
 import Input from '../../../components/Input';
 import Loader from '../../../components/Loader';
+import { useTheme } from '../../../context/ThemeContext';
+import { StatusBar } from 'expo-status-bar';
 
 const INCIDENT_TYPES: Array<{ key: IncidentReport['type']; label: string; icon: string }> = [
   { key: 'duplicate', label: 'Boleto Duplicado', icon: 'copy-outline' },
@@ -30,6 +32,7 @@ const INCIDENT_TYPES: Array<{ key: IncidentReport['type']; label: string; icon: 
 export const OperadorIncidentsScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams<{ code?: string }>();
+  const { isDarkMode, colors } = useTheme();
   
   const [ticketCode, setTicketCode] = useState(params.code || '');
   const [selectedType, setSelectedType] = useState<IncidentReport['type']>('duplicate');
@@ -91,13 +94,16 @@ export const OperadorIncidentsScreen = () => {
     );
   };
 
+  const styles = getStyles(colors, isDarkMode);
+
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       <Loader visible={loading} message="Registrando incidencia..." />
 
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color={COLORS.dark.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
         <View>
           <Text style={styles.title}>Incidencias</Text>
@@ -128,16 +134,16 @@ export const OperadorIncidentsScreen = () => {
                   key={type.key}
                   style={[
                     styles.typeOption,
-                    isSelected && { borderColor: COLORS.error, backgroundColor: `${COLORS.error}15` }
+                    isSelected && { borderColor: colors.error, backgroundColor: `${colors.error}15` }
                   ]}
                   onPress={() => setSelectedType(type.key)}
                 >
                   <Ionicons 
                     name={type.icon as any} 
                     size={18} 
-                    color={isSelected ? COLORS.error : COLORS.dark.textSecondary} 
+                    color={isSelected ? colors.error : colors.textSecondary} 
                   />
-                  <Text style={[styles.typeOptionText, isSelected && { color: COLORS.error, fontWeight: 'bold' }]}>
+                  <Text style={[styles.typeOptionText, isSelected && { color: colors.error, fontWeight: 'bold' }]}>
                     {type.label}
                   </Text>
                 </TouchableOpacity>
@@ -149,7 +155,7 @@ export const OperadorIncidentsScreen = () => {
           <TextInput
             style={styles.textArea}
             placeholder="Detalla lo sucedido (ej. Persona intentó ingresar con copia impresa de código ya escaneado, titular presentaba credenciales apócrifas...)"
-            placeholderTextColor={COLORS.dark.textMuted}
+            placeholderTextColor={colors.textMuted}
             value={description}
             onChangeText={setDescription}
             multiline
@@ -161,7 +167,7 @@ export const OperadorIncidentsScreen = () => {
             title="Enviar Reporte"
             variant="danger"
             size="lg"
-            icon={<Ionicons name="shield-outline" size={18} color="#FFFFFF" />}
+            icon={<Ionicons name="shield-outline" size={18} color={colors.background} />}
             onPress={handleReport}
             style={styles.submitBtn}
           />
@@ -180,7 +186,7 @@ export const OperadorIncidentsScreen = () => {
             />
           ) : (
             <View style={styles.emptyContainer}>
-              <Ionicons name="shield-checkmark-outline" size={40} color={COLORS.dark.textMuted} />
+              <Ionicons name="shield-checkmark-outline" size={40} color={colors.textMuted} />
               <Text style={styles.emptyText}>No hay incidencias reportadas en este turno.</Text>
             </View>
           )}
@@ -191,10 +197,10 @@ export const OperadorIncidentsScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.dark.background,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -207,8 +213,8 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.dark.surface,
-    borderColor: COLORS.dark.border,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -216,11 +222,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: TYPOGRAPHY.fontSizes.lg,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textPrimary,
+    color: colors.textPrimary,
   },
   subtitle: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   scrollContainer: {
@@ -233,13 +239,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: TYPOGRAPHY.fontSizes.md,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textPrimary,
+    color: colors.textPrimary,
     marginBottom: SPACING.md,
   },
   label: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: SPACING.md,
     marginBottom: SPACING.sm,
   },
@@ -255,24 +261,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.md,
-    backgroundColor: COLORS.dark.background,
-    borderColor: COLORS.dark.border,
+    backgroundColor: colors.background,
+    borderColor: colors.border,
     borderWidth: 1,
     borderRadius: BORDER_RADIUS.md,
     gap: SPACING.sm,
   },
   typeOptionText: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     flexShrink: 1,
   },
   textArea: {
-    backgroundColor: COLORS.dark.background,
-    borderColor: COLORS.dark.border,
+    backgroundColor: colors.background,
+    borderColor: colors.border,
     borderWidth: 1,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
-    color: COLORS.dark.textPrimary,
+    color: colors.textPrimary,
     fontSize: TYPOGRAPHY.fontSizes.sm,
     minHeight: 100,
   },
@@ -285,7 +291,7 @@ const styles = StyleSheet.create({
   listSectionTitle: {
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: SPACING.md,
@@ -294,8 +300,8 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   incidentItem: {
-    backgroundColor: COLORS.dark.surface,
-    borderColor: COLORS.dark.border,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
     borderWidth: 1,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
@@ -312,8 +318,8 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   typeBadge: {
-    backgroundColor: `${COLORS.error}20`,
-    borderColor: COLORS.error,
+    backgroundColor: `${colors.error}15`,
+    borderColor: colors.error,
     borderWidth: 1,
     borderRadius: BORDER_RADIUS.sm,
     paddingVertical: 2,
@@ -322,34 +328,34 @@ const styles = StyleSheet.create({
   typeBadgeText: {
     fontSize: 8,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.error,
+    color: colors.error,
   },
   itemTicketCode: {
     fontSize: 10,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textPrimary,
+    color: colors.textPrimary,
   },
   itemTime: {
     fontSize: 9,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
   },
   itemDesc: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 16,
   },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: SPACING.lg,
-    backgroundColor: COLORS.dark.surface,
-    borderColor: COLORS.dark.border,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
     borderWidth: 1,
     borderRadius: BORDER_RADIUS.md,
   },
   emptyText: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     marginTop: SPACING.sm,
   },
 });

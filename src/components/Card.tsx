@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, StyleSheet, ViewStyle, TouchableOpacity } from 'react-native';
-import { COLORS, SPACING, BORDER_RADIUS, SHADOWS } from '../styles/theme';
+import { View, ViewStyle, TouchableOpacity } from 'react-native';
+import { BORDER_RADIUS, SHADOWS, SPACING } from '../styles/theme';
+import { useTheme } from '../context/ThemeContext';
 
 interface CardProps {
   children: React.ReactNode;
@@ -15,10 +16,21 @@ export const Card: React.FC<CardProps> = ({
   onPress,
   activeOpacity = 0.8,
 }) => {
+  const { colors } = useTheme();
+
+  const cardStyle: ViewStyle = {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.md,
+    ...SHADOWS.md,
+  };
+
   if (onPress) {
     return (
       <TouchableOpacity
-        style={[styles.card, style]}
+        style={[cardStyle, style]}
         onPress={onPress}
         activeOpacity={activeOpacity}
       >
@@ -27,17 +39,7 @@ export const Card: React.FC<CardProps> = ({
     );
   }
 
-  return <View style={[styles.card, style]}>{children}</View>;
+  return <View style={[cardStyle, style]}>{children}</View>;
 };
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: COLORS.dark.surface,
-    borderColor: COLORS.dark.border,
-    borderWidth: 1,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.md,
-    ...SHADOWS.md,
-  },
-});
 export default Card;

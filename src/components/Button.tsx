@@ -8,7 +8,8 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
-import { COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../styles/theme';
+import { SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../styles/theme';
+import { useTheme } from '../context/ThemeContext';
 
 type ButtonVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'outline' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -34,30 +35,38 @@ export const Button: React.FC<ButtonProps> = ({
   disabled,
   ...props
 }) => {
+  const { colors } = useTheme();
+
   const getButtonStyles = (): ViewStyle[] => {
     const stylesList: ViewStyle[] = [styles.button];
 
     // Variant style
-    switch (variant) {
-      case 'primary':
-        stylesList.push(styles.primary);
-        break;
-      case 'secondary':
-        stylesList.push(styles.secondary);
-        break;
-      case 'success':
-        stylesList.push(styles.success);
-        break;
-      case 'danger':
-        stylesList.push(styles.danger);
-        break;
-      case 'outline':
-        stylesList.push(styles.outline);
-        break;
-      case 'ghost':
-        stylesList.push(styles.ghost);
-        break;
-    }
+    const variantStyles: Record<ButtonVariant, ViewStyle> = {
+      primary: {
+        backgroundColor: colors.primary,
+      },
+      secondary: {
+        backgroundColor: colors.surfaceAlt,
+        borderColor: colors.border,
+        borderWidth: 1,
+      },
+      success: {
+        backgroundColor: colors.success,
+      },
+      danger: {
+        backgroundColor: colors.error,
+      },
+      outline: {
+        backgroundColor: 'transparent',
+        borderColor: colors.primary,
+        borderWidth: 1.5,
+      },
+      ghost: {
+        backgroundColor: 'transparent',
+      },
+    };
+
+    stylesList.push(variantStyles[variant]);
 
     // Size style
     switch (size) {
@@ -84,11 +93,13 @@ export const Button: React.FC<ButtonProps> = ({
 
     // Variant text color
     if (variant === 'outline') {
-      stylesList.push(styles.textOutline);
+      stylesList.push({ color: colors.primary });
     } else if (variant === 'ghost') {
-      stylesList.push(styles.textGhost);
+      stylesList.push({ color: colors.primary });
+    } else if (variant === 'secondary') {
+      stylesList.push({ color: colors.textPrimary });
     } else {
-      stylesList.push(styles.textWhite);
+      stylesList.push({ color: colors.background }); // Inverted color for contrast
     }
 
     // Size text
@@ -108,9 +119,9 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   const getLoaderColor = () => {
-    if (variant === 'outline') return COLORS.primary;
-    if (variant === 'ghost') return COLORS.primary;
-    return '#FFFFFF';
+    if (variant === 'outline' || variant === 'ghost') return colors.primary;
+    if (variant === 'secondary') return colors.textPrimary;
+    return colors.background;
   };
 
   return (
@@ -140,28 +151,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  // Variants
-  primary: {
-    backgroundColor: COLORS.primary,
-  },
-  secondary: {
-    backgroundColor: COLORS.secondary,
-  },
-  success: {
-    backgroundColor: COLORS.success,
-  },
-  danger: {
-    backgroundColor: COLORS.error,
-  },
-  outline: {
-    backgroundColor: 'transparent',
-    borderColor: COLORS.primary,
-  },
-  ghost: {
-    backgroundColor: 'transparent',
   },
   disabled: {
     opacity: 0.5,
@@ -181,18 +170,8 @@ const styles = StyleSheet.create({
   },
   // Text Styles
   text: {
-    fontFamily: undefined, // default
     fontWeight: TYPOGRAPHY.fontWeights.semibold,
     textAlign: 'center',
-  },
-  textWhite: {
-    color: '#FFFFFF',
-  },
-  textOutline: {
-    color: COLORS.primary,
-  },
-  textGhost: {
-    color: COLORS.primary,
   },
   textSm: {
     fontSize: TYPOGRAPHY.fontSizes.sm,

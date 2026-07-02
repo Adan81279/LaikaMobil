@@ -1,39 +1,57 @@
 export const COLORS = {
-  // Brand Colors
-  primary: '#8B5CF6',     // Vibrant Violet
-  primaryDark: '#7C3AED',
-  primaryLight: '#A78BFA',
-  secondary: '#EC4899',   // Electric Pink
-  accent: '#3B82F6',      // Blue Spark
+  // Brand Colors (General Monochromatic Fallbacks)
+  primary: '#000000',     // Monochromatic Deep
+  primaryDark: '#1A1A1A',
+  primaryLight: '#262626',
+  secondary: '#000000',
+  accent: '#737373',
 
-  // Semantic Status
-  success: '#10B981',     // Emerald Green
-  warning: '#F59E0B',     // Amber
-  error: '#EF4444',       // Coral Red
-  info: '#06B6D4',        // Cyan
+  // Semantic Status (Kept clear for functional usability, styled minimally)
+  success: '#000000',     // High contrast active/success (Black)
+  warning: '#737373',
+  error: '#FF0000',       // Keep red for critical errors
+  info: '#000000',
 
-  // Dark Theme Palette (Default for Premium Vibe)
+  // Monochromatic Dark Theme Palette (Pure Black & White)
   dark: {
-    background: '#0B0F19',      // Deep Space Blue
-    surface: '#161F30',         // Sleek Card Background
-    surfaceAlt: '#1F2A40',      // Header/Interactive Surface
-    border: '#2A364F',          // Subtle Border
-    textPrimary: '#F8FAFC',     // Pure White/Slate 50
-    textSecondary: '#94A3B8',   // Cool Grey/Slate 400
-    textMuted: '#64748B',       // Slate 500
-    shadow: 'rgba(0, 0, 0, 0.4)',
+    background: '#000000',      // Pure Black
+    surface: '#0F0F0F',         // Sleek Monochromatic Card
+    surfaceAlt: '#1A1A1A',      // Interactive Slate
+    border: '#262626',          // Dark Border
+    textPrimary: '#FFFFFF',     // Pure White
+    textSecondary: '#A3A3A3',   // Muted White
+    textMuted: '#525252',       // Gray Muted
+    shadow: 'rgba(0, 0, 0, 0.6)',
+    primary: '#FFFFFF',
+    primaryDark: '#E5E5E5',
+    primaryLight: '#F5F5F5',
+    secondary: '#FFFFFF',
+    accent: '#A3A3A3',
+    success: '#FFFFFF',
+    warning: '#A3A3A3',
+    error: '#FF3B30',
+    info: '#FFFFFF',
   },
 
-  // Light Theme Palette
+  // Monochromatic Light Theme Palette (Pure White & Black)
   light: {
-    background: '#F8FAFC',
-    surface: '#FFFFFF',
-    surfaceAlt: '#F1F5F9',
-    border: '#E2E8F0',
-    textPrimary: '#0F172A',
-    textSecondary: '#475569',
-    textMuted: '#94A3B8',
-    shadow: 'rgba(15, 23, 42, 0.08)',
+    background: '#FFFFFF',      // Pure White
+    surface: '#F5F5F5',         // Light Card
+    surfaceAlt: '#E5E5E5',      // Interactive Light Grey
+    border: '#D4D4D4',          // Soft Light Border
+    textPrimary: '#000000',     // Pure Black
+    textSecondary: '#525252',   // Muted Black
+    textMuted: '#A3A3A3',       // Light Muted Grey
+    shadow: 'rgba(0, 0, 0, 0.05)',
+    primary: '#000000',
+    primaryDark: '#1A1A1A',
+    primaryLight: '#262626',
+    secondary: '#000000',
+    accent: '#525252',
+    success: '#000000',
+    warning: '#525252',
+    error: '#FF3B30',
+    info: '#000000',
   }
 };
 

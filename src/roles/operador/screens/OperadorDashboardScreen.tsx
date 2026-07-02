@@ -9,6 +9,7 @@ import {
   TextInput,
   Animated,
   Image,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,11 +22,14 @@ import Loader from '../../../components/Loader';
 import Button from '../../../components/Button';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useAuth } from '../../../context/AuthContext';
+import { useTheme } from '../../../context/ThemeContext';
 import EditProfileModal from '../../../components/EditProfileModal';
+import { StatusBar } from 'expo-status-bar';
 
 export const OperadorDashboardScreen = () => {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { isDarkMode, colors } = useTheme();
   const [ticketCode, setTicketCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<OperatorStats | null>(null);
@@ -149,8 +153,11 @@ export const OperadorDashboardScreen = () => {
     outputRange: [10, 170], // Height of scanning window bounds
   });
 
+  const styles = getStyles(colors, isDarkMode);
+
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       <Loader visible={loading} message="Validando boleto..." />
 
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
@@ -165,7 +172,7 @@ export const OperadorDashboardScreen = () => {
               style={styles.statsShortcut} 
               onPress={() => router.push('/(operador)/stats' as any)}
             >
-              <Ionicons name="analytics" size={20} color={COLORS.secondary} />
+              <Ionicons name="analytics" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.statsShortcut} 
@@ -177,14 +184,14 @@ export const OperadorDashboardScreen = () => {
               {user?.avatar ? (
                 <Image source={{ uri: user.avatar }} style={styles.avatarMini} />
               ) : (
-                <Ionicons name="person" size={20} color={COLORS.primary} />
+                <Ionicons name="person" size={20} color={colors.textPrimary} />
               )}
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.logoutBtnHeader} 
               onPress={handleLogout}
             >
-              <Ionicons name="log-out" size={20} color={COLORS.error} />
+              <Ionicons name="log-out" size={20} color={colors.error} />
             </TouchableOpacity>
           </View>
         </View>
@@ -196,12 +203,12 @@ export const OperadorDashboardScreen = () => {
               <Text style={styles.statMiniVal}>{stats.scanned_today}</Text>
               <Text style={styles.statMiniLabel}>Escaneados</Text>
             </View>
-            <View style={[styles.statMiniCard, { borderColor: `${COLORS.success}40` }]}>
-              <Text style={[styles.statMiniVal, { color: COLORS.success }]}>{stats.valid_today}</Text>
+            <View style={[styles.statMiniCard, { borderColor: `${colors.success}40` }]}>
+              <Text style={[styles.statMiniVal, { color: colors.success }]}>{stats.valid_today}</Text>
               <Text style={styles.statMiniLabel}>Válidos</Text>
             </View>
-            <View style={[styles.statMiniCard, { borderColor: `${COLORS.error}40` }]}>
-              <Text style={[styles.statMiniVal, { color: COLORS.error }]}>
+            <View style={[styles.statMiniCard, { borderColor: `${colors.error}40` }]}>
+              <Text style={[styles.statMiniVal, { color: colors.error }]}>
                 {stats.invalid_today + stats.incidents_today}
               </Text>
               <Text style={styles.statMiniLabel}>Alertas</Text>
@@ -227,7 +234,7 @@ export const OperadorDashboardScreen = () => {
               </View>
             ) : !permission.granted ? (
               <View style={styles.permissionContainer}>
-                <Ionicons name="camera-outline" size={32} color={COLORS.dark.textMuted} />
+                <Ionicons name="camera-outline" size={32} color={colors.textMuted} />
                 <Text style={styles.permissionText}>El lector de cámara está inactivo</Text>
                 <TouchableOpacity style={styles.permissionBtn} onPress={requestPermission}>
                   <Text style={styles.permissionBtnText}>Habilitar Cámara</Text>
@@ -255,7 +262,7 @@ export const OperadorDashboardScreen = () => {
 
                 {scanned && (
                   <TouchableOpacity style={styles.scanAgainOverlay} onPress={handleResetScanner}>
-                    <Ionicons name="refresh-outline" size={22} color="#FFFFFF" />
+                    <Ionicons name="refresh-outline" size={22} color={colors.background} />
                     <Text style={styles.scanAgainText}>Reactivar Lector</Text>
                   </TouchableOpacity>
                 )}
@@ -268,7 +275,7 @@ export const OperadorDashboardScreen = () => {
             <TextInput
               style={styles.codeInput}
               placeholder="Ingrese código de boleto (Ej: TKT-VALID-123)"
-              placeholderTextColor={COLORS.dark.textMuted}
+              placeholderTextColor={colors.textMuted}
               value={ticketCode}
               onChangeText={setTicketCode}
               autoCapitalize="characters"
@@ -276,7 +283,7 @@ export const OperadorDashboardScreen = () => {
               onSubmitEditing={() => handleValidate()}
             />
             <TouchableOpacity style={styles.scanBtn} onPress={() => handleValidate()}>
-              <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
+              <Ionicons name="checkmark-circle" size={24} color={colors.background} />
             </TouchableOpacity>
           </View>
         </Card>
@@ -286,27 +293,27 @@ export const OperadorDashboardScreen = () => {
           <Text style={styles.presetTitle}>Simulación de Escaneo (Desarrollo)</Text>
           <View style={styles.presetRow}>
             <TouchableOpacity 
-              style={[styles.presetBadge, { backgroundColor: `${COLORS.success}20`, borderColor: COLORS.success }]}
+              style={[styles.presetBadge, { backgroundColor: `${colors.success}20`, borderColor: colors.success }]}
               onPress={() => triggerPreset('TKT-VALID-123')}
             >
-              <Ionicons name="checkmark-circle-outline" size={14} color={COLORS.success} />
-              <Text style={[styles.presetText, { color: COLORS.success }]}>QR Válido</Text>
+              <Ionicons name="checkmark-circle-outline" size={14} color={colors.success} />
+              <Text style={[styles.presetText, { color: colors.success }]}>QR Válido</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.presetBadge, { backgroundColor: `${COLORS.warning}20`, borderColor: COLORS.warning }]}
+              style={[styles.presetBadge, { backgroundColor: `${colors.warning}20`, borderColor: colors.warning }]}
               onPress={() => triggerPreset('TKT-USED-456')}
             >
-              <Ionicons name="alert-circle-outline" size={14} color={COLORS.warning} />
-              <Text style={[styles.presetText, { color: COLORS.warning }]}>QR Usado</Text>
+              <Ionicons name="alert-circle-outline" size={14} color={colors.warning} />
+              <Text style={[styles.presetText, { color: colors.warning }]}>QR Usado</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.presetBadge, { backgroundColor: `${COLORS.error}20`, borderColor: COLORS.error }]}
+              style={[styles.presetBadge, { backgroundColor: `${colors.error}20`, borderColor: colors.error }]}
               onPress={() => triggerPreset('TKT-INVALID-999')}
             >
-              <Ionicons name="close-circle-outline" size={14} color={COLORS.error} />
-              <Text style={[styles.presetText, { color: COLORS.error }]}>QR Inválido</Text>
+              <Ionicons name="close-circle-outline" size={14} color={colors.error} />
+              <Text style={[styles.presetText, { color: colors.error }]}>QR Inválido</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -317,18 +324,18 @@ export const OperadorDashboardScreen = () => {
             style={StyleSheet.flatten([
               styles.resultCard, 
               validationResult.valid 
-                ? { borderColor: COLORS.success, backgroundColor: `${COLORS.success}10` }
-                : { borderColor: COLORS.warning, backgroundColor: `${COLORS.warning}10` }
+                ? { borderColor: colors.success, backgroundColor: `${colors.success}15` }
+                : { borderColor: colors.warning, backgroundColor: `${colors.warning}15` }
             ])}
           >
             <View style={styles.resultHeader}>
               <Ionicons 
                 name={validationResult.valid ? "checkmark-circle" : "warning"} 
                 size={36} 
-                color={validationResult.valid ? COLORS.success : COLORS.warning} 
+                color={validationResult.valid ? colors.success : colors.warning} 
               />
               <View style={styles.resultMeta}>
-                <Text style={[styles.resultTitleText, { color: validationResult.valid ? COLORS.success : COLORS.warning }]}>
+                <Text style={[styles.resultTitleText, { color: validationResult.valid ? colors.success : colors.warning }]}>
                   {validationResult.valid ? 'ACCESO PERMITIDO' : 'BOLETO YA REIVINDICADO'}
                 </Text>
                 <Text style={styles.resultCodeText}>Código: {validationResult.ticket_code}</Text>
@@ -349,9 +356,9 @@ export const OperadorDashboardScreen = () => {
                 <Text style={styles.detailVal}>{validationResult.venue_name} - {validationResult.seat_label}</Text>
               </View>
               {!validationResult.valid && validationResult.redeemed_at && (
-                <View style={[styles.detailRow, { borderTopWidth: 0.5, borderTopColor: `${COLORS.warning}30`, marginTop: 4, paddingTop: 4 }]}>
-                  <Text style={[styles.detailLabel, { color: COLORS.warning }]}>Redimido el:</Text>
-                  <Text style={[styles.detailVal, { color: COLORS.warning }]}>
+                <View style={[styles.detailRow, { borderTopWidth: 0.5, borderTopColor: colors.border, marginTop: 4, paddingTop: 4 }]}>
+                  <Text style={[styles.detailLabel, { color: colors.warning }]}>Redimido el:</Text>
+                  <Text style={[styles.detailVal, { color: colors.warning }]}>
                     {new Date(validationResult.redeemed_at).toLocaleTimeString()} ({new Date(validationResult.redeemed_at).toLocaleDateString()})
                   </Text>
                 </View>
@@ -363,7 +370,7 @@ export const OperadorDashboardScreen = () => {
                 title="Registrar Incidencia"
                 variant="danger"
                 size="sm"
-                icon={<Ionicons name="shield-outline" size={14} color="#FFFFFF" />}
+                icon={<Ionicons name="shield-outline" size={14} color={colors.background} />}
                 onPress={() => router.push({
                   pathname: '/(operador)/incidents',
                   params: { code: validationResult.ticket_code }
@@ -375,11 +382,11 @@ export const OperadorDashboardScreen = () => {
         )}
 
         {validationError && (
-          <Card style={StyleSheet.flatten([styles.resultCard, { borderColor: COLORS.error, backgroundColor: `${COLORS.error}10` }])}>
+          <Card style={StyleSheet.flatten([styles.resultCard, { borderColor: colors.error, backgroundColor: `${colors.error}15` }])}>
             <View style={styles.resultHeader}>
-              <Ionicons name="close-circle" size={36} color={COLORS.error} />
+              <Ionicons name="close-circle" size={36} color={colors.error} />
               <View style={styles.resultMeta}>
-                <Text style={[styles.resultTitleText, { color: COLORS.error }]}>ACCESO DENEGADO</Text>
+                <Text style={[styles.resultTitleText, { color: colors.error }]}>ACCESO DENEGADO</Text>
                 <Text style={styles.resultCodeText}>Error de Validación</Text>
               </View>
             </View>
@@ -388,7 +395,7 @@ export const OperadorDashboardScreen = () => {
               title="Reportar como Sospechoso"
               variant="secondary"
               size="sm"
-              icon={<Ionicons name="flag-outline" size={14} color="#FFFFFF" />}
+              icon={<Ionicons name="flag-outline" size={14} color={colors.textPrimary} />}
               onPress={() => router.push({
                 pathname: '/(operador)/incidents',
                 params: { code: ticketCode || 'DESCONOCIDO' }
@@ -404,10 +411,10 @@ export const OperadorDashboardScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.dark.background,
+    backgroundColor: colors.background,
   },
   scrollContainer: {
     padding: SPACING.md,
@@ -423,19 +430,19 @@ const styles = StyleSheet.create({
   title: {
     fontSize: TYPOGRAPHY.fontSizes.xxl,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textPrimary,
+    color: colors.textPrimary,
   },
   subtitle: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   statsShortcut: {
     width: 42,
     height: 42,
     borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.dark.surface,
-    borderColor: COLORS.dark.border,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -455,8 +462,8 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.dark.surface,
-    borderColor: COLORS.dark.border,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -468,9 +475,9 @@ const styles = StyleSheet.create({
   },
   statMiniCard: {
     flex: 1,
-    backgroundColor: COLORS.dark.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: COLORS.dark.border,
+    borderColor: colors.border,
     borderRadius: BORDER_RADIUS.md,
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.md,
@@ -479,11 +486,11 @@ const styles = StyleSheet.create({
   statMiniVal: {
     fontSize: TYPOGRAPHY.fontSizes.lg,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textPrimary,
+    color: colors.textPrimary,
   },
   statMiniLabel: {
     fontSize: 9,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     textTransform: 'uppercase',
     fontWeight: TYPOGRAPHY.fontWeights.semibold,
     marginTop: 2,
@@ -494,7 +501,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: TYPOGRAPHY.fontSizes.sm,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textPrimary,
+    color: colors.textPrimary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: SPACING.md,
@@ -502,9 +509,9 @@ const styles = StyleSheet.create({
   },
   scannerWrapper: {
     height: 180,
-    backgroundColor: '#070a13',
+    backgroundColor: isDarkMode ? '#070a13' : '#F8FAFC',
     borderRadius: BORDER_RADIUS.md,
-    borderColor: '#1e293b',
+    borderColor: colors.border,
     borderWidth: 1,
     position: 'relative',
     overflow: 'hidden',
@@ -515,7 +522,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 20,
     height: 20,
-    borderColor: COLORS.secondary,
+    borderColor: colors.primary,
   },
   bracketTopLeft: {
     top: 15,
@@ -546,8 +553,8 @@ const styles = StyleSheet.create({
     left: 15,
     right: 15,
     height: 2,
-    backgroundColor: COLORS.secondary,
-    shadowColor: COLORS.secondary,
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 5,
@@ -560,7 +567,7 @@ const styles = StyleSheet.create({
   },
   scannerHint: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -570,18 +577,18 @@ const styles = StyleSheet.create({
   codeInput: {
     flex: 1,
     height: 44,
-    backgroundColor: COLORS.dark.background,
-    borderColor: COLORS.dark.border,
+    backgroundColor: colors.background,
+    borderColor: colors.border,
     borderWidth: 1,
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.md,
-    color: COLORS.dark.textPrimary,
+    color: colors.textPrimary,
     fontSize: TYPOGRAPHY.fontSizes.sm,
   },
   scanBtn: {
     width: 44,
     height: 44,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     borderRadius: BORDER_RADIUS.md,
     justifyContent: 'center',
     alignItems: 'center',
@@ -593,7 +600,7 @@ const styles = StyleSheet.create({
   presetTitle: {
     fontSize: 10,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     textTransform: 'uppercase',
     marginBottom: SPACING.sm,
   },
@@ -623,7 +630,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.md,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#334155',
+    borderBottomColor: colors.border,
     paddingBottom: SPACING.sm,
   },
   resultMeta: {
@@ -636,7 +643,7 @@ const styles = StyleSheet.create({
   },
   resultCodeText: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   resultDetails: {
@@ -649,19 +656,19 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
   },
   detailVal: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textPrimary,
+    color: colors.textPrimary,
   },
   incidentBtn: {
     marginTop: SPACING.xs,
   },
   errorText: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
-    color: COLORS.error,
+    color: colors.error,
     marginVertical: SPACING.sm,
     lineHeight: 16,
   },
@@ -674,11 +681,11 @@ const styles = StyleSheet.create({
   },
   permissionText: {
     fontSize: 11,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   permissionBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     paddingVertical: 6,
     paddingHorizontal: SPACING.md,
     borderRadius: BORDER_RADIUS.md,
@@ -686,7 +693,7 @@ const styles = StyleSheet.create({
   permissionBtnText: {
     fontSize: 10,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.background,
   },
   qrTargetOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -704,7 +711,7 @@ const styles = StyleSheet.create({
   },
   scanAgainOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(11, 15, 25, 0.85)',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     justifyContent: 'center',
     alignItems: 'center',
     gap: SPACING.xs,
@@ -712,7 +719,7 @@ const styles = StyleSheet.create({
   scanAgainText: {
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.background,
     marginTop: 4,
   },
 });

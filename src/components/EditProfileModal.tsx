@@ -12,8 +12,9 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../styles/theme';
+import { SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../styles/theme';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import Input from './Input';
 import Button from './Button';
 import * as Haptics from 'expo-haptics';
@@ -34,6 +35,8 @@ const AVATAR_PRESETS = [
 
 export const EditProfileModal: React.FC<EditProfileModalProps> = ({ visible, onClose }) => {
   const { user, updateProfile } = useAuth();
+  const { colors } = useTheme();
+  
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState('');
@@ -123,6 +126,8 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ visible, onC
     }
   };
 
+  const styles = getStyles(colors);
+
   return (
     <Modal
       visible={visible}
@@ -139,7 +144,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ visible, onC
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Editar Datos Personales</Text>
               <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                <Ionicons name="close" size={24} color={COLORS.dark.textSecondary} />
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -240,10 +245,10 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ visible, onC
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.md,
@@ -256,8 +261,8 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '100%',
     maxWidth: 400,
-    backgroundColor: '#0b0f19',
-    borderColor: '#151c2c',
+    backgroundColor: colors.background,
+    borderColor: colors.border,
     borderWidth: 1.5,
     borderRadius: BORDER_RADIUS.lg,
     overflow: 'hidden',
@@ -268,12 +273,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: SPACING.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#151c2c',
+    borderBottomColor: colors.border,
   },
   modalTitle: {
     fontSize: TYPOGRAPHY.fontSizes.md,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   closeBtn: {
     padding: 4,
@@ -287,7 +292,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 10,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     textTransform: 'uppercase',
     marginBottom: SPACING.sm,
     letterSpacing: 0.5,
@@ -308,7 +313,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   avatarPresetWrapperActive: {
-    borderColor: COLORS.primary,
+    borderColor: colors.primary,
   },
   avatarPresetImg: {
     width: '100%',
@@ -320,8 +325,8 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     padding: SPACING.md,
     borderTopWidth: 1,
-    borderTopColor: '#151c2c',
-    backgroundColor: '#070a13',
+    borderTopColor: colors.border,
+    backgroundColor: colors.surface,
   },
   footerBtn: {
     flex: 1,

@@ -6,10 +6,13 @@ import Button from '../../../components/Button';
 import Input from '../../../components/Input';
 import Loader from '../../../components/Loader';
 import { useAuth } from '../../../context/AuthContext';
+import { useTheme } from '../../../context/ThemeContext';
 import APP_CONFIG from '../../../core/config/app.config';
 import { BORDER_RADIUS, COLORS, SHADOWS, SPACING, TYPOGRAPHY } from '../../../styles/theme';
 
 export const LoginScreen = () => {
+  const { isDarkMode, colors } = useTheme();
+  const styles = getStyles(colors, isDarkMode);
   const { login, loginMock } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -115,7 +118,7 @@ export const LoginScreen = () => {
             <Input
               label="Correo Electrónico"
               placeholder="correo@ejemplo.com"
-              placeholderTextColor={COLORS.dark.textMuted}
+              placeholderTextColor={colors.textMuted}
               keyboardType="email-address"
               autoCapitalize="none"
               value={email}
@@ -126,7 +129,7 @@ export const LoginScreen = () => {
             <Input
               label="Contraseña"
               placeholder="••••••••"
-              placeholderTextColor={COLORS.dark.textMuted}
+              placeholderTextColor={colors.textMuted}
               secureTextEntry
               value={password}
               onChangeText={setPassword}
@@ -149,29 +152,29 @@ export const LoginScreen = () => {
               {APP_CONFIG.FEATURES.ENABLE_ADMIN_GESTOR_ROLES && (
                 <>
                   <TouchableOpacity
-                    style={[styles.quickBtn, { borderColor: COLORS.primary }]}
+                    style={[styles.quickBtn, { borderColor: colors.primary }]}
                     onPress={() => handleQuickLogin('admin')}
                   >
-                    <Ionicons name="shield-checkmark" size={14} color={COLORS.primary} />
-                    <Text style={[styles.quickBtnText, { color: COLORS.primary }]}>Admin Role</Text>
+                    <Ionicons name="shield-checkmark" size={14} color={colors.primary} />
+                    <Text style={[styles.quickBtnText, { color: colors.primary }]}>Admin Role</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.quickBtn, { borderColor: COLORS.secondary }]}
+                    style={[styles.quickBtn, { borderColor: colors.secondary }]}
                     onPress={() => handleQuickLogin('gestor')}
                   >
-                    <Ionicons name="ribbon" size={14} color={COLORS.secondary} />
-                    <Text style={[styles.quickBtnText, { color: COLORS.secondary }]}>Gestor Role</Text>
+                    <Ionicons name="ribbon" size={14} color={colors.secondary} />
+                    <Text style={[styles.quickBtnText, { color: colors.secondary }]}>Gestor Role</Text>
                   </TouchableOpacity>
                 </>
               )}
 
               <TouchableOpacity
-                style={[styles.quickBtn, { borderColor: COLORS.success }]}
+                style={[styles.quickBtn, { borderColor: colors.success }]}
                 onPress={() => handleQuickLogin('operador')}
               >
-                <Ionicons name="barcode-outline" size={14} color={COLORS.success} />
-                <Text style={[styles.quickBtnText, { color: COLORS.success }]}>Operador Role</Text>
+                <Ionicons name="barcode-outline" size={14} color={colors.success} />
+                <Text style={[styles.quickBtnText, { color: colors.success }]}>Operador Role</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -190,10 +193,10 @@ export const LoginScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.dark.background,
+    backgroundColor: colors.background,
   },
   scrollContainer: {
     flexGrow: 1,
@@ -214,12 +217,12 @@ const styles = StyleSheet.create({
   },
   brandTagline: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: 4,
   },
   formCard: {
-    backgroundColor: COLORS.dark.surface,
-    borderColor: COLORS.dark.border,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
     borderWidth: 1,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
@@ -228,7 +231,7 @@ const styles = StyleSheet.create({
   formTitle: {
     fontSize: TYPOGRAPHY.fontSizes.lg,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textPrimary,
+    color: colors.textPrimary,
     marginBottom: SPACING.md,
   },
   loginBtn: {
@@ -241,7 +244,7 @@ const styles = StyleSheet.create({
   quickAccessTitle: {
     fontSize: 10,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: SPACING.md,
@@ -261,7 +264,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.sm,
     borderWidth: 1.5,
     borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.dark.surface,
+    backgroundColor: colors.surface,
     gap: SPACING.xs,
     minWidth: 100,
     flex: 1,

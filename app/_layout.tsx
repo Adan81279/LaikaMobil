@@ -5,8 +5,8 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '../hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
+import { ThemeProvider as CustomThemeProvider, useTheme } from '../src/context/ThemeContext';
 import Loader from '../src/components/Loader';
 import APP_CONFIG from '../src/core/config/app.config';
 
@@ -15,7 +15,7 @@ export const unstable_settings = {
 };
 
 function RootLayoutNavigation() {
-  const colorScheme = useColorScheme();
+  const { isDarkMode } = useTheme();
   const { token, isLoading, user } = useAuth();
   const segments = useSegments();
   const router = useRouter();
@@ -110,7 +110,7 @@ function RootLayoutNavigation() {
   }, [isAuthenticated, isLoading, segments, user]);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={isDarkMode ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         {APP_CONFIG.FEATURES.ENABLE_ADMIN_GESTOR_ROLES && (
@@ -123,7 +123,7 @@ function RootLayoutNavigation() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       <Loader visible={isLoading} message="Inicializando sesión..." />
     </ThemeProvider>
   );
@@ -131,8 +131,10 @@ function RootLayoutNavigation() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <RootLayoutNavigation />
-    </AuthProvider>
+    <CustomThemeProvider>
+      <AuthProvider>
+        <RootLayoutNavigation />
+      </AuthProvider>
+    </CustomThemeProvider>
   );
 }

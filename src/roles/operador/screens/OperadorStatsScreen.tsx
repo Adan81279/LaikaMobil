@@ -3,21 +3,24 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   FlatList,
   RefreshControl,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../../styles/theme';
+import { SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../../../styles/theme';
 import operadorService, { OperatorStats } from '../services/operador.service';
 import Card from '../../../components/Card';
 import Loader from '../../../components/Loader';
+import { useTheme } from '../../../context/ThemeContext';
+import { StatusBar } from 'expo-status-bar';
 
 export const OperadorStatsScreen = () => {
   const router = useRouter();
+  const { isDarkMode, colors } = useTheme();
   const [stats, setStats] = useState<OperatorStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -53,16 +56,16 @@ export const OperadorStatsScreen = () => {
     const isSuccess = item.status === 'success';
     const isUsed = item.status === 'used';
     
-    let statusColor = COLORS.error;
+    let statusColor = colors.error;
     let statusText = 'Inválido';
     let statusIcon = 'close-circle';
     
     if (isSuccess) {
-      statusColor = COLORS.success;
+      statusColor = colors.success;
       statusText = 'Válido';
       statusIcon = 'checkmark-circle';
     } else if (isUsed) {
-      statusColor = COLORS.warning;
+      statusColor = colors.warning;
       statusText = 'Usado';
       statusIcon = 'alert-circle';
     }
@@ -88,13 +91,16 @@ export const OperadorStatsScreen = () => {
     );
   };
 
+  const styles = getStyles(colors, isDarkMode);
+
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       <Loader visible={loading && !refreshing} message="Obteniendo estadísticas..." />
 
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color={COLORS.dark.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
         <View>
           <Text style={styles.title}>Bitácora y Estadísticas</Text>
@@ -105,7 +111,7 @@ export const OperadorStatsScreen = () => {
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
         {stats && (
@@ -113,20 +119,20 @@ export const OperadorStatsScreen = () => {
             {/* KPI Cards Grid */}
             <View style={styles.kpiGrid}>
               <Card style={styles.kpiCard}>
-                <Ionicons name="scan-outline" size={24} color={COLORS.primary} />
+                <Ionicons name="scan-outline" size={24} color={colors.primary} />
                 <Text style={styles.kpiValue}>{stats.scanned_today}</Text>
                 <Text style={styles.kpiLabel}>Total Escaneados</Text>
               </Card>
 
               <Card style={styles.kpiCard}>
-                <Ionicons name="checkmark-done" size={24} color={COLORS.success} />
-                <Text style={[styles.kpiValue, { color: COLORS.success }]}>{stats.valid_today}</Text>
+                <Ionicons name="checkmark-done" size={24} color={colors.success} />
+                <Text style={[styles.kpiValue, { color: colors.success }]}>{stats.valid_today}</Text>
                 <Text style={styles.kpiLabel}>Accesos Exitosos</Text>
               </Card>
 
               <Card style={styles.kpiCard}>
-                <Ionicons name="close" size={24} color={COLORS.error} />
-                <Text style={[styles.kpiValue, { color: COLORS.error }]}>
+                <Ionicons name="close" size={24} color={colors.error} />
+                <Text style={[styles.kpiValue, { color: colors.error }]}>
                   {stats.invalid_today + stats.incidents_today}
                 </Text>
                 <Text style={styles.kpiLabel}>Boletos Rechazados</Text>
@@ -145,10 +151,10 @@ export const OperadorStatsScreen = () => {
                     styles.rateBarFill, 
                     { 
                       width: getValidationRate() as any,
-                      backgroundColor: stats.valid_today / stats.scanned_today > 0.7 ? COLORS.success : COLORS.warning
+                      backgroundColor: stats.valid_today / stats.scanned_today > 0.7 ? colors.success : colors.warning
                     }
                   ]} 
-                />
+                  />
               </View>
               <Text style={styles.rateText}>
                 {stats.valid_today} de {stats.scanned_today} boletos presentados resultaron auténticos.
@@ -170,7 +176,7 @@ export const OperadorStatsScreen = () => {
                   />
                 ) : (
                   <View style={styles.emptyContainer}>
-                    <Ionicons name="bar-chart-outline" size={32} color={COLORS.dark.textMuted} />
+                    <Ionicons name="bar-chart-outline" size={32} color={colors.textMuted} />
                     <Text style={styles.emptyText}>No hay lecturas registradas en la bitácora.</Text>
                   </View>
                 )}
@@ -183,10 +189,10 @@ export const OperadorStatsScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.dark.background,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -199,8 +205,8 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.dark.surface,
-    borderColor: COLORS.dark.border,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -208,11 +214,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: TYPOGRAPHY.fontSizes.lg,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textPrimary,
+    color: colors.textPrimary,
   },
   subtitle: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   scrollContainer: {
@@ -234,11 +240,11 @@ const styles = StyleSheet.create({
   kpiValue: {
     fontSize: 22,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textPrimary,
+    color: colors.textPrimary,
   },
   kpiLabel: {
     fontSize: 8,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     textTransform: 'uppercase',
     fontWeight: TYPOGRAPHY.fontWeights.semibold,
     textAlign: 'center',
@@ -255,18 +261,18 @@ const styles = StyleSheet.create({
   rateTitle: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textPrimary,
+    color: colors.textPrimary,
     textTransform: 'uppercase',
   },
   ratePercentage: {
     fontSize: TYPOGRAPHY.fontSizes.md,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.secondary,
+    color: colors.textSecondary,
   },
   rateBarBg: {
     height: 8,
-    backgroundColor: COLORS.dark.background,
-    borderColor: COLORS.dark.border,
+    backgroundColor: colors.background,
+    borderColor: colors.border,
     borderWidth: 1,
     borderRadius: BORDER_RADIUS.round,
     overflow: 'hidden',
@@ -278,7 +284,7 @@ const styles = StyleSheet.create({
   },
   rateText: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 14,
   },
   logSection: {
@@ -287,7 +293,7 @@ const styles = StyleSheet.create({
   logSectionTitle: {
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: SPACING.md,
@@ -306,7 +312,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: BORDER_RADIUS.sm,
-    backgroundColor: `${COLORS.dark.background}50`,
+    backgroundColor: colors.surfaceAlt,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -316,11 +322,11 @@ const styles = StyleSheet.create({
   scanLogCode: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textPrimary,
+    color: colors.textPrimary,
   },
   scanLogEvent: {
     fontSize: 9,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   scanLogTime: {
@@ -332,12 +338,12 @@ const styles = StyleSheet.create({
   },
   scanLogTimestamp: {
     fontSize: 8,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     marginTop: 2,
   },
   separator: {
     height: 1,
-    backgroundColor: COLORS.dark.border,
+    backgroundColor: colors.border,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -346,7 +352,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     marginTop: SPACING.sm,
   },
 });

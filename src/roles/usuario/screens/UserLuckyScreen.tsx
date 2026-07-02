@@ -18,9 +18,12 @@ import Loader from '../../../components/Loader';
 import Button from '../../../components/Button';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../../context/AuthContext';
+import { useTheme } from '../../../context/ThemeContext';
 import { useRouter } from 'expo-router';
 
 export const UserLuckyScreen = () => {
+  const { isDarkMode, colors } = useTheme();
+  const styles = getStyles(colors, isDarkMode);
   const { user } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -57,7 +60,7 @@ export const UserLuckyScreen = () => {
     return (
       <View style={styles.container}>
         <View style={styles.guestContainer}>
-          <Ionicons name="sparkles-outline" size={80} color={COLORS.dark.textMuted} style={{ marginBottom: SPACING.md }} />
+          <Ionicons name="sparkles-outline" size={80} color={colors.textMuted} style={{ marginBottom: SPACING.md }} />
           <Text style={styles.guestTitle}>Lucky Seat Recompensas</Text>
           <Text style={styles.guestDesc}>
             Inicia sesión o regístrate para participar en el sorteo diario de cupones, acumular XP y desbloquear medallas exclusivas.
@@ -166,7 +169,7 @@ export const UserLuckyScreen = () => {
           <View style={styles.wheelWrapper}>
             {/* Pointer indicator */}
             <View style={styles.wheelPointer}>
-              <Ionicons name="caret-down-sharp" size={28} color={COLORS.primary} />
+              <Ionicons name="caret-down-sharp" size={28} color={colors.primary} />
             </View>
 
             {/* Rotating Wheel body */}
@@ -179,7 +182,7 @@ export const UserLuckyScreen = () => {
               
               {/* Inner ring */}
               <View style={styles.wheelInner}>
-                <Ionicons name="sparkles" size={24} color={COLORS.primary} />
+                <Ionicons name="sparkles" size={24} color={colors.primary} />
               </View>
             </Animated.View>
           </View>
@@ -189,7 +192,7 @@ export const UserLuckyScreen = () => {
             disabled={spinning}
             onPress={handleSpinWheel}
             style={styles.spinBtn}
-            icon={<Ionicons name="refresh" size={18} color="#FFFFFF" />}
+            icon={<Ionicons name="refresh" size={18} color={colors.background} />}
           />
         </Card>
 
@@ -200,7 +203,7 @@ export const UserLuckyScreen = () => {
             {stats?.badges.map((badge) => (
               <View key={badge.id} style={styles.badgeItem}>
                 <View style={styles.badgeIconContainer}>
-                  <Ionicons name={badge.icon as any} size={24} color={COLORS.primary} />
+                  <Ionicons name={badge.icon as any} size={24} color={colors.primary} />
                 </View>
                 <Text style={styles.badgeItemName}>{badge.name}</Text>
                 <Text style={styles.badgeItemDesc}>{badge.desc}</Text>
@@ -246,7 +249,7 @@ export const UserLuckyScreen = () => {
               <Ionicons 
                 name={spinSuccess ? 'trophy' : 'sad-outline'} 
                 size={54} 
-                color={spinSuccess ? '#f59e0b' : COLORS.dark.textSecondary} 
+                color={spinSuccess ? '#f59e0b' : colors.textSecondary} 
               />
               <Text style={styles.resultTitle}>
                 {spinSuccess ? '¡Excelente!' : 'Suerte para la próxima'}
@@ -267,26 +270,26 @@ export const UserLuckyScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#070a13',
+    backgroundColor: colors.background,
   },
   header: {
     padding: SPACING.md,
-    backgroundColor: '#0b0f19',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderColor: '#151c2c',
+    borderColor: colors.surfaceAlt,
     paddingTop: 45,
   },
   headerTitle: {
     fontSize: TYPOGRAPHY.fontSizes.lg + 2,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   headerSubtitle: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   scrollContainer: {
@@ -303,7 +306,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   levelBadge: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     width: 48,
     height: 48,
     borderRadius: BORDER_RADIUS.md,
@@ -311,12 +314,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   levelLabel: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 7,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
   levelNumber: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: TYPOGRAPHY.fontSizes.md + 2,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
     lineHeight: 18,
@@ -327,34 +330,34 @@ const styles = StyleSheet.create({
   rankTitle: {
     fontSize: TYPOGRAPHY.fontSizes.sm,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   xpText: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   progressBarWrapper: {
     height: 6,
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
     borderRadius: BORDER_RADIUS.round,
     overflow: 'hidden',
     marginVertical: SPACING.xs,
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     borderRadius: BORDER_RADIUS.round,
   },
   progressBarHint: {
     fontSize: 9,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     textAlign: 'right',
   },
   sectionTitle: {
     fontSize: 11,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginBottom: SPACING.sm,
     textTransform: 'uppercase',
     marginTop: SPACING.sm,
@@ -366,11 +369,11 @@ const styles = StyleSheet.create({
   wheelCardTitle: {
     fontSize: TYPOGRAPHY.fontSizes.sm + 1,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   wheelCardDesc: {
     fontSize: 10,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
     marginBottom: SPACING.md,
   },
@@ -392,10 +395,10 @@ const styles = StyleSheet.create({
     height: 160,
     borderRadius: 80,
     borderWidth: 4,
-    borderColor: '#151c2c',
+    borderColor: colors.surfaceAlt,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#070a13',
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -408,11 +411,11 @@ const styles = StyleSheet.create({
     transformOrigin: 'bottom right',
   },
   seg1: {
-    backgroundColor: `${COLORS.primary}30`,
+    backgroundColor: `${colors.primary}30`,
     transform: [{ rotate: '0deg' }],
   },
   seg2: {
-    backgroundColor: `${COLORS.success}20`,
+    backgroundColor: `${colors.success}20`,
     transform: [{ rotate: '90deg' }],
   },
   seg3: {
@@ -427,8 +430,8 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#0b0f19',
-    borderColor: '#1e293b',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
     borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
@@ -455,7 +458,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4,
@@ -463,12 +466,12 @@ const styles = StyleSheet.create({
   badgeItemName: {
     fontSize: 9,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     textAlign: 'center',
   },
   badgeItemDesc: {
     fontSize: 7,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 2,
   },
@@ -479,11 +482,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
   },
   emptySubtext: {
     fontSize: 9,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     marginTop: 2,
   },
   couponCard: {
@@ -498,21 +501,21 @@ const styles = StyleSheet.create({
   couponCode: {
     fontSize: TYPOGRAPHY.fontSizes.sm,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.primary,
+    color: colors.primary,
     letterSpacing: 0.5,
   },
   couponDesc: {
     fontSize: 10,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   couponExpiry: {
     fontSize: 8,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
   },
   couponRight: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#151c2c',
+    backgroundColor: colors.surfaceAlt,
     paddingHorizontal: SPACING.sm,
     borderRadius: BORDER_RADIUS.md,
     width: 60,
@@ -520,11 +523,11 @@ const styles = StyleSheet.create({
   discountPct: {
     fontSize: TYPOGRAPHY.fontSizes.sm + 1,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: COLORS.success,
+    color: colors.success,
   },
   discountOff: {
     fontSize: 8,
-    color: COLORS.dark.textMuted,
+    color: colors.textMuted,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
   modalOverlay: {
@@ -534,7 +537,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#0b0f19',
+    backgroundColor: colors.surface,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
     alignItems: 'center',
@@ -548,11 +551,11 @@ const styles = StyleSheet.create({
   resultTitle: {
     fontSize: TYPOGRAPHY.fontSizes.md,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   resultText: {
     fontSize: 11,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 16,
   },
@@ -564,17 +567,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.xl,
-    backgroundColor: '#070a13',
+    backgroundColor: colors.background,
   },
   guestTitle: {
     fontSize: TYPOGRAPHY.fontSizes.lg,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: SPACING.sm,
   },
   guestDesc: {
     fontSize: TYPOGRAPHY.fontSizes.sm - 1,
-    color: COLORS.dark.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
     marginBottom: SPACING.xl,
