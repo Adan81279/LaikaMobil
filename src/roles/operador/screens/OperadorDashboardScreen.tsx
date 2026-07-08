@@ -313,13 +313,14 @@ export const OperadorDashboardScreen = () => {
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.codeInput}
-              placeholder="Ingrese código de boleto (Ej: TKT-VALID-123)"
+              placeholder="Código de boleto (Ej: TKT-VALID)"
               placeholderTextColor={colors.textMuted}
               value={ticketCode}
               onChangeText={setTicketCode}
               autoCapitalize="characters"
               returnKeyType="done"
               onSubmitEditing={() => handleValidate()}
+              multiline={false}
             />
             <TouchableOpacity style={styles.scanBtn} onPress={() => handleValidate()}>
               <Ionicons name="checkmark-circle" size={24} color={colors.background} />
@@ -451,7 +452,7 @@ export const OperadorDashboardScreen = () => {
           <View style={styles.searchRow}>
             <TextInput
               style={styles.searchInput}
-              placeholder="Buscar por Nombre, Correo o Código..."
+              placeholder="Nombre, correo o código..."
               placeholderTextColor={colors.textMuted}
               value={searchQuery}
               onChangeText={(text) => {
@@ -459,6 +460,7 @@ export const OperadorDashboardScreen = () => {
                 if (!text) setSearchResults([]);
               }}
               onSubmitEditing={handleSearch}
+              multiline={false}
             />
             <TouchableOpacity style={styles.searchBtn} onPress={handleSearch} disabled={searchLoading}>
               <Ionicons name="search-outline" size={20} color={colors.background} />
@@ -794,15 +796,20 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: SPACING.sm,
   },
   detailLabel: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
     color: colors.textSecondary,
+    flexShrink: 0,
   },
   detailVal: {
     fontSize: TYPOGRAPHY.fontSizes.xs,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
     color: colors.textPrimary,
+    flex: 1,
+    textAlign: 'right',
   },
   incidentBtn: {
     marginTop: SPACING.xs,
