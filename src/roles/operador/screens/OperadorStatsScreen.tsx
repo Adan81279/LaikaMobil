@@ -16,11 +16,13 @@ import operadorService, { OperatorStats } from '../services/operador.service';
 import Card from '../../../components/Card';
 import Loader from '../../../components/Loader';
 import { useTheme } from '../../../context/ThemeContext';
+import { useLanguage } from '../../../context/LanguageContext';
 import { StatusBar } from 'expo-status-bar';
 
 export const OperadorStatsScreen = () => {
   const router = useRouter();
   const { isDarkMode, colors } = useTheme();
+  const { t } = useLanguage();
   const [stats, setStats] = useState<OperatorStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -78,11 +80,11 @@ export const OperadorStatsScreen = () => {
         
         <View style={styles.scanLogMeta}>
           <Text style={styles.scanLogCode}>{item.ticket_code}</Text>
-          <Text style={styles.scanLogEvent} numberOfLines={1}>{item.event_title}</Text>
+          <Text style={styles.scanLogEvent} numberOfLines={1}>{t(item.event_title)}</Text>
         </View>
 
         <View style={styles.scanLogTime}>
-          <Text style={[styles.scanLogStatus, { color: statusColor }]}>{statusText}</Text>
+          <Text style={[styles.scanLogStatus, { color: statusColor }]}>{t(statusText)}</Text>
           <Text style={styles.scanLogTimestamp}>
             {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
@@ -96,15 +98,15 @@ export const OperadorStatsScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style={isDarkMode ? 'light' : 'dark'} />
-      <Loader visible={loading && !refreshing} message="Obteniendo estadísticas..." />
+      <Loader visible={loading && !refreshing} message={t("Obteniendo estadísticas...")} />
 
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
         <View>
-          <Text style={styles.title}>Bitácora y Estadísticas</Text>
-          <Text style={styles.subtitle}>Resumen analítico de validaciones durante el día.</Text>
+          <Text style={styles.title}>{t("Bitácora y Estadísticas")}</Text>
+          <Text style={styles.subtitle}>{t("Resumen analítico de validaciones durante el día.")}</Text>
         </View>
       </View>
 
@@ -121,13 +123,13 @@ export const OperadorStatsScreen = () => {
               <Card style={styles.kpiCard}>
                 <Ionicons name="scan-outline" size={24} color={colors.primary} />
                 <Text style={styles.kpiValue}>{stats.scanned_today}</Text>
-                <Text style={styles.kpiLabel}>Total Escaneados</Text>
+                <Text style={styles.kpiLabel}>{t("Total Escaneados")}</Text>
               </Card>
 
               <Card style={styles.kpiCard}>
                 <Ionicons name="checkmark-done" size={24} color={colors.success} />
                 <Text style={[styles.kpiValue, { color: colors.success }]}>{stats.valid_today}</Text>
-                <Text style={styles.kpiLabel}>Accesos Exitosos</Text>
+                <Text style={styles.kpiLabel}>{t("Accesos Exitosos")}</Text>
               </Card>
 
               <Card style={styles.kpiCard}>
@@ -135,14 +137,14 @@ export const OperadorStatsScreen = () => {
                 <Text style={[styles.kpiValue, { color: colors.error }]}>
                   {stats.invalid_today + stats.incidents_today}
                 </Text>
-                <Text style={styles.kpiLabel}>Boletos Rechazados</Text>
+                <Text style={styles.kpiLabel}>{t("Boletos Rechazados")}</Text>
               </Card>
             </View>
 
             {/* Performance Chart / Validation Rate */}
             <Card style={styles.rateCard}>
               <View style={styles.rateHeader}>
-                <Text style={styles.rateTitle}>Tasa de Aprobación</Text>
+                <Text style={styles.rateTitle}>{t("Tasa de Aprobación")}</Text>
                 <Text style={styles.ratePercentage}>{getValidationRate()}</Text>
               </View>
               <View style={styles.rateBarBg}>
@@ -157,13 +159,13 @@ export const OperadorStatsScreen = () => {
                   />
               </View>
               <Text style={styles.rateText}>
-                {stats.valid_today} de {stats.scanned_today} boletos presentados resultaron auténticos.
+                {stats.valid_today} {t("de")} {stats.scanned_today} {t("boletos presentados resultaron auténticos.")}
               </Text>
             </Card>
 
             {/* Recent Scans Log */}
             <View style={styles.logSection}>
-              <Text style={styles.logSectionTitle}>Historial de Lecturas Recientes</Text>
+              <Text style={styles.logSectionTitle}>{t("Historial de Lecturas Recientes")}</Text>
               
               <Card style={styles.logCard}>
                 {stats.recent_scans.length > 0 ? (
@@ -177,7 +179,7 @@ export const OperadorStatsScreen = () => {
                 ) : (
                   <View style={styles.emptyContainer}>
                     <Ionicons name="bar-chart-outline" size={32} color={colors.textMuted} />
-                    <Text style={styles.emptyText}>No hay lecturas registradas en la bitácora.</Text>
+                    <Text style={styles.emptyText}>{t("No hay lecturas registradas en la bitácora.")}</Text>
                   </View>
                 )}
               </Card>

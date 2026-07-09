@@ -22,12 +22,14 @@ import Button from '../../../components/Button';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
+import { useLanguage } from '../../../context/LanguageContext';
 import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
 export const UserEventsScreen = () => {
   const { isDarkMode, colors } = useTheme();
+  const { t } = useLanguage();
   const styles = getStyles(colors, isDarkMode);
   const { user, savedCard, saveCardDetails, clearSavedCard } = useAuth();
   const router = useRouter();
@@ -147,7 +149,7 @@ export const UserEventsScreen = () => {
       setSelectedSeats(prev => prev.filter(s => s !== seatId));
     } else {
       if (selectedSeats.length >= 6) {
-        Alert.alert('Límite excedido', 'Solo puedes comprar un máximo de 6 boletos por transacción.');
+        Alert.alert(t('Límite excedido'), t('Solo puedes comprar un máximo de 6 boletos por transacción.'));
         return;
       }
       setSelectedSeats(prev => [...prev, seatId]);
@@ -181,7 +183,7 @@ export const UserEventsScreen = () => {
 
   const handleProceedCheckout = () => {
     if (selectedSeats.length === 0) {
-      Alert.alert('Sin selección', 'Por favor, selecciona al menos un asiento.');
+      Alert.alert(t('Sin selección'), t('Por favor, selecciona al menos un asiento.'));
       return;
     }
     setCheckoutVisible(true);
@@ -217,10 +219,10 @@ export const UserEventsScreen = () => {
         setPaymentSuccess(true);
         await AsyncStorage.removeItem('@Laika:cart_event_ids');
       } else {
-        Alert.alert('Error', 'No se pudo completar la compra del boleto.');
+        Alert.alert(t('Error'), t('No se pudo completar la compra del boleto.'));
       }
     } catch (err) {
-      Alert.alert('Error de red', 'La compra no pudo ser transmitida al servidor.');
+      Alert.alert(t('Error de red'), t('La compra no pudo ser transmitida al servidor.'));
     } finally {
       setLoading(false);
     }
@@ -278,7 +280,7 @@ export const UserEventsScreen = () => {
   // Add to cart from seat selector
   const handleAddToCart = () => {
     if (selectedSeats.length === 0) {
-      Alert.alert('Selección vacía', 'Por favor selecciona al menos un asiento.');
+      Alert.alert(t('Selección vacía'), t('Por favor selecciona al menos un asiento.'));
       return;
     }
     if (!activeEvent) return;
@@ -301,7 +303,7 @@ export const UserEventsScreen = () => {
         const currentSeats = prevCart[existingItemIndex].seats;
         const mergedSeats = Array.from(new Set([...currentSeats, ...selectedSeats]));
         if (mergedSeats.length > 6) {
-          Alert.alert('Límite excedido', 'Solo puedes comprar un máximo de 6 boletos por evento.');
+          Alert.alert(t('Límite excedido'), t('Solo puedes comprar un máximo de 6 boletos por evento.'));
           return prevCart;
         }
         
@@ -321,10 +323,10 @@ export const UserEventsScreen = () => {
           seats: mergedSeats,
           selectedMerch: newMerch,
         };
-        Alert.alert('Carrito actualizado', 'Los asientos y souvenirs han sido agregados a tu carrito.');
+        Alert.alert(t('Carrito actualizado'), t('Los asientos y souvenirs han sido agregados a tu carrito.'));
       } else {
         newCart = [...prevCart, { eventId: activeEvent.id, event: activeEvent, seats: selectedSeats, selectedMerch: itemsToAdd }];
-        Alert.alert('Agregado al carrito', 'El concierto, asientos y souvenirs han sido agregados a tu carrito.');
+        Alert.alert(t('Agregado al carrito'), t('El concierto, asientos y souvenirs han sido agregados a tu carrito.'));
       }
       saveActiveEventIdsToStorage(newCart);
       return newCart;
@@ -339,11 +341,11 @@ export const UserEventsScreen = () => {
   const handleBuyNow = () => {
     if (!user) {
       Alert.alert(
-        'Inicio de Sesión Requerido',
-        'Para realizar compras de boletos es necesario estar registrado e iniciar sesión.',
+        t('Inicio de Sesión Requerido'),
+        t('Para realizar compras de boletos es necesario estar registrado e iniciar sesión.'),
         [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Iniciar Sesión', onPress: () => {
+          { text: t('Cancelar'), style: 'cancel' },
+          { text: t('Iniciar Sesión'), onPress: () => {
             setBookingModalVisible(false);
             router.replace('/(auth)/login' as any);
           }}
@@ -352,7 +354,7 @@ export const UserEventsScreen = () => {
       return;
     }
     if (selectedSeats.length === 0) {
-      Alert.alert('Selección vacía', 'Por favor selecciona al menos un asiento.');
+      Alert.alert(t('Selección vacía'), t('Por favor selecciona al menos un asiento.'));
       return;
     }
     if (!activeEvent) return;
@@ -375,7 +377,7 @@ export const UserEventsScreen = () => {
         const currentSeats = prevCart[existingItemIndex].seats;
         const mergedSeats = Array.from(new Set([...currentSeats, ...selectedSeats]));
         if (mergedSeats.length > 6) {
-          Alert.alert('Límite excedido', 'Solo puedes comprar un máximo de 6 boletos por evento.');
+          Alert.alert(t('Límite excedido'), t('Solo puedes comprar un máximo de 6 boletos por evento.'));
           return prevCart;
         }
         
@@ -453,11 +455,11 @@ export const UserEventsScreen = () => {
   const handleConfirmCartPayment = async () => {
     if (!user) {
       Alert.alert(
-        'Inicio de Sesión Requerido',
-        'Para realizar compras de boletos es necesario estar registrado e iniciar sesión.',
+        t('Inicio de Sesión Requerido'),
+        t('Para realizar compras de boletos es necesario estar registrado e iniciar sesión.'),
         [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Iniciar Sesión', onPress: () => {
+          { text: t('Cancelar'), style: 'cancel' },
+          { text: t('Iniciar Sesión'), onPress: () => {
             setCartModalVisible(false);
             setCheckoutVisible(false);
             router.replace('/(auth)/login' as any);
@@ -469,20 +471,20 @@ export const UserEventsScreen = () => {
     
     if (paymentMethod === 'card' && (!savedCard || useAnotherCard)) {
       if (!cardHolder.trim()) {
-        Alert.alert('Datos incompletos', 'Por favor ingresa el nombre del titular.');
+        Alert.alert(t('Datos incompletos'), t('Por favor ingresa el nombre del titular.'));
         return;
       }
       const cleanNum = cardNumber.replace(/\s/g, '');
       if (cleanNum.length < 15) {
-        Alert.alert('Número incorrecto', 'Por favor ingresa un número de tarjeta válido.');
+        Alert.alert(t('Número incorrecto'), t('Por favor ingresa un número de tarjeta válido.'));
         return;
       }
       if (cardExpiry.length < 5) {
-        Alert.alert('Vencimiento incorrecto', 'Por favor ingresa la fecha de expiración MM/AA.');
+        Alert.alert(t('Vencimiento incorrecto'), t('Por favor ingresa la fecha de expiración MM/AA.'));
         return;
       }
       if (cardCvv.length < 3) {
-        Alert.alert('CVV incorrecto', 'Por favor ingresa un código de seguridad válido.');
+        Alert.alert(t('CVV incorrecto'), t('Por favor ingresa un código de seguridad válido.'));
         return;
       }
     }
@@ -529,7 +531,7 @@ export const UserEventsScreen = () => {
         setCart([]); // Clear cart
         await AsyncStorage.removeItem('@Laika:cart_event_ids');
       } catch (err) {
-        Alert.alert('Error', 'Hubo un inconveniente al procesar la compra.');
+        Alert.alert(t('Error'), t('Hubo un inconveniente al procesar la compra.'));
       } finally {
         setIsProcessingPayment(false);
       }
@@ -537,7 +539,7 @@ export const UserEventsScreen = () => {
   };
 
   if (loading && events.length === 0) {
-    return <Loader visible={true} message="Cargando catálogo de eventos..." />;
+    return <Loader visible={true} message={t("Cargando catálogo de eventos...")} />;
   }
 
   const relatedMerch = merchItems.filter(item => item.eventId === activeEvent?.id);
@@ -548,8 +550,8 @@ export const UserEventsScreen = () => {
       <View style={styles.header}>
         <View style={styles.headerTitleRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.headerTitle}>Explora Espectáculos</Text>
-            <Text style={styles.headerSubtitle}>Laika Club Arena & Foro Monumental</Text>
+            <Text style={styles.headerTitle}>{t("Explora Espectáculos")}</Text>
+            <Text style={styles.headerSubtitle}>{t("Laika Club Arena & Foro Monumental")}</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: SPACING.xs, alignItems: 'center' }}>
             {!user && (
@@ -558,7 +560,7 @@ export const UserEventsScreen = () => {
                 onPress={() => router.replace('/(auth)/login' as any)}
               >
                 <Ionicons name="log-in-outline" size={16} color={colors.background} />
-                <Text style={styles.loginHeaderBtnText}>Entrar</Text>
+                <Text style={styles.loginHeaderBtnText}>{t("Entrar")}</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity 
@@ -581,7 +583,7 @@ export const UserEventsScreen = () => {
           <Ionicons name="search-outline" size={20} color={colors.textSecondary} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Buscar conciertos, complejos..."
+            placeholder={t("Buscar conciertos, complejos...")}
             placeholderTextColor={colors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -615,7 +617,7 @@ export const UserEventsScreen = () => {
                   selectedCategory === cat && styles.categoryTextActive,
                 ]}
               >
-                {cat}
+                {t(cat)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -630,7 +632,7 @@ export const UserEventsScreen = () => {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="calendar-outline" size={48} color={colors.textMuted} />
-            <Text style={styles.emptyText}>No se encontraron eventos disponibles</Text>
+            <Text style={styles.emptyText}>{t("No se encontraron eventos disponibles")}</Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -638,13 +640,13 @@ export const UserEventsScreen = () => {
             <Image source={{ uri: item.image }} style={styles.eventImg} />
             <View style={styles.eventInfo}>
               <View style={styles.categoryBadge}>
-                <Text style={styles.categoryBadgeText}>{item.category}</Text>
+                <Text style={styles.categoryBadgeText}>{t(item.category)}</Text>
               </View>
-              <Text style={styles.eventTitle}>{item.title}</Text>
+              <Text style={styles.eventTitle}>{t(item.title)}</Text>
               
               <View style={styles.eventDetailRow}>
                 <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
-                <Text style={styles.eventDetailText} numberOfLines={1}>{item.venue}</Text>
+                <Text style={styles.eventDetailText} numberOfLines={1}>{t(item.venue)}</Text>
               </View>
 
               <View style={styles.eventDetailRow}>
@@ -654,11 +656,11 @@ export const UserEventsScreen = () => {
 
               <View style={styles.eventFooter}>
                 <View>
-                  <Text style={styles.priceLabel}>Desde</Text>
+                  <Text style={styles.priceLabel}>{t("Desde")}</Text>
                   <Text style={styles.priceText}>${item.price} MXN</Text>
                 </View>
                 <Button
-                  title="Reservar Lugar"
+                  title={t("Reservar Lugar")}
                   size="sm"
                   onPress={() => handleOpenBooking(item)}
                 />
@@ -680,8 +682,8 @@ export const UserEventsScreen = () => {
             {/* Modal Header */}
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>{activeEvent?.title}</Text>
-                <Text style={styles.modalSubtitle}>{activeEvent?.venue}</Text>
+                <Text style={styles.modalTitle}>{activeEvent ? t(activeEvent.title) : ''}</Text>
+                <Text style={styles.modalSubtitle}>{activeEvent ? t(activeEvent.venue) : ''}</Text>
               </View>
               <TouchableOpacity 
                 style={styles.closeBtn} 
@@ -704,7 +706,7 @@ export const UserEventsScreen = () => {
                   )}
                   
                   <View style={styles.detailCategoryBadge}>
-                    <Text style={styles.detailCategoryText}>{activeEvent?.category}</Text>
+                    <Text style={styles.detailCategoryText}>{activeEvent ? t(activeEvent.category) : ''}</Text>
                   </View>
 
                   <View style={styles.detailMetaRow}>
@@ -714,42 +716,42 @@ export const UserEventsScreen = () => {
                   
                   <View style={styles.detailMetaRow}>
                     <Ionicons name="location-outline" size={16} color={colors.primary} />
-                    <Text style={styles.detailMetaText}>{activeEvent?.venue}</Text>
+                    <Text style={styles.detailMetaText}>{activeEvent ? t(activeEvent.venue) : ''}</Text>
                   </View>
 
-                  <Text style={styles.detailPrice}>Desde ${activeEvent?.price.toLocaleString()} MXN</Text>
+                  <Text style={styles.detailPrice}>{t("Desde")} ${activeEvent?.price.toLocaleString()} MXN</Text>
 
-                  <Text style={styles.detailSectionTitle}>Descripción del Evento</Text>
-                  <Text style={styles.detailDescription}>{activeEvent?.description}</Text>
+                  <Text style={styles.detailSectionTitle}>{t("Descripción del Evento")}</Text>
+                  <Text style={styles.detailDescription}>{activeEvent ? t(activeEvent.description) : ''}</Text>
 
-                  <Text style={styles.detailSectionTitle}>Información Relevante</Text>
+                  <Text style={styles.detailSectionTitle}>{t("Información Relevante")}</Text>
                   <View style={styles.infoList}>
                     <View style={styles.infoItem}>
                       <Ionicons name="shield-checkmark-outline" size={14} color={colors.success} />
                       <Text style={styles.infoItemText}>
-                        <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>Seguridad: </Text>
-                        Bolsos sujetos a revisión. Prohibido ingresar cámaras profesionales, objetos punzocortantes, alimentos y bebidas.
+                        <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>{t("Seguridad:")} </Text>
+                        {t("Bolsos sujetos a revisión. Prohibido ingresar cámaras profesionales, objetos punzocortantes, alimentos y bebidas.")}
                       </Text>
                     </View>
                     <View style={styles.infoItem}>
                       <Ionicons name="ticket-outline" size={14} color={colors.primary} />
                       <Text style={styles.infoItemText}>
-                        <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>Acceso digital: </Text>
-                        Presenta tu boleto QR digital desde la Wallet. No requiere conexión a internet en la entrada.
+                        <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>{t("Acceso digital:")} </Text>
+                        {t("Presenta tu boleto QR digital desde la Wallet. No requiere conexión a internet en la entrada.")}
                       </Text>
                     </View>
                     <View style={styles.infoItem}>
                       <Ionicons name="time-outline" size={14} color="#f59e0b" />
                       <Text style={styles.infoItemText}>
-                        <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>Horarios: </Text>
-                        Las puertas abren 1.5 horas antes del espectáculo. Se recomienda llegar temprano.
+                        <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>{t("Horarios:")} </Text>
+                        {t("Las puertas abren 1.5 horas antes del espectáculo. Se recomienda llegar temprano.")}
                       </Text>
                     </View>
                   </View>
 
                   {relatedMerch.length > 0 && (
                     <View style={{ marginTop: SPACING.md, marginBottom: SPACING.md }}>
-                      <Text style={styles.detailSectionTitle}>Productos Oficiales del Evento</Text>
+                      <Text style={styles.detailSectionTitle}>{t("Productos Oficiales del Evento")}</Text>
                       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.sm, paddingVertical: 4 }}>
                         {relatedMerch.map(prod => {
                           const qty = selectedMerch[prod.id] || 0;
@@ -757,7 +759,7 @@ export const UserEventsScreen = () => {
                             <View key={prod.id} style={styles.relatedMerchCard}>
                               <Image source={{ uri: prod.image }} style={styles.relatedMerchImg} />
                               <View style={styles.relatedMerchInfo}>
-                                <Text style={styles.relatedMerchTitle} numberOfLines={1}>{prod.title}</Text>
+                                <Text style={styles.relatedMerchTitle} numberOfLines={1}>{t(prod.title)}</Text>
                                 <Text style={styles.relatedMerchPrice}>${prod.price} MXN</Text>
                                 
                                 {qty === 0 ? (
@@ -768,7 +770,7 @@ export const UserEventsScreen = () => {
                                     }}
                                   >
                                     <Ionicons name="add" size={14} color={colors.background} />
-                                    <Text style={styles.relatedMerchAddText}>Agregar</Text>
+                                    <Text style={styles.relatedMerchAddText}>{t("Agregar")}</Text>
                                   </TouchableOpacity>
                                 ) : (
                                   <View style={styles.relatedMerchQtyRow}>
@@ -808,7 +810,7 @@ export const UserEventsScreen = () => {
                   )}
 
                   <Button
-                    title="Reservar Lugar"
+                    title={t("Reservar Lugar")}
                     onPress={() => setShowDetailsStep(false)}
                     style={{ marginTop: SPACING.sm }}
                   />
@@ -821,13 +823,13 @@ export const UserEventsScreen = () => {
                     onPress={() => setShowDetailsStep(true)}
                   >
                     <Ionicons name="arrow-back" size={14} color={colors.primary} />
-                    <Text style={styles.bookingBackButtonText}>Volver a Detalles</Text>
+                    <Text style={styles.bookingBackButtonText}>{t("Volver a Detalles")}</Text>
                   </TouchableOpacity>
 
                   {/* Stage Indicator */}
                   <View style={styles.stageContainer}>
                     <View style={styles.stageBorder} />
-                    <Text style={styles.stageText}>ESCENARIO</Text>
+                    <Text style={styles.stageText}>{t("ESCENARIO")}</Text>
                   </View>
 
                   {/* Seat Map Grid */}
@@ -869,30 +871,30 @@ export const UserEventsScreen = () => {
                   <View style={styles.legendContainer}>
                     <View style={styles.legendItem}>
                       <View style={[styles.legendDot, { backgroundColor: '#f59e0b' }]} />
-                      <Text style={styles.legendText}>VIP</Text>
+                      <Text style={styles.legendText}>{t("VIP")}</Text>
                     </View>
                     <View style={styles.legendItem}>
                       <View style={[styles.legendDot, { backgroundColor: '#a855f7' }]} />
-                      <Text style={styles.legendText}>Gold</Text>
+                      <Text style={styles.legendText}>{t("Gold")}</Text>
                     </View>
                     <View style={styles.legendItem}>
                       <View style={[styles.legendDot, { backgroundColor: colors.border }]} />
-                      <Text style={styles.legendText}>Gral</Text>
+                      <Text style={styles.legendText}>{t("Gral")}</Text>
                     </View>
                     <View style={styles.legendItem}>
                       <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
-                      <Text style={styles.legendText}>Mi Selección</Text>
+                      <Text style={styles.legendText}>{t("Mi Selección")}</Text>
                     </View>
                     <View style={styles.legendItem}>
                       <View style={[styles.legendDot, { backgroundColor: '#475569' }]} />
-                      <Text style={styles.legendText}>Ocupado</Text>
+                      <Text style={styles.legendText}>{t("Ocupado")}</Text>
                     </View>
                   </View>
 
                   {/* Selected Info Summary */}
                   {selectedSeats.length > 0 && (
                     <Card style={styles.summaryCard}>
-                      <Text style={styles.summaryHeader}>Boletos Seleccionados ({selectedSeats.length})</Text>
+                      <Text style={styles.summaryHeader}>{t("Boletos Seleccionados")} ({selectedSeats.length})</Text>
                       <View style={styles.selectedSeatsRow}>
                         {selectedSeats.map(s => (
                           <View key={s} style={styles.seatBadge}>
@@ -901,7 +903,7 @@ export const UserEventsScreen = () => {
                         ))}
                       </View>
                       <View style={styles.priceSummaryRow}>
-                        <Text style={styles.totalLabel}>Total Estimado:</Text>
+                        <Text style={styles.totalLabel}>{t("Total Estimado:")}</Text>
                         <Text style={styles.totalVal}>${calculateTotal().toLocaleString()} MXN</Text>
                       </View>
                     </Card>
@@ -909,14 +911,14 @@ export const UserEventsScreen = () => {
 
                   <View style={styles.bookingActionRow}>
                     <Button
-                      title="Agregar al Carrito"
+                      title={t("Agregar al Carrito")}
                       variant="secondary"
                       disabled={selectedSeats.length === 0}
                       onPress={handleAddToCart}
                       style={{ flex: 1 }}
                     />
                     <Button
-                      title="Comprar Ahora"
+                      title={t("Comprar Ahora")}
                       disabled={selectedSeats.length === 0}
                       onPress={handleBuyNow}
                       style={{ flex: 1.2 }}
@@ -927,11 +929,11 @@ export const UserEventsScreen = () => {
             ) : !paymentSuccess ? (
               /* CHECKOUT PANEL */
               <View style={styles.checkoutContainer}>
-                <Text style={styles.checkoutSectionTitle}>Resumen de Orden</Text>
+                <Text style={styles.checkoutSectionTitle}>{t("Resumen de Orden")}</Text>
                 
                 <Card style={styles.checkoutCard}>
-                  <Text style={styles.eventTicketTitle}>{activeEvent?.title}</Text>
-                  <Text style={styles.eventTicketMeta}>{activeEvent?.venue}</Text>
+                  <Text style={styles.eventTicketTitle}>{activeEvent ? t(activeEvent.title) : ''}</Text>
+                  <Text style={styles.eventTicketMeta}>{activeEvent ? t(activeEvent.venue) : ''}</Text>
                   <Text style={styles.eventTicketMeta}>{activeEvent?.date} | {activeEvent?.time}</Text>
                   
                   <View style={styles.divider} />
@@ -941,7 +943,7 @@ export const UserEventsScreen = () => {
                       const row = s.split('-')[0];
                       return (
                         <View key={s} style={styles.checkoutSeatItem}>
-                          <Text style={styles.checkoutSeatName}>Asiento {s} ({getSeatCategoryName(row)})</Text>
+                          <Text style={styles.checkoutSeatName}>{t("Asiento")} {s} ({t(getSeatCategoryName(row))})</Text>
                           <Text style={styles.checkoutSeatPrice}>${getSeatPrice(row).toLocaleString()} MXN</Text>
                         </View>
                       );
@@ -953,7 +955,7 @@ export const UserEventsScreen = () => {
                           if (!prod) return null;
                           return (
                             <View key={id} style={styles.checkoutSeatItem}>
-                              <Text style={styles.checkoutSeatName}>{prod.title} (x{qty})</Text>
+                              <Text style={styles.checkoutSeatName}>{t(prod.title)} (x{qty})</Text>
                               <Text style={styles.checkoutSeatPrice}>${(prod.price * qty).toLocaleString()} MXN</Text>
                             </View>
                           );
@@ -965,19 +967,19 @@ export const UserEventsScreen = () => {
                   <View style={styles.divider} />
                   
                   <View style={styles.checkoutTotalRow}>
-                    <Text style={styles.checkoutTotalLabel}>Monto a Pagar:</Text>
+                    <Text style={styles.checkoutTotalLabel}>{t("Monto a Pagar:")}</Text>
                     <Text style={styles.checkoutTotalVal}>${calculateTotal().toLocaleString()} MXN</Text>
                   </View>
                 </Card>
 
                 {/* Payment Form (Simulated) */}
-                <Text style={styles.checkoutSectionTitle}>Método de Pago</Text>
+                <Text style={styles.checkoutSectionTitle}>{t("Método de Pago")}</Text>
                 <Card style={styles.paymentCard}>
                   <View style={styles.paymentMethodRow}>
                     <Ionicons name="card" size={24} color={colors.primary} />
                     <View style={{ flex: 1, marginLeft: SPACING.sm }}>
-                      <Text style={styles.paymentMethodName}>Bypass Gateway LaikaPay</Text>
-                      <Text style={styles.paymentMethodDesc}>Confirmación instantánea de balance</Text>
+                      <Text style={styles.paymentMethodName}>{t("Bypass Gateway LaikaPay")}</Text>
+                      <Text style={styles.paymentMethodDesc}>{t("Confirmación instantánea de balance")}</Text>
                     </View>
                     <Ionicons name="checkmark-circle" size={20} color={colors.success} />
                   </View>
@@ -985,13 +987,13 @@ export const UserEventsScreen = () => {
 
                 <View style={styles.checkoutActionRow}>
                   <Button
-                    title="Atrás"
+                    title={t("Atrás")}
                     variant="secondary"
                     onPress={() => setCheckoutVisible(false)}
                     style={{ flex: 1 }}
                   />
                   <Button
-                    title="Confirmar y Pagar"
+                    title={t("Confirmar y Pagar")}
                     onPress={handleConfirmPayment}
                     style={{ flex: 2 }}
                   />
@@ -1001,27 +1003,27 @@ export const UserEventsScreen = () => {
               /* ORDER COMPLETED VIEW */
               <View style={styles.successContainer}>
                 <Ionicons name="checkmark-circle-outline" size={80} color={colors.success} />
-                <Text style={styles.successTitle}>¡Compra Exitosa!</Text>
+                <Text style={styles.successTitle}>{t("¡Compra Exitosa!")}</Text>
                 <Text style={styles.successDesc}>
-                  Tus boletos han sido generados y agregados a tu Wallet digital. Puedes presentarlos sin conexión en la puerta de acceso del recinto.
+                  {t("Tus boletos han sido generados y agregados a tu Wallet digital. Puedes presentarlos sin conexión en la puerta de acceso del recinto.")}
                 </Text>
                 
                 <Card style={styles.successOrderSummary}>
-                  <Text style={styles.orderSummaryEvent}>{activeEvent?.title}</Text>
-                  <Text style={styles.orderSummarySeats}>Asientos: {selectedSeats.join(', ')}</Text>
+                  <Text style={styles.orderSummaryEvent}>{activeEvent ? t(activeEvent.title) : ''}</Text>
+                  <Text style={styles.orderSummarySeats}>{t("Asientos:")} {selectedSeats.join(', ')}</Text>
                   {Object.entries(selectedMerch).length > 0 && (
                     <Text style={styles.orderSummarySeats}>
-                      Souvenirs: {Object.entries(selectedMerch).map(([id, qty]) => {
+                      {t("Souvenirs:")} {Object.entries(selectedMerch).map(([id, qty]) => {
                         const prod = merchItems.find(p => p.id === id);
-                        return prod ? `${prod.title} (x${qty})` : '';
+                        return prod ? `${t(prod.title)} (x${qty})` : '';
                       }).filter(Boolean).join(', ')}
                     </Text>
                   )}
-                  <Text style={styles.orderSummaryTotal}>Total Cargado: ${calculateTotal().toLocaleString()} MXN</Text>
+                  <Text style={styles.orderSummaryTotal}>{t("Total Cargado:")} ${calculateTotal().toLocaleString()} MXN</Text>
                 </Card>
 
                 <Button
-                  title="Listo, Volver al Inicio"
+                  title={t("Listo, Volver al Inicio")}
                   onPress={handleFinishBooking}
                   style={styles.successBtn}
                 />
@@ -1049,10 +1051,10 @@ export const UserEventsScreen = () => {
             <View style={styles.modalHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.modalTitle}>
-                  {checkoutVisible ? 'Completar Pago Seguro' : 'Carrito de Compra'}
+                  {checkoutVisible ? t('Completar Pago Seguro') : t('Carrito de Compra')}
                 </Text>
                 <Text style={styles.modalSubtitle}>
-                  {checkoutVisible ? 'Ingresa los detalles de tu pago' : `${cart.reduce((sum, item) => sum + item.seats.length, 0)} boletos seleccionados`}
+                  {checkoutVisible ? t('Ingresa los detalles de tu pago') : `${cart.reduce((sum, item) => sum + item.seats.length, 0)} ${t('boletos seleccionados')}`}
                 </Text>
               </View>
               {!isProcessingPayment && (
@@ -1075,10 +1077,10 @@ export const UserEventsScreen = () => {
                 {cart.length === 0 ? (
                   <View style={styles.emptyCartContainer}>
                     <Ionicons name="cart-outline" size={64} color={colors.textMuted} />
-                    <Text style={styles.emptyCartText}>Tu carrito está vacío</Text>
-                    <Text style={styles.emptyCartSub}>Agrega asientos de cualquier evento para iniciar.</Text>
+                    <Text style={styles.emptyCartText}>{t("Tu carrito está vacío")}</Text>
+                    <Text style={styles.emptyCartSub}>{t("Agrega asientos de cualquier evento para iniciar.")}</Text>
                     <Button
-                      title="Explorar Eventos"
+                      title={t("Explorar Eventos")}
                       variant="primary"
                       onPress={() => setCartModalVisible(false)}
                       style={{ marginTop: SPACING.md, width: '70%' }}
@@ -1091,8 +1093,8 @@ export const UserEventsScreen = () => {
                         <Card key={item.eventId} style={styles.cartCard}>
                           <View style={styles.cartCardHeader}>
                             <View style={{ flex: 1 }}>
-                              <Text style={styles.cartEventTitle}>{item.event.title}</Text>
-                              <Text style={styles.cartEventVenue}>{item.event.venue}</Text>
+                              <Text style={styles.cartEventTitle}>{t(item.event.title)}</Text>
+                              <Text style={styles.cartEventVenue}>{t(item.event.venue)}</Text>
                               <Text style={styles.cartEventTime}>{item.event.date} | {item.event.time}</Text>
                             </View>
                             <TouchableOpacity 
@@ -1105,7 +1107,7 @@ export const UserEventsScreen = () => {
                           
                           <View style={styles.divider} />
                           
-                          <Text style={styles.cartSeatsLabel}>Asientos Seleccionados:</Text>
+                          <Text style={styles.cartSeatsLabel}>{t("Asientos Seleccionados:")}</Text>
                           <View style={styles.cartSeatsRow}>
                             {item.seats.map(seat => (
                               <View key={seat} style={styles.cartSeatBadge}>
@@ -1119,12 +1121,12 @@ export const UserEventsScreen = () => {
                           
                           {item.selectedMerch && item.selectedMerch.length > 0 && (
                             <View style={{ marginTop: SPACING.sm, marginBottom: SPACING.xs }}>
-                              <Text style={styles.cartSeatsLabel}>Souvenirs Vinculados:</Text>
+                              <Text style={styles.cartSeatsLabel}>{t("Souvenirs Vinculados:")}</Text>
                               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
                                 {item.selectedMerch.map(merch => (
                                   <View key={merch.id} style={[styles.cartSeatBadge, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.primary }]}>
                                     <Text style={[styles.cartSeatBadgeText, { color: colors.textPrimary }]}>
-                                      {merch.title} (x{merch.quantity}) - ${merch.price * merch.quantity} MXN
+                                      {t(merch.title)} (x{merch.quantity}) - ${merch.price * merch.quantity} MXN
                                     </Text>
                                     <TouchableOpacity 
                                       onPress={() => {
@@ -1152,7 +1154,7 @@ export const UserEventsScreen = () => {
                           )}
                           
                           <View style={styles.cartSubtotalRow}>
-                            <Text style={styles.cartSubtotalLabel}>Subtotal Evento:</Text>
+                            <Text style={styles.cartSubtotalLabel}>{t("Subtotal Evento:")}</Text>
                             <Text style={styles.cartSubtotalVal}>
                               ${(
                                 item.seats.reduce((sum, seat) => {
@@ -1171,22 +1173,22 @@ export const UserEventsScreen = () => {
                       {/* Cart Summary Card */}
                       <Card style={styles.summaryCard}>
                         <View style={styles.priceSummaryRow}>
-                          <Text style={styles.totalLabel}>Total del Carrito:</Text>
+                          <Text style={styles.totalLabel}>{t("Total del Carrito:")}</Text>
                           <Text style={styles.totalVal}>${calculateCartTotal().toLocaleString()} MXN</Text>
                         </View>
                       </Card>
                     </ScrollView>
 
                     <Button
-                      title="Proceder al Pago"
+                      title={t("Proceder al Pago")}
                       onPress={() => {
                         if (!user) {
                           Alert.alert(
-                            'Inicio de Sesión Requerido',
-                            'Para realizar compras de boletos es necesario estar registrado e iniciar sesión.',
+                            t('Inicio de Sesión Requerido'),
+                            t('Para realizar compras de boletos es necesario estar registrado e iniciar sesión.'),
                             [
-                              { text: 'Cancelar', style: 'cancel' },
-                              { text: 'Iniciar Sesión', onPress: () => {
+                              { text: t('Cancelar'), style: 'cancel' },
+                              { text: t('Iniciar Sesión'), onPress: () => {
                                 setCartModalVisible(false);
                                 router.replace('/(auth)/login' as any);
                               }}
@@ -1204,18 +1206,18 @@ export const UserEventsScreen = () => {
             ) : !paymentSuccess ? (
               /* DETAIL CHECKOUT PANEL (Amazon/Stripe style) */
               <ScrollView contentContainerStyle={{ paddingBottom: SPACING.xl }}>
-                <Text style={styles.checkoutSectionTitle}>Resumen de Orden</Text>
+                <Text style={styles.checkoutSectionTitle}>{t("Resumen de Orden")}</Text>
                 <Card style={styles.checkoutCard}>
                   <View style={styles.checkoutSeatsList}>
                     {cart.map(item => (
                       <View key={item.eventId} style={{ marginBottom: 6 }}>
-                        <Text style={styles.checkoutEventName}>{item.event.title}</Text>
+                        <Text style={styles.checkoutEventName}>{t(item.event.title)}</Text>
                         <Text style={styles.checkoutSeatsListText}>
-                          {item.seats.length} boletos ({item.seats.join(', ')})
+                          {item.seats.length} {t("boletos")} ({item.seats.join(', ')})
                         </Text>
                         {item.selectedMerch && item.selectedMerch.length > 0 && (
                           <Text style={[styles.checkoutSeatsListText, { color: colors.primary }]}>
-                            + Souvenirs: {item.selectedMerch.map(m => `${m.title} (x${m.quantity})`).join(', ')}
+                            + Souvenirs: {item.selectedMerch.map(m => `${t(m.title)} (x${m.quantity})`).join(', ')}
                           </Text>
                         )}
                       </View>
@@ -1223,12 +1225,12 @@ export const UserEventsScreen = () => {
                   </View>
                   <View style={styles.divider} />
                   <View style={styles.checkoutTotalRow}>
-                    <Text style={styles.checkoutTotalLabel}>Monto Final:</Text>
+                    <Text style={styles.checkoutTotalLabel}>{t("Monto Final:")}</Text>
                     <Text style={styles.checkoutTotalVal}>${calculateCartTotal().toLocaleString()} MXN</Text>
                   </View>
                 </Card>
 
-                <Text style={styles.checkoutSectionTitle}>Método de Pago</Text>
+                <Text style={styles.checkoutSectionTitle}>{t("Método de Pago")}</Text>
                 
                 {/* Method selector */}
                 <View style={styles.paymentMethodsGrid}>
@@ -1237,7 +1239,7 @@ export const UserEventsScreen = () => {
                     onPress={() => setPaymentMethod('card')}
                   >
                     <Ionicons name="card-outline" size={20} color={paymentMethod === 'card' ? colors.background : colors.textSecondary} />
-                    <Text style={[styles.methodSelectorText, paymentMethod === 'card' && styles.methodSelectorTextActive]}>Tarjeta</Text>
+                    <Text style={[styles.methodSelectorText, paymentMethod === 'card' && styles.methodSelectorTextActive]}>{t("Tarjeta")}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -1245,7 +1247,7 @@ export const UserEventsScreen = () => {
                     onPress={() => setPaymentMethod('paypal')}
                   >
                     <Ionicons name="logo-paypal" size={20} color={paymentMethod === 'paypal' ? colors.background : colors.textSecondary} />
-                    <Text style={[styles.methodSelectorText, paymentMethod === 'paypal' && styles.methodSelectorTextActive]}>PayPal</Text>
+                    <Text style={[styles.methodSelectorText, paymentMethod === 'paypal' && styles.methodSelectorTextActive]}>{t("PayPal")}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -1253,7 +1255,7 @@ export const UserEventsScreen = () => {
                     onPress={() => setPaymentMethod('oxxo')}
                   >
                     <Ionicons name="barcode-outline" size={20} color={paymentMethod === 'oxxo' ? colors.background : colors.textSecondary} />
-                    <Text style={[styles.methodSelectorText, paymentMethod === 'oxxo' && styles.methodSelectorTextActive]}>OXXO Pay</Text>
+                    <Text style={[styles.methodSelectorText, paymentMethod === 'oxxo' && styles.methodSelectorTextActive]}>{t("OXXO Pay")}</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -1262,7 +1264,7 @@ export const UserEventsScreen = () => {
                   <Card style={styles.cardFormCard}>
                     {savedCard && !useAnotherCard ? (
                       <View>
-                        <Text style={styles.formTitle}>Método de Pago Registrado</Text>
+                        <Text style={styles.formTitle}>{t("Método de Pago Registrado")}</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surfaceAlt, padding: SPACING.md, borderRadius: BORDER_RADIUS.md, marginBottom: SPACING.md }}>
                           <Ionicons name="card" size={28} color={colors.primary} style={{ marginRight: SPACING.sm }} />
                           <View style={{ flex: 1 }}>
@@ -1270,30 +1272,30 @@ export const UserEventsScreen = () => {
                               {savedCard.brand} •••• {savedCard.number.slice(-4)}
                             </Text>
                             <Text style={{ color: colors.textSecondary, fontSize: 10, marginTop: 2 }}>
-                              Titular: {savedCard.holder || savedCard.name} | Vence: {savedCard.expiry}
+                              {t("Titular:")} {savedCard.holder || savedCard.name} | {t("Vence:")} {savedCard.expiry}
                             </Text>
                           </View>
                           <TouchableOpacity onPress={() => setUseAnotherCard(true)}>
-                            <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 11 }}>Cambiar</Text>
+                            <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 11 }}>{t("Cambiar")}</Text>
                           </TouchableOpacity>
                         </View>
                       </View>
                     ) : (
                       <View>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.sm }}>
-                          <Text style={styles.formTitle}>Información de la Tarjeta</Text>
+                          <Text style={styles.formTitle}>{t("Información de la Tarjeta")}</Text>
                           {savedCard && (
                             <TouchableOpacity onPress={() => setUseAnotherCard(false)}>
-                              <Text style={{ color: colors.primary, fontSize: 11, fontWeight: 'bold' }}>Usar guardada</Text>
+                              <Text style={{ color: colors.primary, fontSize: 11, fontWeight: 'bold' }}>{t("Usar guardada")}</Text>
                             </TouchableOpacity>
                           )}
                         </View>
                         
                         <View style={styles.formGroup}>
-                          <Text style={styles.inputLabel}>Titular de la Tarjeta</Text>
+                          <Text style={styles.inputLabel}>{t("Titular de la Tarjeta")}</Text>
                           <TextInput
                             style={styles.cardInput}
-                            placeholder="Nombre completo impreso"
+                            placeholder={t("Nombre completo impreso")}
                             placeholderTextColor={colors.textMuted}
                             value={cardHolder}
                             onChangeText={setCardHolder}
@@ -1301,7 +1303,7 @@ export const UserEventsScreen = () => {
                         </View>
 
                         <View style={styles.formGroup}>
-                          <Text style={styles.inputLabel}>Número de Tarjeta</Text>
+                          <Text style={styles.inputLabel}>{t("Número de Tarjeta")}</Text>
                           <View style={styles.cardNumberContainer}>
                             <TextInput
                               style={[styles.cardInput, { flex: 1 }]}
@@ -1319,7 +1321,7 @@ export const UserEventsScreen = () => {
 
                         <View style={styles.formRow}>
                           <View style={[styles.formGroup, { flex: 1.2 }]}>
-                            <Text style={styles.inputLabel}>Expiración</Text>
+                            <Text style={styles.inputLabel}>{t("Expiración")}</Text>
                             <TextInput
                               style={styles.cardInput}
                               placeholder="MM/AA"
@@ -1349,47 +1351,47 @@ export const UserEventsScreen = () => {
                     {/* Trust badges */}
                     <View style={styles.trustBadges}>
                       <Ionicons name="lock-closed" size={12} color={colors.success} />
-                      <Text style={styles.trustText}>Conexión Encriptada SSL. Cumple con norma PCI-DSS.</Text>
+                      <Text style={styles.trustText}>{t("Conexión Encriptada SSL. Cumple con norma PCI-DSS.")}</Text>
                     </View>
                   </Card>
                 )}
 
                 {paymentMethod === 'paypal' && (
                   <Card style={styles.cardFormCard}>
-                    <Text style={styles.formTitle}>Autenticación Directa PayPal</Text>
+                    <Text style={styles.formTitle}>{t("Autenticación Directa PayPal")}</Text>
                     <Text style={styles.paymentMethodDescText}>
-                      Al presionar pagar, se abrirá un portal seguro de PayPal para autorizar tu saldo o saldo en cuenta bancaria asociada.
+                      {t("Al presionar pagar, se abrirá un portal seguro de PayPal para autorizar tu saldo o saldo en cuenta bancaria asociada.")}
                     </Text>
                     <View style={styles.paypalBanner}>
                       <Ionicons name="logo-paypal" size={24} color="#003087" />
-                      <Text style={styles.paypalBannerText}>Pay Later & Protección al Comprador Activa.</Text>
+                      <Text style={styles.paypalBannerText}>{t("Pay Later & Protección al Comprador Activa.")}</Text>
                     </View>
                   </Card>
                 )}
 
                 {paymentMethod === 'oxxo' && (
                   <Card style={styles.cardFormCard}>
-                    <Text style={styles.formTitle}>Ficha de Pago OXXO Pay</Text>
+                    <Text style={styles.formTitle}>{t("Ficha de Pago OXXO Pay")}</Text>
                     <Text style={styles.paymentMethodDescText}>
-                      Se generará un código de barras único para pagar en efectivo en cualquier tienda OXXO de la República. El saldo se acredita en 5 minutos.
+                      {t("Se generará un código de barras único para pagar en efectivo en cualquier tienda OXXO de la República. El saldo se acredita en 5 minutos.")}
                     </Text>
                     <View style={styles.oxxoBanner}>
                       <Ionicons name="barcode-outline" size={24} color="#f59e0b" />
-                      <Text style={styles.oxxoBannerText}>Comisión de $15 MXN cobrada en ventanilla.</Text>
+                      <Text style={styles.oxxoBannerText}>{t("Comisión de $15 MXN cobrada en ventanilla.")}</Text>
                     </View>
                   </Card>
                 )}
 
                 <View style={styles.checkoutActionRow}>
                   <Button
-                    title="Atrás"
+                    title={t("Atrás")}
                     variant="secondary"
                     disabled={isProcessingPayment}
                     onPress={() => setCheckoutVisible(false)}
                     style={{ flex: 1 }}
                   />
                   <Button
-                    title={isProcessingPayment ? "Procesando..." : "Confirmar y Pagar"}
+                    title={isProcessingPayment ? t("Procesando...") : t("Confirmar y Pagar")}
                     disabled={isProcessingPayment}
                     onPress={handleConfirmCartPayment}
                     style={{ flex: 2 }}
@@ -1400,20 +1402,20 @@ export const UserEventsScreen = () => {
               /* ORDER COMPLETED VIEW */
               <View style={styles.successContainer}>
                 <Ionicons name="checkmark-circle-outline" size={80} color={colors.success} />
-                <Text style={styles.successTitle}>¡Compra Exitosa!</Text>
+                <Text style={styles.successTitle}>{t("¡Compra Exitosa!")}</Text>
                 <Text style={styles.successDesc}>
-                  Todos tus boletos han sido generados con éxito y agregados a tu Wallet digital. Puedes presentarlos sin conexión en la puerta de acceso.
+                  {t("Todos tus boletos han sido generados con éxito y agregados a tu Wallet digital. Puedes presentarlos sin conexión en la puerta de acceso.")}
                 </Text>
 
                 {cart.length > 0 && (
                   <Card style={{ ...styles.successOrderSummary, marginBottom: SPACING.md }}>
                     {cart.map(item => (
                       <View key={item.eventId} style={{ marginBottom: 4 }}>
-                        <Text style={styles.orderSummaryEvent}>{item.event.title}</Text>
-                        <Text style={styles.orderSummarySeats}>Asientos: {item.seats.join(', ')}</Text>
+                        <Text style={styles.orderSummaryEvent}>{t(item.event.title)}</Text>
+                        <Text style={styles.orderSummarySeats}>{t("Asientos:")} {item.seats.join(', ')}</Text>
                         {item.selectedMerch && item.selectedMerch.length > 0 && (
                           <Text style={styles.orderSummarySeats}>
-                            Souvenirs: {item.selectedMerch.map(m => `${m.title} (x${m.quantity})`).join(', ')}
+                            {t("Souvenirs:")} {item.selectedMerch.map(m => `${t(m.title)} (x${m.quantity})`).join(', ')}
                           </Text>
                         )}
                       </View>
@@ -1421,7 +1423,7 @@ export const UserEventsScreen = () => {
                   </Card>
                 )}
                 <Button
-                  title="Entendido, Ir a Eventos"
+                  title={t("Entendido, Ir a Eventos")}
                   onPress={() => {
                     setCartModalVisible(false);
                     setCheckoutVisible(false);

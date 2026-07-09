@@ -27,6 +27,7 @@ import Button from '../../../components/Button';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
+import { useLanguage } from '../../../context/LanguageContext';
 import EditProfileModal from '../../../components/EditProfileModal';
 import { StatusBar } from 'expo-status-bar';
 
@@ -34,6 +35,7 @@ export const OperadorDashboardScreen = () => {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { isDarkMode, colors, toggleTheme } = useTheme();
+  const { t } = useLanguage();
   
   const [ticketCode, setTicketCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -50,11 +52,11 @@ export const OperadorDashboardScreen = () => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch (e) {}
     Alert.alert(
-      'Cerrar Sesión',
-      '¿Estás seguro de que deseas salir de la cuenta de Operador?',
+      t('Cerrar Sesión'),
+      t('¿Estás seguro de que deseas salir de la cuenta de Operador?'),
       [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Cerrar Sesión', style: 'destructive', onPress: () => logout() }
+        { text: t('Cancelar'), style: 'cancel' },
+        { text: t('Cerrar Sesión'), style: 'destructive', onPress: () => logout() }
       ]
     );
   };
@@ -102,7 +104,7 @@ export const OperadorDashboardScreen = () => {
   const handleValidate = async (codeToUse?: string) => {
     const code = (codeToUse || ticketCode).trim();
     if (!code) {
-      Alert.alert('Código Requerido', 'Por favor, ingrese un código de boleto.');
+      Alert.alert(t('Código Requerido'), t('Por favor, ingrese un código de boleto.'));
       return;
     }
 
@@ -111,7 +113,7 @@ export const OperadorDashboardScreen = () => {
     setValidationResult(null);
     setValidationError(null);
 
-    // Simulate haptic scan start
+    // Simulate haptic haptics scan start
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch (e) {}
@@ -132,7 +134,7 @@ export const OperadorDashboardScreen = () => {
       setTicketCode('');
       fetchStats(); // Update totals
     } catch (err: any) {
-      setValidationError(err.message || 'Código de boleto inexistente.');
+      setValidationError(err.message ? t(err.message) : t('Código de boleto inexistente.'));
       try {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       } catch (h) {}
@@ -169,7 +171,7 @@ export const OperadorDashboardScreen = () => {
       const results = await operadorService.searchAttendees(q);
       setSearchResults(results);
     } catch (e) {
-      Alert.alert('Error', 'No se pudo realizar la búsqueda de asistentes.');
+      Alert.alert(t('Error'), t('No se pudo realizar la búsqueda de asistentes.'));
     } finally {
       setSearchLoading(false);
     }
@@ -185,14 +187,14 @@ export const OperadorDashboardScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style={isDarkMode ? 'light' : 'dark'} />
-      <Loader visible={loading} message="Validando boleto..." />
+      <Loader visible={loading} message={t("Validando boleto...")} />
 
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.header}>
           <View style={{ flex: 1, marginRight: SPACING.sm }}>
-            <Text style={styles.title}>Control de Acceso</Text>
-            <Text style={styles.subtitle}>Escaneo en puerta del recinto y registro de boletos.</Text>
+            <Text style={styles.title}>{t("Control de Acceso")}</Text>
+            <Text style={styles.subtitle}>{t("Escaneo en puerta del recinto y registro de boletos.")}</Text>
           </View>
           <View style={styles.headerActions}>
             {/* Theme Toggle Button */}
@@ -240,24 +242,24 @@ export const OperadorDashboardScreen = () => {
           <View style={styles.statsRow}>
             <View style={styles.statMiniCard}>
               <Text style={styles.statMiniVal}>{stats.scanned_today}</Text>
-              <Text style={styles.statMiniLabel}>Escaneados</Text>
+              <Text style={styles.statMiniLabel}>{t("Escaneados")}</Text>
             </View>
             <View style={[styles.statMiniCard, { borderColor: `${colors.success}40` }]}>
               <Text style={[styles.statMiniVal, { color: colors.success }]}>{stats.valid_today}</Text>
-              <Text style={styles.statMiniLabel}>Válidos</Text>
+              <Text style={styles.statMiniLabel}>{t("Válidos")}</Text>
             </View>
             <View style={[styles.statMiniCard, { borderColor: `${colors.error}40` }]}>
               <Text style={[styles.statMiniVal, { color: colors.error }]}>
                 {stats.invalid_today + stats.incidents_today}
               </Text>
-              <Text style={styles.statMiniLabel}>Alertas</Text>
+              <Text style={styles.statMiniLabel}>{t("Alertas")}</Text>
             </View>
           </View>
         )}
 
         {/* Camera or Fallback Scanner Window */}
         <Card style={styles.scannerCard}>
-          <Text style={styles.cardTitle}>Lector QR de Acceso</Text>
+          <Text style={styles.cardTitle}>{t("Lector QR de Acceso")}</Text>
           
           <View style={styles.scannerWrapper}>
             {/* Corner Bracket decorations */}
@@ -269,14 +271,14 @@ export const OperadorDashboardScreen = () => {
             {/* Camera View or Permission Prompt */}
             {!permission ? (
               <View style={styles.qrMockContainer}>
-                <Text style={styles.scannerHint}>Cargando lector...</Text>
+                <Text style={styles.scannerHint}>{t("Cargando lector...")}</Text>
               </View>
             ) : !permission.granted ? (
               <View style={styles.permissionContainer}>
                 <Ionicons name="camera-outline" size={32} color={colors.textMuted} />
-                <Text style={styles.permissionText}>El lector de cámara está inactivo</Text>
+                <Text style={styles.permissionText}>{t("El lector de cámara está inactivo")}</Text>
                 <TouchableOpacity style={styles.permissionBtn} onPress={requestPermission}>
-                  <Text style={styles.permissionBtnText}>Habilitar Cámara</Text>
+                  <Text style={styles.permissionBtnText}>{t("Habilitar Cámara")}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -302,7 +304,7 @@ export const OperadorDashboardScreen = () => {
                 {scanned && (
                   <TouchableOpacity style={styles.scanAgainOverlay} onPress={handleResetScanner}>
                     <Ionicons name="refresh-outline" size={22} color={colors.background} />
-                    <Text style={styles.scanAgainText}>Reactivar Lector</Text>
+                    <Text style={styles.scanAgainText}>{t("Reactivar Lector")}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -313,7 +315,7 @@ export const OperadorDashboardScreen = () => {
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.codeInput}
-              placeholder="Código de boleto (Ej: TKT-VALID)"
+              placeholder={t("Código de boleto (Ej: TKT-VALID)")}
               placeholderTextColor={colors.textMuted}
               value={ticketCode}
               onChangeText={setTicketCode}
@@ -346,21 +348,21 @@ export const OperadorDashboardScreen = () => {
               />
               <View style={styles.resultMetaContainer}>
                 <Text style={[styles.resultTitleText, { color: validationResult.valid ? colors.success : colors.warning }]}>
-                  {validationResult.valid ? 'ACCESO PERMITIDO' : 'BOLETO YA REIVINDICADO'}
+                  {validationResult.valid ? t('ACCESO PERMITIDO') : t('BOLETO YA REIVINDICADO')}
                 </Text>
-                <Text style={styles.resultCodeText}>Código: {validationResult.ticket_code}</Text>
+                <Text style={styles.resultCodeText}>{t("Código:")} {validationResult.ticket_code}</Text>
               </View>
             </View>
 
             <View style={styles.resultDetails}>
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Titular Actual:</Text>
+                <Text style={styles.detailLabel}>{t("Titular Actual:")}</Text>
                 <Text style={styles.detailVal}>{validationResult.owner_name} {validationResult.owner_email ? `(${validationResult.owner_email})` : ''}</Text>
               </View>
 
               {validationResult.original_owner_name && validationResult.original_owner_name !== validationResult.owner_name && (
                 <View style={[styles.detailRow, { borderLeftWidth: 2, borderLeftColor: colors.secondary || colors.primary, paddingLeft: 6 }]}>
-                  <Text style={[styles.detailLabel, { color: colors.secondary || colors.primary, fontWeight: 'bold' }]}>Comprador Original:</Text>
+                  <Text style={[styles.detailLabel, { color: colors.secondary || colors.primary, fontWeight: 'bold' }]}>{t("Comprador Original:")}</Text>
                   <Text style={[styles.detailVal, { color: colors.secondary || colors.primary, fontWeight: 'bold' }]}>
                     {validationResult.original_owner_name} {validationResult.original_owner_email ? `(${validationResult.original_owner_email})` : ''}
                   </Text>
@@ -368,37 +370,37 @@ export const OperadorDashboardScreen = () => {
               )}
 
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Espectáculo:</Text>
-                <Text style={styles.detailVal} numberOfLines={1}>{validationResult.event_title}</Text>
+                <Text style={styles.detailLabel}>{t("Espectáculo:")}</Text>
+                <Text style={styles.detailVal} numberOfLines={1}>{t(validationResult.event_title)}</Text>
               </View>
 
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Recinto / Lugar:</Text>
-                <Text style={styles.detailVal}>{validationResult.venue_name}</Text>
+                <Text style={styles.detailLabel}>{t("Recinto / Lugar:")}</Text>
+                <Text style={styles.detailVal}>{t(validationResult.venue_name)}</Text>
               </View>
 
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Zona / Asiento:</Text>
+                <Text style={styles.detailLabel}>{t("Zona / Asiento:")}</Text>
                 <Text style={styles.detailVal}>{validationResult.seat_label}</Text>
               </View>
 
               {validationResult.date && (
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Fecha y Hora:</Text>
+                  <Text style={styles.detailLabel}>{t("Fecha y Hora:")}</Text>
                   <Text style={styles.detailVal}>{validationResult.date} {validationResult.time ? `a las ${validationResult.time}` : ''}</Text>
                 </View>
               )}
 
               {validationResult.price !== undefined && (
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Precio Pagado:</Text>
+                  <Text style={styles.detailLabel}>{t("Precio Pagado:")}</Text>
                   <Text style={styles.detailVal}>${validationResult.price} MXN</Text>
                 </View>
               )}
 
               {!validationResult.valid && validationResult.redeemed_at && (
                 <View style={[styles.detailRow, { borderTopWidth: 0.5, borderTopColor: colors.border, marginTop: 4, paddingTop: 4 }]}>
-                  <Text style={[styles.detailLabel, { color: colors.warning }]}>Redimido el:</Text>
+                  <Text style={[styles.detailLabel, { color: colors.warning }]}>{t("Redimido el:")}</Text>
                   <Text style={[styles.detailVal, { color: colors.warning }]}>
                     {new Date(validationResult.redeemed_at).toLocaleTimeString()} ({new Date(validationResult.redeemed_at).toLocaleDateString()})
                   </Text>
@@ -408,7 +410,7 @@ export const OperadorDashboardScreen = () => {
 
             {!validationResult.valid && (
               <Button
-                title="Registrar Incidencia"
+                title={t("Registrar Incidencia")}
                 variant="danger"
                 size="sm"
                 icon={<Ionicons name="shield-outline" size={14} color={colors.background} />}
@@ -427,13 +429,13 @@ export const OperadorDashboardScreen = () => {
             <View style={styles.resultHeader}>
               <Ionicons name="close-circle" size={36} color={colors.error} />
               <View style={styles.resultMetaContainer}>
-                <Text style={[styles.resultTitleText, { color: colors.error }]}>ACCESO DENEGADO</Text>
-                <Text style={styles.resultCodeText}>Error de Validación</Text>
+                <Text style={[styles.resultTitleText, { color: colors.error }]}>{t("ACCESO DENEGADO")}</Text>
+                <Text style={styles.resultCodeText}>{t("Error de Validación")}</Text>
               </View>
             </View>
             <Text style={styles.errorText}>{validationError}</Text>
             <Button
-              title="Reportar como Sospechoso"
+              title={t("Reportar como Sospechoso")}
               variant="secondary"
               size="sm"
               icon={<Ionicons name="flag-outline" size={14} color={colors.textPrimary} />}
@@ -448,11 +450,11 @@ export const OperadorDashboardScreen = () => {
 
         {/* MANUAL ATTENDEE SEARCH */}
         <Card style={styles.searchCard}>
-          <Text style={styles.cardTitle}>Búsqueda Manual de Asistentes</Text>
+          <Text style={styles.cardTitle}>{t("Búsqueda Manual de Asistentes")}</Text>
           <View style={styles.searchRow}>
             <TextInput
               style={styles.searchInput}
-              placeholder="Nombre, correo o código..."
+              placeholder={t("Nombre, correo o código...")}
               placeholderTextColor={colors.textMuted}
               value={searchQuery}
               onChangeText={(text) => {
@@ -467,7 +469,7 @@ export const OperadorDashboardScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {searchLoading && <Text style={styles.searchStatus}>Buscando...</Text>}
+          {searchLoading && <Text style={styles.searchStatus}>{t("Buscando...")}</Text>}
 
           {searchResults.length > 0 && (
             <View style={styles.searchResultsContainer}>
@@ -481,7 +483,7 @@ export const OperadorDashboardScreen = () => {
                       <Text style={styles.resultOwner}>{item.owner_name}</Text>
                       <Text style={styles.resultEmail}>{item.owner_email}</Text>
                       <Text style={styles.resultMeta} numberOfLines={1}>
-                        {item.event_title} • {item.seat_label}
+                        {t(item.event_title)} • {item.seat_label}
                       </Text>
                       <Text style={styles.resultCode}>{item.ticket_code}</Text>
                     </View>
@@ -497,15 +499,15 @@ export const OperadorDashboardScreen = () => {
                             setSearchQuery('');
                           }}
                         >
-                          <Text style={styles.validateManualText}>Validar</Text>
+                          <Text style={styles.validateManualText}>{t("Validar")}</Text>
                         </TouchableOpacity>
                       ) : isUsed ? (
                         <View style={[styles.statusTag, styles.statusTagUsed]}>
-                          <Text style={styles.statusTagUsedText}>Usado</Text>
+                          <Text style={styles.statusTagUsedText}>{t("Usado")}</Text>
                         </View>
                       ) : (
                         <View style={[styles.statusTag, styles.statusTagRefunded]}>
-                          <Text style={styles.statusTagRefundedText}>Devuelto</Text>
+                          <Text style={styles.statusTagRefundedText}>{t("Devuelto")}</Text>
                         </View>
                       )}
                     </View>
@@ -518,14 +520,14 @@ export const OperadorDashboardScreen = () => {
 
         {/* SIMULATOR PRESET BADGES */}
         <View style={styles.presetSection}>
-          <Text style={styles.presetTitle}>Simulación de Escaneo (Desarrollo)</Text>
+          <Text style={styles.presetTitle}>{t("Simulación de Escaneo (Desarrollo)")}</Text>
           <View style={styles.presetRow}>
             <TouchableOpacity 
               style={[styles.presetBadge, { backgroundColor: `${colors.success}20`, borderColor: colors.success }]}
               onPress={() => triggerPreset('TKT-VALID-123')}
             >
               <Ionicons name="checkmark-circle-outline" size={14} color={colors.success} />
-              <Text style={[styles.presetText, { color: colors.success }]}>QR Válido</Text>
+              <Text style={[styles.presetText, { color: colors.success }]}>{t("QR Válido")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -533,7 +535,7 @@ export const OperadorDashboardScreen = () => {
               onPress={() => triggerPreset('TKT-USED-456')}
             >
               <Ionicons name="alert-circle-outline" size={14} color={colors.warning} />
-              <Text style={[styles.presetText, { color: colors.warning }]}>QR Usado</Text>
+              <Text style={[styles.presetText, { color: colors.warning }]}>{t("QR Usado")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -541,7 +543,7 @@ export const OperadorDashboardScreen = () => {
               onPress={() => triggerPreset('TKT-INVALID-999')}
             >
               <Ionicons name="close-circle-outline" size={14} color={colors.error} />
-              <Text style={[styles.presetText, { color: colors.error }]}>QR Inválido</Text>
+              <Text style={[styles.presetText, { color: colors.error }]}>{t("QR Inválido")}</Text>
             </TouchableOpacity>
           </View>
         </View>

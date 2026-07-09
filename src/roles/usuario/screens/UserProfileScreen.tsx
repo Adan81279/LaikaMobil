@@ -34,6 +34,7 @@ import { useRouter } from 'expo-router';
 import APP_CONFIG from '../../../core/config/app.config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
+import { useLanguage } from '../../../context/LanguageContext';
 
 const AVAILABLE_GENRES = ['Pop', 'Rock', 'Electrónica', 'Urbano', 'Convención', 'Indie'];
 
@@ -41,6 +42,7 @@ export const UserProfileScreen = () => {
   const { isDarkMode, colors, toggleTheme } = useTheme();
   const styles = getStyles(colors, isDarkMode);
   const { user, logout, savedCard, saveCardDetails, clearSavedCard } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const router = useRouter();
   const isFocused = useIsFocused();
   const [loading, setLoading] = useState(false);
@@ -138,12 +140,12 @@ export const UserProfileScreen = () => {
       <View style={styles.container}>
         <View style={styles.guestContainer}>
           <Ionicons name="person-circle-outline" size={80} color={colors.textMuted} style={{ marginBottom: SPACING.md }} />
-          <Text style={styles.guestTitle}>Mi Cuenta Laika Club</Text>
+          <Text style={styles.guestTitle}>{t("Mi Cuenta Laika Club")}</Text>
           <Text style={styles.guestDesc}>
-            Inicia sesión o regístrate para poder comprar boletos, recibir reembolsos, registrar tus pases y acceder a tu Wallet digital.
+            {t("Inicia sesión o regístrate para poder comprar boletos, recibir reembolsos, registrar tus pases y acceder a tu Wallet digital.")}
           </Text>
           <Button
-            title="Iniciar Sesión / Registrarse"
+            title={t("Iniciar Sesión / Registrarse")}
             onPress={() => router.replace('/(auth)/login' as any)}
             style={styles.guestBtn}
           />
@@ -321,7 +323,7 @@ export const UserProfileScreen = () => {
             </View>
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={styles.profileName}>{user?.name || 'Usuario Laika'}</Text>
+            <Text style={styles.profileName}>{user?.name || t('Usuario Laika')}</Text>
             <Text style={styles.profileEmail}>{user?.email || 'usuario@laikaclub.com'}</Text>
           </View>
 
@@ -329,7 +331,7 @@ export const UserProfileScreen = () => {
           <View style={[styles.loyaltyBadgeSmall, { borderColor: tierColor }]}>
             <Ionicons name={tierIcon as any} size={14} color={tierColor} />
             <Text style={[styles.loyaltyTextSmall, { color: tierColor }]}>
-              {loyaltyTier}
+              {t('Socio')} {t(loyaltyTier)}
             </Text>
           </View>
         </View>
@@ -342,7 +344,7 @@ export const UserProfileScreen = () => {
           >
             <Ionicons name="cog-outline" size={16} color={activeTab === 'profile' ? colors.background : colors.textSecondary} />
             <Text style={[styles.tabText, activeTab === 'profile' && styles.tabTextActive]}>
-              Ajustes
+              {t('Ajustes')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -351,7 +353,7 @@ export const UserProfileScreen = () => {
           >
             <Ionicons name="receipt-outline" size={16} color={activeTab === 'history' ? colors.background : colors.textSecondary} />
             <Text style={[styles.tabText, activeTab === 'history' && styles.tabTextActive]}>
-              Historial
+              {t('Historial')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -360,7 +362,7 @@ export const UserProfileScreen = () => {
           >
             <Ionicons name="compass-outline" size={16} color={activeTab === 'explore' ? colors.background : colors.textSecondary} />
             <Text style={[styles.tabText, activeTab === 'explore' && styles.tabTextActive]}>
-              Descubrir
+              {t('Descubrir')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -369,7 +371,7 @@ export const UserProfileScreen = () => {
           >
             <Ionicons name="gift-outline" size={16} color={activeTab === 'benefits' ? colors.background : colors.textSecondary} />
             <Text style={[styles.tabText, activeTab === 'benefits' && styles.tabTextActive]}>
-              Beneficios
+              {t('Beneficios')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -377,7 +379,7 @@ export const UserProfileScreen = () => {
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         {/* Loader if fetching */}
-        {loading && <Loader visible={true} message="Cargando perfil..." />}
+        {loading && <Loader visible={true} message={t("Cargando perfil...")} />}
 
         {/* Loyalty Progress Banner (Rendered at top of scroll view for context) */}
         <Card style={styles.loyaltyCard}>
@@ -386,23 +388,23 @@ export const UserProfileScreen = () => {
               <Ionicons name={tierIcon as any} size={24} color={tierColor} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.loyaltyLabel}>PROGRAMA DE FIDELIDAD LAIKA CLUB</Text>
-              <Text style={styles.loyaltyTitle}>Socio Nivel {loyaltyTier}</Text>
+              <Text style={styles.loyaltyLabel}>{t('PROGRAMA DE FIDELIDAD LAIKA CLUB')}</Text>
+              <Text style={styles.loyaltyTitle}>{t('Socio Nivel')} {t(loyaltyTier)}</Text>
             </View>
             <View style={styles.loyaltyCountBadge}>
-              <Text style={styles.loyaltyCountText}>{validTicketCount} Shows</Text>
+              <Text style={styles.loyaltyCountText}>{validTicketCount} {t('Shows')}</Text>
             </View>
           </View>
           <Text style={styles.loyaltyDesc}>
-            {loyaltyTier === 'Bronce' && '¡Asiste a 3 eventos para subir a Socio Plata y recibir preventas anticipadas!'}
-            {loyaltyTier === 'Plata' && '¡Asiste a 6 eventos para ser Socio Oro, obtener 10% de descuento en el Bazar y fila rápida!'}
-            {loyaltyTier === 'Oro' && '¡Felicidades! Tienes preventas exclusivas, 10% de descuento en Bazaar y acceso VIP.'}
+            {loyaltyTier === 'Bronce' && t('¡Asiste a 3 eventos para subir a Socio Plata y recibir preventas anticipadas!')}
+            {loyaltyTier === 'Plata' && t('¡Asiste a 6 eventos para ser Socio Oro, obtener 10% de descuento en el Bazar y fila rápida!')}
+            {loyaltyTier === 'Oro' && t('¡Felicidades! Tienes preventas exclusivas, 10% de descuento en Bazaar y acceso VIP.')}
           </Text>
           
           <View style={styles.progressBarWrapper}>
             <View style={styles.progressTextRow}>
-              <Text style={styles.progressLabel}>Progreso al nivel {nextTier}</Text>
-              <Text style={styles.progressVal}>{Math.min(validTicketCount, nextTierThreshold)} / {nextTierThreshold} Shows</Text>
+              <Text style={styles.progressLabel}>{t('Progreso al nivel')} {t(nextTier)}</Text>
+              <Text style={styles.progressVal}>{Math.min(validTicketCount, nextTierThreshold)} / {nextTierThreshold} {t('Shows')}</Text>
             </View>
             <View style={styles.progressBarBg}>
               <View style={[styles.progressBarFill, { width: `${progressToNext * 100}%`, backgroundColor: tierColor }]} />
@@ -415,7 +417,7 @@ export const UserProfileScreen = () => {
           <View style={styles.tabContent}>
             {/* Account Settings */}
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Ajustes de Perfil</Text>
+              <Text style={styles.sectionTitle}>{t('Ajustes de Perfil')}</Text>
               <TouchableOpacity
                 onPress={() => {
                   try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch (e) {}
@@ -424,57 +426,76 @@ export const UserProfileScreen = () => {
                 style={styles.editLink}
               >
                 <Ionicons name="create-outline" size={14} color={colors.primary} />
-                <Text style={styles.editLinkText}>Editar Perfil</Text>
+                <Text style={styles.editLinkText}>{t('Editar Perfil')}</Text>
               </TouchableOpacity>
             </View>
             <Card>
               <View style={styles.settingsRow}>
                 <Ionicons name="person-outline" size={18} color={colors.primary} />
                 <View style={styles.settingsMeta}>
-                  <Text style={styles.settingsLabel}>Nombre de usuario</Text>
-                  <Text style={styles.settingsVal}>{user?.name || 'Usuario'}</Text>
+                  <Text style={styles.settingsLabel}>{t('Nombre de usuario')}</Text>
+                  <Text style={styles.settingsVal}>{user?.name || t('Usuario')}</Text>
                 </View>
               </View>
               <View style={styles.settingsRow}>
                 <Ionicons name="mail-outline" size={18} color={colors.primary} />
                 <View style={styles.settingsMeta}>
-                  <Text style={styles.settingsLabel}>Correo electrónico</Text>
+                  <Text style={styles.settingsLabel}>{t('Correo electrónico')}</Text>
                   <Text style={styles.settingsVal}>{user?.email || 'usuario@laika.com'}</Text>
                 </View>
               </View>
               <View style={[styles.settingsRow, { borderBottomWidth: 0 }]}>
                 <Ionicons name="key-outline" size={18} color={colors.primary} />
                 <View style={styles.settingsMeta}>
-                  <Text style={styles.settingsLabel}>Rol en el sistema</Text>
+                  <Text style={styles.settingsLabel}>{t('Rol en el sistema')}</Text>
                   <Text style={[styles.settingsVal, { textTransform: 'uppercase', color: colors.success }]}>
-                    {user?.role || 'usuario'}
+                    {t(user?.role || 'usuario')}
                   </Text>
                 </View>
               </View>
             </Card>
 
             {/* Preferencia de Tema */}
-            <Text style={[styles.sectionTitle, { marginTop: SPACING.sm }]}>Preferencia de Tema</Text>
+            <Text style={[styles.sectionTitle, { marginTop: SPACING.sm }]}>{t('Preferencia de Tema')}</Text>
             <Card style={{ paddingVertical: 4 }}>
               <TouchableOpacity style={[styles.settingsRow, { borderBottomWidth: 0, paddingVertical: SPACING.sm }]} onPress={toggleTheme}>
                 <Ionicons name={isDarkMode ? 'moon-outline' : 'sunny-outline'} size={18} color={colors.primary} />
                 <View style={styles.settingsMeta}>
-                  <Text style={styles.settingsLabel}>Modo de visualización</Text>
-                  <Text style={styles.settingsVal}>{isDarkMode ? 'Oscuro (Monocromático)' : 'Claro (Monocromático)'}</Text>
+                  <Text style={styles.settingsLabel}>{t('Modo de visualización')}</Text>
+                  <Text style={styles.settingsVal}>{isDarkMode ? t('Oscuro (Monocromático)') : t('Claro (Monocromático)')}</Text>
+                </View>
+                <Ionicons name="swap-horizontal-outline" size={16} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </Card>
+
+            {/* Preferencia de Idioma */}
+            <Text style={[styles.sectionTitle, { marginTop: SPACING.sm }]}>{t('Preferencia de Idioma')}</Text>
+            <Card style={{ paddingVertical: 4 }}>
+              <TouchableOpacity 
+                style={[styles.settingsRow, { borderBottomWidth: 0, paddingVertical: SPACING.sm }]} 
+                onPress={async () => {
+                  try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch (e) {}
+                  await setLanguage(language === 'es' ? 'en' : 'es');
+                }}
+              >
+                <Ionicons name="language-outline" size={18} color={colors.primary} />
+                <View style={styles.settingsMeta}>
+                  <Text style={styles.settingsLabel}>{t('Idioma de la aplicación')}</Text>
+                  <Text style={styles.settingsVal}>{language === 'es' ? 'Español' : 'English'}</Text>
                 </View>
                 <Ionicons name="swap-horizontal-outline" size={16} color={colors.textSecondary} />
               </TouchableOpacity>
             </Card>
 
             {/* Payment Method Manager */}
-            <Text style={[styles.sectionTitle, { marginTop: SPACING.sm }]}>Métodos de Pago Guardados</Text>
+            <Text style={[styles.sectionTitle, { marginTop: SPACING.sm }]}>{t('Métodos de Pago Guardados')}</Text>
             <Card>
               {savedCard ? (
                 <View style={styles.savedCardContainer}>
                   <View style={styles.cardHeaderRow}>
                     <View style={styles.cardHeaderLeft}>
                       <Ionicons name="card" size={24} color={colors.primary} />
-                      <Text style={styles.cardInfoBrand}>Visa •••• {savedCard.number.slice(-4)}</Text>
+                      <Text style={styles.cardInfoBrand}>{t('Visa •••• ')}{savedCard.number.slice(-4)}</Text>
                     </View>
                     <TouchableOpacity onPress={handleRemoveCard} style={styles.deleteCardBtn}>
                       <Ionicons name="trash-outline" size={16} color={colors.error} />
@@ -482,13 +503,13 @@ export const UserProfileScreen = () => {
                   </View>
                   <View style={styles.cardDetailsRow}>
                     <View>
-                      <Text style={styles.cardDetailsLabel}>TITULAR</Text>
+                      <Text style={styles.cardDetailsLabel}>{t('TITULAR')}</Text>
                       <Text style={styles.cardDetailsText}>
-                        {(savedCard.name || savedCard.holder || 'Titular de la Cuenta').toUpperCase()}
+                        {(savedCard.name || savedCard.holder || t('Titular de la Cuenta')).toUpperCase()}
                       </Text>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={styles.cardDetailsLabel}>VENCE</Text>
+                      <Text style={styles.cardDetailsLabel}>{t('VENCE')}</Text>
                       <Text style={styles.cardDetailsText}>{savedCard.expiry}</Text>
                     </View>
                   </View>
@@ -496,12 +517,12 @@ export const UserProfileScreen = () => {
               ) : (
                 <View style={styles.noCardContainer}>
                   <Ionicons name="card-outline" size={32} color={colors.textMuted} style={{ marginBottom: 4 }} />
-                  <Text style={styles.noCardTitle}>No tienes tarjetas guardadas</Text>
+                  <Text style={styles.noCardTitle}>{t('No tienes tarjetas guardadas')}</Text>
                   <Text style={styles.noCardDesc}>
-                    Para guardar una tarjeta haz una compra de boletos o registra una tarjeta de pruebas aquí.
+                    {t('Para guardar una tarjeta haz una compra de boletos o registra una tarjeta de pruebas aquí.')}
                   </Text>
                   <Button
-                    title="Vincular Tarjeta Demo"
+                    title={t('Vincular Tarjeta Demo')}
                     variant="secondary"
                     onPress={handleRegisterDemoCard}
                     style={{ marginTop: SPACING.md }}
@@ -511,10 +532,10 @@ export const UserProfileScreen = () => {
             </Card>
 
             {/* Musical Preferences Selector */}
-            <Text style={[styles.sectionTitle, { marginTop: SPACING.sm }]}>Géneros Musicales Preferidos</Text>
+            <Text style={[styles.sectionTitle, { marginTop: SPACING.sm }]}>{t('Géneros Musicales Preferidos')}</Text>
             <Card>
               <Text style={styles.cardDesc}>
-                Selecciona tus géneros favoritos para que podamos recomendarte eventos alineados a tus gustos.
+                {t('Selecciona tus géneros favoritos para que podamos recomendarte eventos alineados a tus gustos.')}
               </Text>
               <View style={styles.genresContainer}>
                 {AVAILABLE_GENRES.map((genre) => {
@@ -532,7 +553,7 @@ export const UserProfileScreen = () => {
                         style={{ marginRight: 4 }}
                       />
                       <Text style={[styles.genreTagText, active && styles.genreTagTextActive]}>
-                        {genre}
+                        {t(genre)}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -541,7 +562,7 @@ export const UserProfileScreen = () => {
             </Card>
 
             <Button
-              title="Cerrar Sesión"
+              title={t('Cerrar Sesión')}
               variant="danger"
               onPress={handleLogout}
               icon={<Ionicons name="log-out-outline" size={18} color={colors.background} />}
@@ -560,7 +581,7 @@ export const UserProfileScreen = () => {
                 onPress={() => setHistorySubTab('tickets')}
               >
                 <Text style={[styles.subTabText, historySubTab === 'tickets' && styles.subTabTextActive]}>
-                  Boletos ({tickets.length})
+                  {t('Boletos')} ({tickets.length})
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -568,7 +589,7 @@ export const UserProfileScreen = () => {
                 onPress={() => setHistorySubTab('merch')}
               >
                 <Text style={[styles.subTabText, historySubTab === 'merch' && styles.subTabTextActive]}>
-                  Bazar ({merchOrders.length})
+                  {t('Bazar')} ({merchOrders.length})
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -576,7 +597,7 @@ export const UserProfileScreen = () => {
                 onPress={() => setHistorySubTab('opinions')}
               >
                 <Text style={[styles.subTabText, historySubTab === 'opinions' && styles.subTabTextActive]}>
-                  Calificar Eventos
+                  {t('Calificar Eventos')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -586,42 +607,42 @@ export const UserProfileScreen = () => {
               <View style={{ gap: SPACING.md }}>
                 {tickets.length === 0 ? (
                   <Card style={styles.emptyCard}>
-                    <Text style={styles.emptyText}>No has comprado boletos aún.</Text>
+                    <Text style={styles.emptyText}>{t('No has comprado boletos aún.')}</Text>
                   </Card>
                 ) : (
-                  tickets.map((t) => (
-                    <Card key={t.id} style={styles.ticketHistoryCard}>
+                  tickets.map((tkt) => (
+                    <Card key={tkt.id} style={styles.ticketHistoryCard}>
                       <View style={styles.ticketHistoryHeader}>
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.ticketEventTitle} numberOfLines={1}>{t.event_title || t.event_name || t.eventName || 'Espectáculo'}</Text>
-                          <Text style={styles.ticketVenue}>{t.venue_name || t.venue || 'Recinto Central'}</Text>
+                          <Text style={styles.ticketEventTitle} numberOfLines={1}>{t(tkt.event_title || tkt.event_name || tkt.eventName || 'Espectáculo')}</Text>
+                          <Text style={styles.ticketVenue}>{t(tkt.venue_name || tkt.venue || 'Recinto Central')}</Text>
                         </View>
                         <Text style={[
-                          styles.ticketStatusText,
-                          t.status === 'valid' ? styles.statusValid :
-                          t.status === 'used' ? styles.statusUsed : styles.statusRefunded
+                           styles.ticketStatusText,
+                           tkt.status === 'valid' ? styles.statusValid :
+                           tkt.status === 'used' ? styles.statusUsed : styles.statusRefunded
                         ]}>
-                          {t.status === 'valid' ? 'VIGENTE' :
-                           t.status === 'used' ? 'CANJEADO' : 'REEMBOLSADO'}
+                          {tkt.status === 'valid' ? t('VIGENTE') :
+                           tkt.status === 'used' ? t('CANJEADO') : t('REEMBOLSADO')}
                         </Text>
                       </View>
                       <View style={styles.ticketMetaGrid}>
                         <View>
-                          <Text style={styles.metaLabel}>FECHA Y HORA</Text>
-                          <Text style={styles.metaText}>{(t.date || t.event_date || 'Fecha')} | {(t.time || t.event_time || 'N/A')}</Text>
+                          <Text style={styles.metaLabel}>{t('FECHA Y HORA')}</Text>
+                          <Text style={styles.metaText}>{(tkt.date || tkt.event_date || 'Fecha')} | {(tkt.time || tkt.event_time || 'N/A')}</Text>
                         </View>
                         <View style={{ alignItems: 'flex-end' }}>
-                          <Text style={styles.metaLabel}>ASIENTO</Text>
-                          <Text style={styles.metaText}>{t.seat_label || t.seat_id || 'N/A'}</Text>
+                          <Text style={styles.metaLabel}>{t('ASIENTO')}</Text>
+                          <Text style={styles.metaText}>{tkt.seat_label || tkt.seat_id || 'N/A'}</Text>
                         </View>
                       </View>
-                      {t.related_merch && t.related_merch.length > 0 && (
+                      {tkt.related_merch && tkt.related_merch.length > 0 && (
                         <View style={{ marginTop: SPACING.sm, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: SPACING.sm }}>
-                          <Text style={[styles.metaLabel, { marginBottom: 4 }]}>SOUVENIRS ADQUIRIDOS</Text>
-                          {t.related_merch.map((m, idx) => (
+                          <Text style={[styles.metaLabel, { marginBottom: 4 }]}>{t('SOUVENIRS ADQUIRIDOS')}</Text>
+                          {tkt.related_merch.map((m, idx) => (
                             <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
                               <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
-                                • {m.title} (x{m.quantity})
+                                • {t(m.title)} (x{m.quantity})
                               </Text>
                               <Text style={{ color: colors.background, fontSize: 11, fontWeight: 'bold' }}>
                                 ${m.price * m.quantity} MXN
@@ -630,14 +651,14 @@ export const UserProfileScreen = () => {
                           ))}
                         </View>
                       )}
-                      {t.status === 'valid' && (
+                      {tkt.status === 'valid' && (
                         <Button
-                          title="Ver Código QR Acceso"
+                          title={t('Ver Código QR Acceso')}
                           variant="secondary"
                           icon={<Ionicons name="qr-code-outline" size={14} color={colors.background} />}
                           onPress={() => {
                             try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
-                            setSelectedTicketForQR(t);
+                            setSelectedTicketForQR(tkt);
                             setIsQRModalVisible(true);
                           }}
                           style={{ marginTop: SPACING.sm }}
@@ -654,37 +675,37 @@ export const UserProfileScreen = () => {
               <View style={{ gap: SPACING.md }}>
                 {merchOrders.length === 0 ? (
                   <Card style={styles.emptyCard}>
-                    <Text style={styles.emptyText}>No tienes pedidos del Bazar.</Text>
+                    <Text style={styles.emptyText}>{t('No tienes pedidos del Bazar.')}</Text>
                   </Card>
                 ) : (
                   merchOrders.map((ord) => (
                     <Card key={ord.id} style={styles.orderCard}>
                       <View style={styles.orderHeader}>
-                        <Text style={styles.orderId}>Código: {ord.id}</Text>
+                        <Text style={styles.orderId}>{t('Código:')} {ord.id}</Text>
                         <View style={[
                           styles.orderStatusBadge,
                           ord.status === 'delivered' ? styles.orderStatusDelivered : styles.orderStatusPreparing
                         ]}>
                           <Text style={styles.orderStatusText}>
-                            {ord.status === 'delivered' ? 'ENTREGADO' : 'PREPARANDO'}
+                            {ord.status === 'delivered' ? t('ENTREGADO') : t('PREPARANDO')}
                           </Text>
                         </View>
                       </View>
-                      <Text style={styles.orderDate}>Fecha: {new Date(ord.purchased_at).toLocaleDateString()}</Text>
+                      <Text style={styles.orderDate}>{t('Fecha:')} {new Date(ord.purchased_at).toLocaleDateString()}</Text>
 
                       {ord.items.map((it, index) => (
                         <View key={index} style={styles.orderItemRow}>
                           <Image source={{ uri: it.image }} style={styles.orderItemThumb} />
                           <View style={{ flex: 1 }}>
-                            <Text style={styles.orderItemTitle}>{it.title}</Text>
-                            <Text style={styles.orderItemQuantity}>Cantidad: {it.quantity} | ${it.price} c/u</Text>
+                            <Text style={styles.orderItemTitle}>{t(it.title)}</Text>
+                            <Text style={styles.orderItemQuantity}>{t('Cantidad')}: {it.quantity} | ${it.price} c/u</Text>
                           </View>
                           <Text style={styles.orderItemSubtotal}>${it.price * it.quantity}</Text>
                         </View>
                       ))}
 
                       <View style={styles.orderFooter}>
-                        <Text style={styles.orderTotalLabel}>TOTAL DE COMPRA</Text>
+                        <Text style={styles.orderTotalLabel}>{t('TOTAL DE COMPRA')}</Text>
                         <Text style={styles.orderTotalVal}>${ord.total}</Text>
                       </View>
                     </Card>
@@ -697,35 +718,35 @@ export const UserProfileScreen = () => {
             {historySubTab === 'opinions' && (
               <View style={{ gap: SPACING.md }}>
                 <Text style={styles.cardDesc}>
-                  Únicamente las personas que compraron boletos para un concierto y ya asistieron pueden calificar y dejar su opinión pública.
+                  {t('Únicamente las personas que compraron boletos para un concierto y ya asistieron pueden calificar y dejar su opinión pública.')}
                 </Text>
 
                 {/* Submit new review section */}
                 <Card style={{ gap: SPACING.sm }}>
-                  <Text style={styles.inputLabel}>Seleccionar Evento Comprado</Text>
+                  <Text style={styles.inputLabel}>{t('Seleccionar Evento Comprado')}</Text>
                   <View style={styles.pickerContainer}>
                     {tickets.length === 0 ? (
-                      <Text style={styles.pickerPlaceholder}>No has comprado boletos para ningún evento</Text>
+                      <Text style={styles.pickerPlaceholder}>{t('No has comprado boletos para ningún evento')}</Text>
                     ) : (
-                      tickets.map((t) => (
+                      tickets.map((tkt) => (
                         <TouchableOpacity
-                          key={t.id}
+                          key={tkt.id}
                           style={[
                             styles.pickerItem,
-                            reviewEventId === t.event_id && styles.pickerItemActive,
+                            reviewEventId === tkt.event_id && styles.pickerItemActive,
                           ]}
                           onPress={() => {
-                            setReviewEventId(t.event_id);
-                            setReviewEventTitle(t.event_title);
+                            setReviewEventId(tkt.event_id);
+                            setReviewEventTitle(tkt.event_title);
                           }}
                         >
                           <Text
                             style={[
                               styles.pickerItemText,
-                              reviewEventId === t.event_id && styles.pickerItemTextActive,
+                              reviewEventId === tkt.event_id && styles.pickerItemTextActive,
                             ]}
                           >
-                            {t.event_title} ({t.seat_label})
+                            {t(tkt.event_title)} ({tkt.seat_label})
                           </Text>
                         </TouchableOpacity>
                       ))
@@ -758,14 +779,14 @@ export const UserProfileScreen = () => {
                     style={styles.textArea}
                     multiline
                     numberOfLines={3}
-                    placeholder="Comparte tu experiencia acerca del show, audio del recinto, organización..."
+                    placeholder={t("Comparte tu experiencia acerca del show, audio del recinto, organización...")}
                     placeholderTextColor={colors.textMuted}
                     value={reviewComment}
                     onChangeText={setReviewComment}
                   />
 
                   <Button
-                    title="Publicar Calificación"
+                    title={t("Publicar Calificación")}
                     disabled={tickets.length === 0 || !reviewEventId}
                     onPress={handleSubmitReview}
                     style={{ marginTop: SPACING.sm }}
@@ -773,16 +794,16 @@ export const UserProfileScreen = () => {
                 </Card>
 
                 {/* Opinions history list */}
-                <Text style={[styles.sectionTitle, { marginTop: SPACING.sm }]}>Mis Opiniones Enviadas</Text>
+                <Text style={[styles.sectionTitle, { marginTop: SPACING.sm }]}>{t("Mis Opiniones Enviadas")}</Text>
                 {opinions.length === 0 ? (
                   <Card style={styles.emptyCard}>
-                    <Text style={styles.emptyText}>No has enviado ninguna opinión aún.</Text>
+                    <Text style={styles.emptyText}>{t("No has enviado ninguna opinión aún.")}</Text>
                   </Card>
                 ) : (
                   opinions.map((op) => (
                     <Card key={op.id} style={styles.opinionHistoryCard}>
                       <View style={styles.opinionHeaderRow}>
-                        <Text style={styles.opinionEvent} numberOfLines={1}>{op.event_title}</Text>
+                        <Text style={styles.opinionEvent} numberOfLines={1}>{t(op.event_title)}</Text>
                         <View style={styles.opinionStars}>
                           {[1, 2, 3, 4, 5].map((star) => (
                             <Ionicons
@@ -795,7 +816,7 @@ export const UserProfileScreen = () => {
                         </View>
                       </View>
                       <Text style={styles.opinionComment}>"{op.comment}"</Text>
-                      <Text style={styles.opinionMeta}>Enviado el: {new Date(op.created_at).toLocaleDateString()}</Text>
+                      <Text style={styles.opinionMeta}>{t("Enviado el:")} {new Date(op.created_at).toLocaleDateString()}</Text>
                     </Card>
                   ))
                 )}
@@ -808,17 +829,17 @@ export const UserProfileScreen = () => {
         {activeTab === 'explore' && (
           <View style={styles.tabContent}>
             {/* Followed Artists */}
-            <Text style={styles.sectionTitle}>Artistas que sigo</Text>
+            <Text style={styles.sectionTitle}>{t("Artistas que sigo")}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.artistsScrollContainer}>
               {artists.map((art) => (
                 <View key={art.id} style={styles.artistCard}>
                   <Image source={{ uri: art.image }} style={styles.artistThumb} />
-                  <Text style={styles.artistName}>{art.name}</Text>
-                  <Text style={styles.artistGenre}>{art.genre}</Text>
+                  <Text style={styles.artistName}>{t(art.name)}</Text>
+                  <Text style={styles.artistGenre}>{t(art.genre)}</Text>
                   
                   {art.upcomingShow && art.isFollowing && (
                     <View style={styles.alertTourBadge}>
-                      <Text style={styles.alertTourText}>¡De Gira!</Text>
+                      <Text style={styles.alertTourText}>{t("¡De Gira!")}</Text>
                     </View>
                   )}
 
@@ -832,7 +853,7 @@ export const UserProfileScreen = () => {
                       color={art.isFollowing ? colors.success : colors.background}
                     />
                     <Text style={[styles.artistFollowText, art.isFollowing && styles.artistFollowTextActive]}>
-                      {art.isFollowing ? 'Siguiendo' : 'Seguir'}
+                      {art.isFollowing ? t('Siguiendo') : t('Seguir')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -841,12 +862,12 @@ export const UserProfileScreen = () => {
 
             {/* Recommended Concerts (Matching genres or followed artists) */}
             <Text style={[styles.sectionTitle, { marginTop: SPACING.sm }]}>
-              Recomendados para ti ({recommendedEvents.length})
+              {t("Recomendados para ti")} ({recommendedEvents.length})
             </Text>
             {recommendedEvents.length === 0 ? (
               <Card style={styles.emptyCard}>
                 <Text style={styles.emptyText}>
-                  Selecciona más géneros musicales en tus Ajustes o sigue artistas para recibir recomendaciones personalizadas.
+                  {t("Selecciona más géneros musicales en tus Ajustes o sigue artistas para recibir recomendaciones personalizadas.")}
                 </Text>
               </Card>
             ) : (
@@ -861,14 +882,14 @@ export const UserProfileScreen = () => {
                   <View style={styles.recomMetaContainer}>
                     <View style={{ flex: 1 }}>
                       <View style={styles.recomCategoryRow}>
-                        <Text style={styles.recomCategory}>{ev.category}</Text>
+                        <Text style={styles.recomCategory}>{t(ev.category)}</Text>
                         <Text style={styles.recomDate}>{ev.date}</Text>
                       </View>
-                      <Text style={styles.recomTitle} numberOfLines={1}>{ev.title}</Text>
-                      <Text style={styles.recomVenue}>{ev.venue}</Text>
+                      <Text style={styles.recomTitle} numberOfLines={1}>{t(ev.title)}</Text>
+                      <Text style={styles.recomVenue}>{t(ev.venue)}</Text>
                     </View>
                     <View style={styles.recomPriceBadge}>
-                      <Text style={styles.recomPriceLabel}>DESDE</Text>
+                      <Text style={styles.recomPriceLabel}>{t("DESDE")}</Text>
                       <Text style={styles.recomPriceVal}>${ev.price}</Text>
                     </View>
                   </View>
@@ -882,10 +903,10 @@ export const UserProfileScreen = () => {
         {activeTab === 'benefits' && (
           <View style={styles.tabContent}>
             {/* Active coupons list */}
-            <Text style={styles.sectionTitle}>Mis Cupones de Descuento</Text>
+            <Text style={styles.sectionTitle}>{t("Mis Cupones de Descuento")}</Text>
             {coupons.length === 0 ? (
               <Card style={styles.emptyCard}>
-                <Text style={styles.emptyText}>No tienes cupones de descuento disponibles.</Text>
+                <Text style={styles.emptyText}>{t("No tienes cupones de descuento disponibles.")}</Text>
               </Card>
             ) : (
               coupons.map((c) => (
@@ -896,8 +917,8 @@ export const UserProfileScreen = () => {
                   </View>
                   <View style={styles.couponMiddle}>
                     <Text style={styles.couponCode}>{c.code}</Text>
-                    <Text style={styles.couponDescrip}>{c.description}</Text>
-                    <Text style={styles.couponExpiry}>Expira: {c.expiry}</Text>
+                    <Text style={styles.couponDescrip}>{t(c.description)}</Text>
+                    <Text style={styles.couponExpiry}>{t("Expira:")} {c.expiry}</Text>
                   </View>
                   <TouchableOpacity onPress={() => handleCopyCoupon(c.code)} style={styles.couponCopyBtn}>
                     <Ionicons name="copy-outline" size={18} color={colors.primary} />
@@ -907,20 +928,20 @@ export const UserProfileScreen = () => {
             )}
 
             {/* Flash Deals / Special Promos */}
-            <Text style={[styles.sectionTitle, { marginTop: SPACING.sm }]}>Ofertas Relámpago y Promociones</Text>
+            <Text style={[styles.sectionTitle, { marginTop: SPACING.sm }]}>{t("Ofertas Relámpago y Promociones")}</Text>
             <Card style={styles.dealCard}>
               <View style={styles.dealHeaderRow}>
                 <View style={styles.dealHeaderBadge}>
-                  <Text style={styles.dealBadgeText}>OFERTA 2X1</Text>
+                  <Text style={styles.dealBadgeText}>{t("OFERTA 2X1")}</Text>
                 </View>
-                <Text style={styles.dealExpiryText}>Expira en 4h</Text>
+                <Text style={styles.dealExpiryText}>{t("Expira en 4h")}</Text>
               </View>
-              <Text style={styles.dealTitle}>Doble Diversión en Electrónica</Text>
+              <Text style={styles.dealTitle}>{t("Doble Diversión en Electrónica")}</Text>
               <Text style={styles.dealDesc}>
-                Compra 1 boleto para Steve Aoki - Neon Party en zona general y recibe el segundo completamente gratis. ¡Promoción por tiempo limitado!
+                {t("Compra 1 boleto para Steve Aoki - Neon Party en zona general y recibe el segundo completamente gratis. ¡Promoción por tiempo limitado!")}
               </Text>
               <Button
-                title="Aprovechar 2x1"
+                title={t("Aprovechar 2x1")}
                 variant="primary"
                 onPress={() => router.push('/(tabs)/index' as any)}
                 style={{ marginTop: SPACING.md }}
@@ -928,18 +949,18 @@ export const UserProfileScreen = () => {
             </Card>
 
             {/* Notifications Inbox */}
-            <Text style={[styles.sectionTitle, { marginTop: SPACING.sm }]}>Bandeja de Notificaciones</Text>
+            <Text style={[styles.sectionTitle, { marginTop: SPACING.sm }]}>{t("Bandeja de Notificaciones")}</Text>
             <Card>
               {notifications.map((not) => (
                 <View key={not.id} style={styles.notificationRow}>
                   <View style={styles.notHeaderRow}>
                     <View style={styles.notTitleWrapper}>
                       {!not.read && <View style={styles.unreadDot} />}
-                      <Text style={[styles.notTitle, !not.read && styles.notTitleUnread]}>{not.title}</Text>
+                      <Text style={[styles.notTitle, !not.read && styles.notTitleUnread]}>{t(not.title)}</Text>
                     </View>
                     <Text style={styles.notTime}>{not.time}</Text>
                   </View>
-                  <Text style={styles.notBody}>{not.body}</Text>
+                  <Text style={styles.notBody}>{t(not.body)}</Text>
                 </View>
               ))}
             </Card>
@@ -958,15 +979,15 @@ export const UserProfileScreen = () => {
           <Pressable style={styles.modalOverlay} onPress={() => setIsQRModalVisible(false)}>
             <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Boleto Digital Acceso</Text>
+                <Text style={styles.modalTitle}>{t("Boleto Digital Acceso")}</Text>
                 <TouchableOpacity onPress={() => setIsQRModalVisible(false)}>
                   <Ionicons name="close-circle" size={24} color={colors.textPrimary} />
                 </TouchableOpacity>
               </View>
 
               <View style={styles.qrContainer}>
-                <Text style={styles.qrEventTitle}>{selectedTicketForQR.event_title || selectedTicketForQR.event_name || selectedTicketForQR.eventName || 'Espectáculo'}</Text>
-                <Text style={styles.qrVenue}>{selectedTicketForQR.venue_name || selectedTicketForQR.venue || 'Recinto Central'}</Text>
+                <Text style={styles.qrEventTitle}>{t(selectedTicketForQR.event_title || selectedTicketForQR.event_name || selectedTicketForQR.eventName || 'Espectáculo')}</Text>
+                <Text style={styles.qrVenue}>{t(selectedTicketForQR.venue_name || selectedTicketForQR.venue || 'Recinto Central')}</Text>
                 
                 {/* Simulated QR Code structure */}
                 <View style={styles.qrBox}>
@@ -976,11 +997,11 @@ export const UserProfileScreen = () => {
 
                 <View style={styles.qrMetaRow}>
                   <View>
-                    <Text style={styles.qrMetaLabel}>ASIENTO</Text>
+                    <Text style={styles.qrMetaLabel}>{t("ASIENTO")}</Text>
                     <Text style={styles.qrMetaVal}>{selectedTicketForQR.seat_label || selectedTicketForQR.seat_id || 'N/A'}</Text>
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={styles.qrMetaLabel}>CÓDIGO</Text>
+                    <Text style={styles.qrMetaLabel}>{t("CÓDIGO")}</Text>
                     <Text style={styles.qrMetaVal}>{selectedTicketForQR.ticket_code}</Text>
                   </View>
                 </View>
@@ -988,7 +1009,7 @@ export const UserProfileScreen = () => {
                 <View style={styles.instructionBox}>
                   <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
                   <Text style={styles.instructionText}>
-                    Presenta este código en el escáner del recinto. Se recomienda brillo de pantalla al máximo.
+                    {t("Presenta este código en el escáner del recinto. Se recomienda brillo de pantalla al máximo.")}
                   </Text>
                 </View>
               </View>

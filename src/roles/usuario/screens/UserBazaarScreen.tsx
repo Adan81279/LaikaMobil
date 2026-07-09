@@ -20,6 +20,7 @@ import Button from '../../../components/Button';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
+import { useLanguage } from '../../../context/LanguageContext';
 import { useRouter } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -28,6 +29,7 @@ const { width } = Dimensions.get('window');
 
 export const UserBazaarScreen = () => {
   const { isDarkMode, colors } = useTheme();
+  const { t } = useLanguage();
   const styles = getStyles(colors, isDarkMode);
   const { user } = useAuth();
   const router = useRouter();
@@ -135,11 +137,11 @@ export const UserBazaarScreen = () => {
     
     if (!user) {
       Alert.alert(
-        'Inicio de Sesión Requerido',
-        'Para realizar compras de mercancía es necesario estar registrado e iniciar sesión.',
+        t('Inicio de Sesión Requerido'),
+        t('Para realizar compras de mercancía es necesario estar registrado e iniciar sesión.'),
         [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Iniciar Sesión', onPress: () => {
+          { text: t('Cancelar'), style: 'cancel' },
+          { text: t('Iniciar Sesión'), onPress: () => {
             setCartOpen(false);
             router.replace('/(auth)/login' as any);
           }}
@@ -163,10 +165,10 @@ export const UserBazaarScreen = () => {
         setPurchaseSuccess(true);
         setCart({});
       } else {
-        Alert.alert('Error', 'No se pudo registrar la compra de mercancía.');
+        Alert.alert(t('Error'), t('No se pudo registrar la compra de mercancía.'));
       }
     } catch (err) {
-      Alert.alert('Error de red', 'La compra no pudo ser transmitida.');
+      Alert.alert(t('Error de red'), t('La compra no pudo ser transmitida.'));
     } finally {
       setLoading(false);
     }
@@ -178,7 +180,7 @@ export const UserBazaarScreen = () => {
   };
 
   if (loading && items.length === 0) {
-    return <Loader visible={true} message="Cargando bazar de souvenirs..." />;
+    return <Loader visible={true} message={t("Cargando bazar de souvenirs...")} />;
   }
 
   return (
@@ -187,8 +189,8 @@ export const UserBazaarScreen = () => {
       <View style={styles.header}>
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.headerTitle}>Bazar de Souvenirs</Text>
-            <Text style={styles.headerSubtitle}>Mercancía Oficial Coldplay, Duki & Aoki</Text>
+            <Text style={styles.headerTitle}>{t("Bazar de Souvenirs")}</Text>
+            <Text style={styles.headerSubtitle}>{t("Mercancía Oficial Coldplay, Duki & Aoki")}</Text>
           </View>
           
           <View style={{ flexDirection: 'row', gap: SPACING.xs, alignItems: 'center' }}>
@@ -198,7 +200,7 @@ export const UserBazaarScreen = () => {
                 onPress={() => router.replace('/(auth)/login' as any)}
               >
                 <Ionicons name="log-in-outline" size={16} color={colors.background} />
-                <Text style={styles.loginHeaderBtnText}>Entrar</Text>
+                <Text style={styles.loginHeaderBtnText}>{t("Entrar")}</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity style={styles.cartIconContainer} onPress={() => setCartOpen(true)}>
@@ -218,10 +220,10 @@ export const UserBazaarScreen = () => {
         <View style={styles.filterBanner}>
           <Ionicons name="funnel-outline" size={16} color={colors.primary} style={{ marginRight: 6 }} />
           <Text style={styles.filterBannerText} numberOfLines={1}>
-            Filtrado por eventos en carrito
+            {t("Filtrado por eventos en carrito")}
           </Text>
           <TouchableOpacity onPress={handleResetFilters} style={styles.filterResetBtn}>
-            <Text style={styles.filterResetText}>Mostrar Todo</Text>
+            <Text style={styles.filterResetText}>{t("Mostrar Todo")}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -241,10 +243,10 @@ export const UserBazaarScreen = () => {
             <Image source={{ uri: item.image }} style={styles.itemImg} />
             <View style={styles.itemInfo}>
               <Text style={styles.itemTitle} numberOfLines={1}>
-                {item.title}
+                {t(item.title)}
               </Text>
               <Text style={styles.itemDesc} numberOfLines={2}>
-                {item.description}
+                {t(item.description)}
               </Text>
               <View style={styles.itemFooter}>
                 <Text style={styles.itemPrice}>${item.price} MXN</Text>
@@ -268,7 +270,7 @@ export const UserBazaarScreen = () => {
           <View style={styles.modalContent}>
             {/* Modal Header */}
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Mi Carrito de Compras</Text>
+              <Text style={styles.modalTitle}>{t("Mi Carrito de Compras")}</Text>
               <TouchableOpacity style={styles.closeBtn} onPress={handleCloseCart}>
                 <Ionicons name="close" size={20} color={colors.textPrimary} />
               </TouchableOpacity>
@@ -281,7 +283,7 @@ export const UserBazaarScreen = () => {
                   {Object.keys(cart).length === 0 ? (
                     <View style={styles.emptyCartContainer}>
                       <Ionicons name="cart-outline" size={60} color={colors.textMuted} />
-                      <Text style={styles.emptyCartText}>El carrito está vacío</Text>
+                      <Text style={styles.emptyCartText}>{t("El carrito está vacío")}</Text>
                     </View>
                   ) : (
                     Object.entries(cart).map(([id, qty]) => {
@@ -292,7 +294,7 @@ export const UserBazaarScreen = () => {
                           <Image source={{ uri: item.image }} style={styles.cartItemImg} />
                           <View style={styles.cartItemInfo}>
                             <Text style={styles.cartItemTitle} numberOfLines={1}>
-                              {item.title}
+                              {t(item.title)}
                             </Text>
                             <Text style={styles.cartItemPrice}>
                               ${(item.price * qty).toLocaleString()} MXN
@@ -322,7 +324,7 @@ export const UserBazaarScreen = () => {
                 {Object.keys(cart).length > 0 && (
                   <View style={styles.cartFooter}>
                     <View style={styles.cartSummaryRow}>
-                      <Text style={styles.cartTotalLabel}>Total Compra:</Text>
+                      <Text style={styles.cartTotalLabel}>{t("Total Compra:")}</Text>
                       <Text style={styles.cartTotalVal}>
                         ${getCartTotalPrice().toLocaleString()} MXN
                       </Text>
@@ -330,13 +332,13 @@ export const UserBazaarScreen = () => {
                     
                     <View style={styles.checkoutActionRow}>
                       <Button
-                        title="Limpiar"
+                        title={t("Limpiar")}
                         variant="secondary"
                         onPress={clearCart}
                         style={{ flex: 1 }}
                       />
                       <Button
-                        title="Completar Pedido"
+                        title={t("Completar Pedido")}
                         onPress={handleCheckout}
                         style={{ flex: 2 }}
                       />
@@ -348,12 +350,12 @@ export const UserBazaarScreen = () => {
               /* SUCCESS ORDER VIEW */
               <View style={styles.successContainer}>
                 <Ionicons name="checkmark-circle-outline" size={72} color={colors.success} />
-                <Text style={styles.successTitle}>¡Pedido Registrado!</Text>
+                <Text style={styles.successTitle}>{t("¡Pedido Registrado!")}</Text>
                 <Text style={styles.successDesc}>
-                  Tu orden de souvenirs ha sido procesada con éxito. Puedes recoger tu mercancía en los stands del club en la entrada del evento mostrando tu nombre de usuario.
+                  {t("Tu orden de souvenirs ha sido procesada con éxito. Puedes recoger tu mercancía en los stands del club en la entrada del evento mostrando tu nombre de usuario.")}
                 </Text>
                 <Button
-                  title="Entendido, Volver al Bazar"
+                  title={t("Entendido, Volver al Bazar")}
                   onPress={handleCloseCart}
                   style={styles.successBtn}
                 />

@@ -19,6 +19,7 @@ import Button from '../../../components/Button';
 import Input from '../../../components/Input';
 import Loader from '../../../components/Loader';
 import { useTheme } from '../../../context/ThemeContext';
+import { useLanguage } from '../../../context/LanguageContext';
 import { StatusBar } from 'expo-status-bar';
 
 const INCIDENT_TYPES: Array<{ key: IncidentReport['type']; label: string; icon: string }> = [
@@ -33,6 +34,7 @@ export const OperadorIncidentsScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams<{ code?: string }>();
   const { isDarkMode, colors } = useTheme();
+  const { t } = useLanguage();
   
   const [ticketCode, setTicketCode] = useState(params.code || '');
   const [selectedType, setSelectedType] = useState<IncidentReport['type']>('duplicate');
@@ -42,11 +44,11 @@ export const OperadorIncidentsScreen = () => {
 
   const handleReport = async () => {
     if (!ticketCode.trim()) {
-      Alert.alert('Código Requerido', 'Por favor, ingrese el código del boleto.');
+      Alert.alert(t('Código Requerido'), t('Por favor, ingrese el código del boleto.'));
       return;
     }
     if (!description.trim()) {
-      Alert.alert('Descripción Requerida', 'Por favor, proporcione los detalles del incidente.');
+      Alert.alert(t('Descripción Requerida'), t('Por favor, proporcione los detalles del incidente.'));
       return;
     }
 
@@ -58,7 +60,7 @@ export const OperadorIncidentsScreen = () => {
         description.trim()
       );
       
-      Alert.alert('Incidencia Guardada', 'El reporte se ha enviado con éxito al servidor central.');
+      Alert.alert(t('Incidencia Guardada'), t('El reporte se ha enviado con éxito al servidor central.'));
       
       // Clear form
       setTicketCode('');
@@ -68,14 +70,15 @@ export const OperadorIncidentsScreen = () => {
       // Update list
       setIncidents(operadorService.getMockIncidents());
     } catch (e: any) {
-      Alert.alert('Error', 'No se pudo guardar el incidente.');
+      Alert.alert(t('Error'), t('No se pudo guardar el incidente.'));
     } finally {
       setLoading(false);
     }
   };
 
   const renderIncidentCard = ({ item }: { item: IncidentReport }) => {
-    const typeLabel = INCIDENT_TYPES.find(t => t.key === item.type)?.label || 'Incidente';
+    const rawLabel = INCIDENT_TYPES.find(t => t.key === item.type)?.label || 'Incidente';
+    const typeLabel = t(rawLabel);
     return (
       <View style={styles.incidentItem}>
         <View style={styles.incidentHeader}>
@@ -99,25 +102,25 @@ export const OperadorIncidentsScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style={isDarkMode ? 'light' : 'dark'} />
-      <Loader visible={loading} message="Registrando incidencia..." />
+      <Loader visible={loading} message={t("Registrando incidencia...")} />
 
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
         <View>
-          <Text style={styles.title}>Incidencias</Text>
-          <Text style={styles.subtitle}>Reporte de anomalías e infracciones en el acceso.</Text>
+          <Text style={styles.title}>{t("Incidencias")}</Text>
+          <Text style={styles.subtitle}>{t("Reporte de anomalías e infracciones en el acceso.")}</Text>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
         {/* Incident Form */}
         <Card style={styles.formCard}>
-          <Text style={styles.sectionTitle}>Nuevo Reporte de Puerta</Text>
+          <Text style={styles.sectionTitle}>{t("Nuevo Reporte de Puerta")}</Text>
 
           <Input
-            label="Código de Boleto"
+            label={t("Código de Boleto")}
             placeholder="Ej: TKT-USED-456"
             value={ticketCode}
             onChangeText={setTicketCode}
@@ -125,7 +128,7 @@ export const OperadorIncidentsScreen = () => {
             leftIcon="barcode-outline"
           />
 
-          <Text style={styles.label}>Categoría de Incidencia</Text>
+          <Text style={styles.label}>{t("Categoría de Incidencia")}</Text>
           <View style={styles.typeSelectorGrid}>
             {INCIDENT_TYPES.map(type => {
               const isSelected = selectedType === type.key;
@@ -144,17 +147,17 @@ export const OperadorIncidentsScreen = () => {
                     color={isSelected ? colors.error : colors.textSecondary} 
                   />
                   <Text style={[styles.typeOptionText, isSelected && { color: colors.error, fontWeight: 'bold' }]}>
-                    {type.label}
+                    {t(type.label)}
                   </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
 
-          <Text style={styles.label}>Descripción Detallada</Text>
+          <Text style={styles.label}>{t("Descripción Detallada")}</Text>
           <TextInput
             style={styles.textArea}
-            placeholder="Detalla lo sucedido (ej. Persona intentó ingresar con copia impresa de código ya escaneado, titular presentaba credenciales apócrifas...)"
+            placeholder={t("Detalla lo sucedido (ej. Persona intentó ingresar con copia impresa de código ya escaneado, titular presentaba credenciales apócrifas...)")}
             placeholderTextColor={colors.textMuted}
             value={description}
             onChangeText={setDescription}
@@ -164,7 +167,7 @@ export const OperadorIncidentsScreen = () => {
           />
 
           <Button
-            title="Enviar Reporte"
+            title={t("Enviar Reporte")}
             variant="danger"
             size="lg"
             icon={<Ionicons name="shield-outline" size={18} color={colors.background} />}
@@ -175,7 +178,7 @@ export const OperadorIncidentsScreen = () => {
 
         {/* Incidents List section */}
         <View style={styles.listSection}>
-          <Text style={styles.listSectionTitle}>Reportes Recientes del Turno</Text>
+          <Text style={styles.listSectionTitle}>{t("Reportes Recientes del Turno")}</Text>
           {incidents.length > 0 ? (
             <FlatList
               data={incidents.slice().reverse()}
@@ -187,7 +190,7 @@ export const OperadorIncidentsScreen = () => {
           ) : (
             <View style={styles.emptyContainer}>
               <Ionicons name="shield-checkmark-outline" size={40} color={colors.textMuted} />
-              <Text style={styles.emptyText}>No hay incidencias reportadas en este turno.</Text>
+              <Text style={styles.emptyText}>{t("No hay incidencias reportadas en este turno.")}</Text>
             </View>
           )}
         </View>

@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../styles/theme';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import Input from './Input';
 import Button from './Button';
 import * as Haptics from 'expo-haptics';
@@ -36,6 +37,7 @@ const AVATAR_PRESETS = [
 export const EditProfileModal: React.FC<EditProfileModalProps> = ({ visible, onClose }) => {
   const { user, updateProfile } = useAuth();
   const { colors } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -72,27 +74,27 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ visible, onC
     setConfirmPasswordError('');
 
     if (!name.trim()) {
-      setNameError('El nombre es requerido');
+      setNameError(t('El nombre es requerido'));
       valid = false;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email.trim()) {
-      setEmailError('El correo es requerido');
+      setEmailError(t('El correo es requerido'));
       valid = false;
     } else if (!emailRegex.test(email)) {
-      setEmailError('El formato del correo es inválido');
+      setEmailError(t('El formato del correo es inválido'));
       valid = false;
     }
 
     // Password validation if they filled any password fields
     if (password || confirmPassword) {
       if (password.length < 6) {
-        setPasswordError('La contraseña debe tener al menos 6 caracteres');
+        setPasswordError(t('La contraseña debe tener al menos 6 caracteres'));
         valid = false;
       }
       if (password !== confirmPassword) {
-        setConfirmPasswordError('Las contraseñas no coinciden');
+        setConfirmPasswordError(t('Las contraseñas no coinciden'));
         valid = false;
       }
     }
@@ -116,13 +118,13 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ visible, onC
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch (e) {}
-      Alert.alert('Perfil Actualizado', 'Tus datos de cuenta y credenciales han sido actualizados con éxito.');
+      Alert.alert(t('Perfil Actualizado'), t('Tus datos de cuenta y credenciales han sido actualizados con éxito.'));
       onClose();
     } else {
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       } catch (e) {}
-      Alert.alert('Error', 'No se pudo guardar la información del perfil.');
+      Alert.alert(t('Error'), t('No se pudo guardar la información del perfil.'));
     }
   };
 
@@ -142,7 +144,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ visible, onC
         >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Editar Datos Personales</Text>
+              <Text style={styles.modalTitle}>{t("Editar Datos Personales")}</Text>
               <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
                 <Ionicons name="close" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
@@ -154,7 +156,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ visible, onC
               keyboardShouldPersistTaps="handled"
             >
               {/* Photo presets selector */}
-              <Text style={styles.sectionLabel}>Seleccionar Foto de Perfil</Text>
+              <Text style={styles.sectionLabel}>{t("Seleccionar Foto de Perfil")}</Text>
               <View style={styles.avatarPresetsContainer}>
                 {AVATAR_PRESETS.map((url, idx) => (
                   <TouchableOpacity
@@ -172,7 +174,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ visible, onC
               </View>
 
               <Input
-                label="URL de Foto Personalizada (Opcional)"
+                label={t("URL de Foto Personalizada (Opcional)")}
                 value={selectedAvatar}
                 onChangeText={setSelectedAvatar}
                 placeholder="https://ejemplo.com/mi_foto.jpg"
@@ -180,58 +182,89 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ visible, onC
               />
 
               <Input
-                label="Nombre Completo"
+                label={t("Nombre Completo")}
                 value={name}
                 onChangeText={setName}
-                placeholder="Ingresa tu nombre completo"
+                placeholder={t("Ingresa tu nombre completo")}
                 leftIcon="person-outline"
                 error={nameError}
               />
 
               <Input
-                label="Correo Electrónico"
+                label={t("Correo Electrónico")}
                 value={email}
                 onChangeText={setEmail}
-                placeholder="Ingresa tu correo electrónico"
+                placeholder={t("Ingresa tu correo electrónico")}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 leftIcon="mail-outline"
                 error={emailError}
               />
 
-              <Text style={[styles.sectionLabel, { marginTop: SPACING.md }]}>Cambiar Contraseña (Opcional)</Text>
+              <Text style={[styles.sectionLabel, { marginTop: SPACING.md }]}>{t("Cambiar Contraseña (Opcional)")}</Text>
               
               <Input
-                label="Nueva Contraseña"
+                label={t("Nueva Contraseña")}
                 value={password}
                 onChangeText={setPassword}
-                placeholder="Mínimo 6 caracteres"
+                placeholder={t("Mínimo 6 caracteres")}
                 leftIcon="lock-closed-outline"
                 isPassword={true}
                 error={passwordError}
               />
 
               <Input
-                label="Confirmar Contraseña"
+                label={t("Confirmar Contraseña")}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
-                placeholder="Repite la nueva contraseña"
+                placeholder={t("Repite la nueva contraseña")}
                 leftIcon="lock-closed-outline"
                 isPassword={true}
                 error={confirmPasswordError}
               />
+
+              {/* Language Preference Section */}
+              <Text style={[styles.sectionLabel, { marginTop: SPACING.md }]}>{t("Preferencia de Idioma")}</Text>
+              <TouchableOpacity 
+                style={[
+                  styles.languageToggleBtn, 
+                  { 
+                    backgroundColor: colors.surfaceAlt || colors.background, 
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                    borderRadius: BORDER_RADIUS.md,
+                    padding: SPACING.sm,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: SPACING.md
+                  }
+                ]} 
+                onPress={async () => {
+                  try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch (e) {}
+                  await setLanguage(language === 'es' ? 'en' : 'es');
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING.sm }}>
+                  <Ionicons name="language-outline" size={18} color={colors.primary} />
+                  <Text style={{ fontSize: TYPOGRAPHY.fontSizes.sm, color: colors.textPrimary }}>
+                    {language === 'es' ? 'Español' : 'English'}
+                  </Text>
+                </View>
+                <Ionicons name="swap-horizontal-outline" size={16} color={colors.textSecondary} />
+              </TouchableOpacity>
             </ScrollView>
 
             <View style={styles.modalFooter}>
               <Button
-                title="Cancelar"
+                title={t("Cancelar")}
                 variant="secondary"
                 onPress={onClose}
                 style={styles.footerBtn}
                 disabled={loading}
               />
               <Button
-                title="Guardar"
+                title={t("Guardar")}
                 variant="primary"
                 onPress={handleSave}
                 style={styles.footerBtn}
@@ -330,6 +363,15 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   footerBtn: {
     flex: 1,
+  },
+  languageToggleBtn: {
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.md,
   },
 });
 

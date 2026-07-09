@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
 import { ThemeProvider as CustomThemeProvider, useTheme } from '../src/context/ThemeContext';
+import { LanguageProvider } from '../src/context/LanguageContext';
 import Loader from '../src/components/Loader';
 import APP_CONFIG from '../src/core/config/app.config';
 
@@ -131,10 +132,12 @@ function RootLayoutNavigation() {
 
 export default function RootLayout() {
   return (
-    <CustomThemeProvider>
-      <AuthProvider>
-        <RootLayoutNavigation />
-      </AuthProvider>
-    </CustomThemeProvider>
+    <LanguageProvider>
+      <CustomThemeProvider>
+        <AuthProvider>
+          <RootLayoutNavigation />
+        </AuthProvider>
+      </CustomThemeProvider>
+    </LanguageProvider>
   );
 }
