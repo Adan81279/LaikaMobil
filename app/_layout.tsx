@@ -1,9 +1,15 @@
 import { useEffect } from 'react';
-import { Alert } from 'react-native';
+import { Alert, LogBox } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+
+// Suppress the warning regarding expo-notifications remote push token in Expo Go.
+// We only use local notifications, which work perfectly in Expo Go.
+LogBox.ignoreLogs([
+  'expo-notifications: Android Push notifications',
+]);
 
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
 import { ThemeProvider as CustomThemeProvider, useTheme } from '../src/context/ThemeContext';
