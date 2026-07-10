@@ -415,4 +415,12 @@ export const userTranslations: Record<string, string> = {
   "Termo color melocotón de acero inoxidable con el single Peaches impreso.": "Peach-colored stainless steel thermos with the printed single Peaches.",
   "Set de Pines Retro Laika Club": "Laika Club Retro Pins Set",
   "Juego de 5 pines metálicos esmaltados con diferentes logotipos vintage de Laika.": "Set of 5 enameled metal pins with different vintage Laika logos.",
+  
+  // --- WEARABLE & SENSOR ALERTS ---
+  "¡Estás cerca del recinto!": "You are near the venue!",
+  "Estás a ${distance} metros de ${venueName}. Prepárate para ingresar a tu evento.": "You are ${distance} meters away from ${venueName}. Prepare to enter your event.",
+  "¡Acceso de boleto sugerido!": "Suggested ticket access!",
+  "Estás en la entrada de ${venueName}. Haz el gesto de levantar la muñeca para abrir tu boleto QR.": "You are at the entrance of ${venueName}. Raise your wrist to open your QR ticket.",
+  "⚠️ ¡Caída Detectada!": "⚠️ Fall Detected!",
+  "Se ha detectado un impacto fuerte. Reportando incidente al staff de seguridad y auxilio.": "A hard impact has been detected. Reporting incident to security and rescue staff.",
 };

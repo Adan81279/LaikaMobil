@@ -10,6 +10,7 @@ import {
   Animated,
   Image,
   Dimensions,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,6 +31,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import EditProfileModal from '../../../components/EditProfileModal';
 import { StatusBar } from 'expo-status-bar';
+import websocketService from '../../../services/websocket.service';
 
 export const OperadorDashboardScreen = () => {
   const router = useRouter();
@@ -71,6 +73,23 @@ export const OperadorDashboardScreen = () => {
   
   // Animated laser line value
   const laserAnim = useState(new Animated.Value(0))[0];
+
+  const [fallAlert, setFallAlert] = useState<any | null>(null);
+
+  useEffect(() => {
+    console.log('[OperadorDashboardScreen] Subscribing to fall_detected WebSocket events');
+    const unsubscribe = websocketService.subscribe('fall_detected', (data) => {
+      console.log('[OperadorDashboardScreen] Real-time FALL ALERT received:', data);
+      setFallAlert(data);
+      try {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } catch (e) {}
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   const fetchStats = async () => {
     try {
@@ -121,6 +140,11 @@ export const OperadorDashboardScreen = () => {
     try {
       const result = await operadorService.validateTicket(code);
       setValidationResult(result);
+      
+      if (result.valid) {
+        // Broadcast validation success to real-time subscribers (like the client wallet screen)
+        websocketService.send('ticket_validated', { ticket_code: code });
+      }
       
       // Haptics success or warning
       try {
@@ -552,6 +576,121 @@ export const OperadorDashboardScreen = () => {
 
       </ScrollView>
       <EditProfileModal visible={isEditModalVisible} onClose={() => setIsEditModalVisible(false)} />
+
+      {/* REAL-TIME EMERGENCY ACCIDENT MODAL */}
+      <Modal
+        visible={fallAlert !== null}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setFallAlert(null)}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(5, 8, 16, 0.95)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: SPACING.lg,
+        }}>
+          <View style={{
+            backgroundColor: colors.surface,
+            borderRadius: BORDER_RADIUS.lg,
+            borderWidth: 2,
+            borderColor: colors.error,
+            width: '100%',
+            padding: SPACING.md,
+            gap: SPACING.md,
+          }}>
+            {/* Header */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, borderBottomWidth: 1, borderColor: colors.border, paddingBottom: SPACING.sm }}>
+              <Ionicons name="warning" size={32} color={colors.error} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: TYPOGRAPHY.fontSizes.md, fontWeight: 'bold', color: colors.error }}>
+                  ⚠️ ¡ALERTA DE CAÍDA DETECTADA!
+                </Text>
+                <Text style={{ fontSize: 9, color: colors.textSecondary }}>
+                  Incidente reportado por Wearable en Tiempo Real
+                </Text>
+              </View>
+            </View>
+
+            {/* Info details */}
+            {fallAlert && (
+              <View style={{ gap: SPACING.sm }}>
+                <View style={{ backgroundColor: colors.surfaceAlt, padding: SPACING.sm, borderRadius: BORDER_RADIUS.md }}>
+                  <Text style={{ fontSize: 9, color: colors.textMuted }}>ASISTENTE</Text>
+                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.textPrimary }}>
+                    {fallAlert.user_name}
+                  </Text>
+                  <Text style={{ fontSize: 10, color: colors.textSecondary }}>
+                    {fallAlert.user_email}
+                  </Text>
+                </View>
+
+                <View style={{ backgroundColor: colors.surfaceAlt, padding: SPACING.sm, borderRadius: BORDER_RADIUS.md }}>
+                  <Text style={{ fontSize: 9, color: colors.textMuted }}>UBICACIÓN DE CAÍDA</Text>
+                  <Text style={{ fontSize: 11, fontWeight: 'bold', color: colors.textPrimary }}>
+                    Cerca de: {fallAlert.closest_venue}
+                  </Text>
+                  <Text style={{ fontSize: 9, color: colors.textSecondary }}>
+                    Coordenadas GPS: {fallAlert.latitude?.toFixed(5)}, {fallAlert.longitude?.toFixed(5)}
+                  </Text>
+                </View>
+
+                <View style={{ backgroundColor: colors.surfaceAlt, padding: SPACING.sm, borderRadius: BORDER_RADIUS.md, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+                  <Text style={{ fontSize: 9, color: colors.textSecondary }}>
+                    Reportado a las: {new Date(fallAlert.timestamp).toLocaleTimeString()}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Actions */}
+            <View style={{ flexDirection: 'row', gap: SPACING.sm, marginTop: SPACING.xs }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1.2,
+                  backgroundColor: colors.error,
+                  paddingVertical: 10,
+                  borderRadius: BORDER_RADIUS.md,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onPress={() => {
+                  const venueName = fallAlert?.closest_venue || 'el recinto';
+                  setFallAlert(null);
+                  Alert.alert(
+                    'Auxilio Despachado',
+                    `Se ha enviado al staff médico y de seguridad del evento a la ubicación del incidente en ${venueName}.`
+                  );
+                }}
+              >
+                <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: 'bold' }}>
+                  DESPACHAR SEGURIDAD / AUXILIO
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  flex: 0.8,
+                  backgroundColor: colors.surfaceAlt,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  paddingVertical: 10,
+                  borderRadius: BORDER_RADIUS.md,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onPress={() => setFallAlert(null)}
+              >
+                <Text style={{ color: colors.textPrimary, fontSize: 10, fontWeight: 'bold' }}>
+                  DESCARTAR ALERTA
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };

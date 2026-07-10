@@ -22,6 +22,8 @@ import { useRouter } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import Input from '../../../components/Input';
+import useWearableGestures from '../../../hooks/useWearableGestures';
+import websocketService from '../../../services/websocket.service';
 
 export const UserWalletScreen = () => {
   const { isDarkMode, colors } = useTheme();
@@ -44,6 +46,50 @@ export const UserWalletScreen = () => {
   const [inputTransferCode, setInputTransferCode] = useState('');
   const [claimedTicket, setClaimedTicket] = useState<Ticket | null>(null);
   const [showClaimSuccess, setShowClaimSuccess] = useState(false);
+
+  // Wearable Sensors and GPS integration
+  const {
+    simulateWristRaise,
+    simulateFall,
+    simulateLocation,
+    resetToRealLocation,
+    closestVenue,
+  } = useWearableGestures(() => {
+    // On wrist raise: open the first active ticket
+    const validTickets = tickets.filter((t) => t.status === 'valid');
+    if (validTickets.length > 0 && !qrModalVisible) {
+      setActiveTicket(validTickets[0]);
+      setQrModalVisible(true);
+      try {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (e) {}
+    }
+  });
+
+  // Real-time WebSocket validation subscription
+  useEffect(() => {
+    if (!qrModalVisible || !activeTicket) return;
+
+    console.log(`[UserWalletScreen] Subscribing to validation of ticket: ${activeTicket.ticket_code}`);
+    const unsubscribe = websocketService.subscribe('ticket_validated', (data) => {
+      if (data && data.ticket_code === activeTicket.ticket_code) {
+        console.log('[UserWalletScreen] Active ticket validated in real-time!');
+        fetchTickets();
+        setQrModalVisible(false);
+        Alert.alert(
+          '¡Boleto Validado!',
+          `Tu acceso para "${activeTicket.event_title}" ha sido verificado con éxito en puerta. ¡Disfruta del espectáculo!`
+        );
+        try {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } catch (e) {}
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [qrModalVisible, activeTicket, tickets]);
 
   const handleTransferTicket = async (ticket: Ticket) => {
     try {
@@ -190,6 +236,57 @@ export const UserWalletScreen = () => {
             Acceso Offline Habilitado: Muestra tus boletos sin internet.
           </Text>
         </View>
+
+        {/* DEVELOPER WEARABLE SIMULATION PANEL */}
+        <Card style={{ padding: SPACING.md, borderColor: colors.secondary, borderWidth: 1, borderStyle: 'dashed', marginBottom: SPACING.md }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: SPACING.xs }}>
+            <Ionicons name="construct-outline" size={16} color={colors.secondary} />
+            <Text style={{ fontSize: 10, fontWeight: 'bold', color: colors.secondary, textTransform: 'uppercase' }}>
+              Simulador Wearable (Modo Desarrollador)
+            </Text>
+          </View>
+          <Text style={{ fontSize: 10, color: colors.textSecondary, marginBottom: SPACING.sm }}>
+            Prueba la interacción en tiempo real y sensores. Abre este panel en dos dispositivos para ver la sincronización.
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs }}>
+            <TouchableOpacity 
+              style={{ backgroundColor: `${colors.secondary}15`, borderColor: colors.secondary, borderWidth: 1, paddingVertical: 6, paddingHorizontal: 10, borderRadius: BORDER_RADIUS.md, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+              onPress={simulateWristRaise}
+            >
+              <Ionicons name="watch-outline" size={14} color={colors.secondary} />
+              <Text style={{ fontSize: 9, fontWeight: 'bold', color: colors.secondary }}>Gesto Muñeca</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={{ backgroundColor: `${colors.error}15`, borderColor: colors.error, borderWidth: 1, paddingVertical: 6, paddingHorizontal: 10, borderRadius: BORDER_RADIUS.md, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+              onPress={simulateFall}
+            >
+              <Ionicons name="warning-outline" size={14} color={colors.error} />
+              <Text style={{ fontSize: 9, fontWeight: 'bold', color: colors.error }}>Simular Caída</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={{ backgroundColor: `${colors.primary}15`, borderColor: colors.primary, borderWidth: 1, paddingVertical: 6, paddingHorizontal: 10, borderRadius: BORDER_RADIUS.md, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+              onPress={() => simulateLocation(19.3900, -99.1400)}
+            >
+              <Ionicons name="location-outline" size={14} color={colors.primary} />
+              <Text style={{ fontSize: 9, fontWeight: 'bold', color: colors.primary }}>GPS: Recinto</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={{ backgroundColor: colors.surfaceAlt, borderColor: colors.border, borderWidth: 1, paddingVertical: 6, paddingHorizontal: 10, borderRadius: BORDER_RADIUS.md, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+              onPress={resetToRealLocation}
+            >
+              <Ionicons name="refresh-outline" size={14} color={colors.textPrimary} />
+              <Text style={{ fontSize: 9, fontWeight: 'bold', color: colors.textPrimary }}>Reset GPS</Text>
+            </TouchableOpacity>
+          </View>
+          {closestVenue && (
+            <Text style={{ fontSize: 9, color: colors.textMuted, marginTop: SPACING.sm }}>
+              Distancia más cercana: <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>{closestVenue.venueName}</Text> ({closestVenue.distance}m)
+            </Text>
+          )}
+        </Card>
 
         {/* ACTIVE TICKETS SECTION */}
         <Text style={styles.sectionTitle}>Próximos Espectáculos ({activeTickets.length})</Text>

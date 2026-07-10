@@ -1533,6 +1533,24 @@ class UsuarioService {
       return updatedTicket;
     }
   }
+
+  /**
+   * Get active ticket code
+   */
+  async getTicketCode(): Promise<string | null> {
+    const tickets = await this.getTickets();
+    const active = tickets.find(t => t.status === 'valid');
+    return active ? active.ticket_code : null;
+  }
+
+  /**
+   * Report fall/accident to the server/mock database
+   */
+  async reportFall(latitude: number, longitude: number, closestVenue: string): Promise<boolean> {
+    console.log(`[UsuarioService] Fall reported at coordinates: ${latitude}, ${longitude} near ${closestVenue}`);
+    // Simulate server report
+    return true;
+  }
 }
 
 const usuarioService = new UsuarioService();

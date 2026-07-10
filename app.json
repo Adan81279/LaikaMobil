@@ -45,7 +45,8 @@
           "cameraPermission": "Permite que Laika Club acceda a la cámara para escanear los boletos de acceso.",
           "barcodeScannerEnabled": true
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,

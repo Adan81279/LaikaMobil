@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal,
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../../styles/theme';
-import usuarioService, { EventInfo, MerchItem } from '../services/usuario.service';
+import usuarioService, { EventInfo, MerchItem, Ticket } from '../services/usuario.service';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Card from '../../../components/Card';
 import Loader from '../../../components/Loader';
@@ -13,6 +13,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useRouter } from 'expo-router';
+import useGeolocation from '../../../hooks/useGeolocation';
 
 const { width } = Dimensions.get('window');
 
@@ -26,6 +27,34 @@ export const UserEventsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
+
+  const [activeTickets, setActiveTickets] = useState<Ticket[]>([]);
+
+  // Geolocation and proximity calculations
+  const {
+    closestVenue,
+    simulateLocation,
+    resetToRealLocation
+  } = useGeolocation();
+
+  useEffect(() => {
+    const getTickets = async () => {
+      try {
+        const t = await usuarioService.getMyTickets();
+        setActiveTickets(t.filter(tk => tk.status === 'valid'));
+      } catch (e) {}
+    };
+    if (user) {
+      getTickets();
+    }
+  }, [user]);
+
+  const nearbyTicket = closestVenue && closestVenue.distance < 500
+    ? activeTickets.find(t => 
+        t.venue_name?.toLowerCase().includes(closestVenue.venueName.toLowerCase()) ||
+        t.venue?.toLowerCase().includes(closestVenue.venueName.toLowerCase())
+      )
+    : null;
 
   // Shopping Cart Item type
   interface CartItem {
@@ -618,6 +647,99 @@ export const UserEventsScreen = () => {
         data={filteredEvents}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
+        ListHeaderComponent={
+          <View style={{ gap: SPACING.xs, marginBottom: SPACING.sm }}>
+            {/* GPS PROXIMITY ALERT BANNER */}
+            {nearbyTicket && (
+              <Card style={{
+                backgroundColor: `${colors.primary}15`,
+                borderColor: colors.primary,
+                borderWidth: 1.5,
+                padding: SPACING.md,
+                marginTop: SPACING.xs,
+                borderRadius: BORDER_RADIUS.md,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: SPACING.md
+              }}>
+                <View style={{ backgroundColor: colors.primary, width: 40, height: 40, borderRadius: BORDER_RADIUS.round, justifyContent: 'center', alignItems: 'center' }}>
+                  <Ionicons name="location" size={22} color={colors.background} />
+                </View>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={{ fontSize: 11, fontWeight: 'bold', color: colors.primary }}>
+                    ¡Cerca del Recinto!
+                  </Text>
+                  <Text style={{ fontSize: 11, fontWeight: 'bold', color: colors.textPrimary }}>
+                    Estás a {closestVenue?.distance}m de {closestVenue?.venueName}.
+                  </Text>
+                  <Text style={{ fontSize: 10, color: colors.textSecondary }}>
+                    Tu acceso para "{nearbyTicket.event_title}" está listo.
+                  </Text>
+                </View>
+                <TouchableOpacity 
+                  style={{
+                    backgroundColor: colors.primary,
+                    paddingVertical: 6,
+                    paddingHorizontal: 12,
+                    borderRadius: BORDER_RADIUS.md,
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                  }}
+                  onPress={() => {
+                    // Navigate to Wallet tab
+                    router.push('/(tabs)/wallet' as any);
+                  }}
+                >
+                  <Text style={{ color: colors.background, fontSize: 9, fontWeight: 'bold' }}>
+                    VER BOLETO
+                  </Text>
+                </TouchableOpacity>
+              </Card>
+            )}
+
+            {/* GPS SIMULATOR (DEV ONLY) */}
+            <Card style={{
+              padding: SPACING.md,
+              borderColor: colors.secondary,
+              borderWidth: 1,
+              borderStyle: 'dashed',
+              marginTop: SPACING.xs,
+              borderRadius: BORDER_RADIUS.md,
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: SPACING.xs }}>
+                <Ionicons name="location-outline" size={16} color={colors.secondary} />
+                <Text style={{ fontSize: 10, fontWeight: 'bold', color: colors.secondary, textTransform: 'uppercase' }}>
+                  Simulador de Geolocalización (Desarrollo)
+                </Text>
+              </View>
+              <Text style={{ fontSize: 9, color: colors.textSecondary, marginBottom: SPACING.sm }}>
+                Haz clic en una opción para mover virtualmente tu ubicación y probar la alerta de proximidad.
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs }}>
+                <TouchableOpacity 
+                  style={{ backgroundColor: `${colors.primary}15`, borderColor: colors.primary, borderWidth: 1, paddingVertical: 5, paddingHorizontal: 10, borderRadius: BORDER_RADIUS.md }}
+                  onPress={() => simulateLocation(19.3900, -99.1400)}
+                >
+                  <Text style={{ fontSize: 9, fontWeight: 'bold', color: colors.primary }}>Estadio Laika Arena (Cerca)</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={{ backgroundColor: `${colors.primary}15`, borderColor: colors.primary, borderWidth: 1, paddingVertical: 5, paddingHorizontal: 10, borderRadius: BORDER_RADIUS.md }}
+                  onPress={() => simulateLocation(19.4030, -99.0960)}
+                >
+                  <Text style={{ fontSize: 9, fontWeight: 'bold', color: colors.primary }}>Foro Sol (Cerca)</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={{ backgroundColor: colors.surfaceAlt, borderColor: colors.border, borderWidth: 1, paddingVertical: 5, paddingHorizontal: 10, borderRadius: BORDER_RADIUS.md }}
+                  onPress={resetToRealLocation}
+                >
+                  <Text style={{ fontSize: 9, fontWeight: 'bold', color: colors.textPrimary }}>Reset GPS Real</Text>
+                </TouchableOpacity>
+              </View>
+            </Card>
+          </View>
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="calendar-outline" size={48} color={colors.textMuted} />
