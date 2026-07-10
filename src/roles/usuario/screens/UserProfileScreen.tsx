@@ -12,7 +12,7 @@ import {
   Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../../styles/theme';
+import { SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../../../styles/theme';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 import usuarioService, {
@@ -25,13 +25,12 @@ import usuarioService, {
   EventInfo,
   UserStats
 } from '../services/usuario.service';
-import Card from '../../../components/Card';
-import Loader from '../../../components/Loader';
-import Button from '../../../components/Button';
+import { Card } from '../../../components/Card';
+import { Loader } from '../../../components/Loader';
+import { Button } from '../../../components/Button';
 import * as Haptics from 'expo-haptics';
-import EditProfileModal from '../../../components/EditProfileModal';
+import { EditProfileModal } from '../../../components/EditProfileModal';
 import { useRouter } from 'expo-router';
-import APP_CONFIG from '../../../core/config/app.config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 import { useLanguage } from '../../../context/LanguageContext';
@@ -54,20 +53,18 @@ export const UserProfileScreen = () => {
 
   // Loaded states from service
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [refunds, setRefunds] = useState<RefundRequest[]>([]);
+  const [, setRefunds] = useState<RefundRequest[]>([]);
   const [merchOrders, setMerchOrders] = useState<MerchOrder[]>([]);
   const [opinions, setOpinions] = useState<EventOpinion[]>([]);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [publicEvents, setPublicEvents] = useState<EventInfo[]>([]);
-  const [stats, setStats] = useState<UserStats | null>(null);
+  const [, setStats] = useState<UserStats | null>(null);
 
   // Preference states
   const [selectedGenres, setSelectedGenres] = useState<string[]>(['Pop', 'Electrónica']);
 
   // Refund request inputs
-  const [selectedTicketId, setSelectedTicketId] = useState('');
-  const [refundReason, setRefundReason] = useState('');
 
   // Opinion review form states
   const [reviewEventId, setReviewEventId] = useState('');
@@ -80,7 +77,7 @@ export const UserProfileScreen = () => {
   const [isQRModalVisible, setIsQRModalVisible] = useState(false);
 
   // Simulated notifications
-  const [notifications, setNotifications] = useState([
+  const [notifications] = useState([
     { id: '1', title: '¡Cupón de Bienvenida!', body: 'Disfruta de un 15% de descuento usando el código LAIKAFIRST.', time: 'Hace 2 horas', read: false },
     { id: '2', title: 'Compra Confirmada', body: 'Tu boleto para Duki - A.D.A. Tour ya está disponible en tu Historial.', time: 'Hace 1 día', read: true },
     { id: '3', title: 'Oferta Especial', body: 'Obtén 2x1 en la zona General para Steve Aoki - Neon Party.', time: 'Hace 3 días', read: true }
@@ -94,7 +91,7 @@ export const UserProfileScreen = () => {
         if (stored) {
           setSelectedGenres(JSON.parse(stored));
         }
-      } catch (e) {}
+      } catch {}
     };
     if (user) {
       loadPreferences();
@@ -181,7 +178,7 @@ export const UserProfileScreen = () => {
   const handleLogout = async () => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } catch (e) {}
+    } catch {}
     Alert.alert(
       'Cerrar Sesión',
       '¿Estás seguro de que deseas salir de tu cuenta?',
@@ -196,7 +193,7 @@ export const UserProfileScreen = () => {
   const handleToggleGenre = async (genre: string) => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (e) {}
+    } catch {}
     let updated = [...selectedGenres];
     if (updated.includes(genre)) {
       updated = updated.filter(g => g !== genre);
@@ -211,7 +208,7 @@ export const UserProfileScreen = () => {
   const handleToggleFollowArtist = async (artistId: string) => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } catch (e) {}
+    } catch {}
     const updated = await usuarioService.toggleFollowArtist(artistId);
     setArtists(updated);
   };
@@ -233,7 +230,7 @@ export const UserProfileScreen = () => {
       if (success) {
         try {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        } catch (h) {}
+        } catch {}
         Alert.alert('Opinión Registrada', '¡Gracias por compartir tu reseña! Recibiste +40 XP.');
         setReviewComment('');
         setReviewEventId('');
@@ -243,7 +240,7 @@ export const UserProfileScreen = () => {
         setOpinions(uOpinions);
         setStats(uStats);
       }
-    } catch (e) {
+    } catch {
       Alert.alert('Error', 'No se pudo enviar tu reseña.');
     } finally {
       setLoading(false);
@@ -254,7 +251,7 @@ export const UserProfileScreen = () => {
   const handleRegisterDemoCard = () => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } catch (e) {}
+    } catch {}
     saveCardDetails({
       number: '4242424242424242',
       expiry: '12/29',
@@ -268,7 +265,7 @@ export const UserProfileScreen = () => {
   const handleRemoveCard = () => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (e) {}
+    } catch {}
     Alert.alert(
       'Eliminar Tarjeta',
       '¿Deseas desvincular tu tarjeta del perfil?',
@@ -286,7 +283,7 @@ export const UserProfileScreen = () => {
   const handleCopyCoupon = (code: string) => {
     try {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (e) {}
+    } catch {}
     Alert.alert('Código Copiado', `¡El cupón "${code}" ha sido copiado al portapapeles!`);
   };
 
@@ -306,7 +303,7 @@ export const UserProfileScreen = () => {
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => {
-              try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch (e) {}
+              try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
               setIsEditModalVisible(true);
             }}
             style={styles.avatarCircle}
@@ -420,7 +417,7 @@ export const UserProfileScreen = () => {
               <Text style={styles.sectionTitle}>{t('Ajustes de Perfil')}</Text>
               <TouchableOpacity
                 onPress={() => {
-                  try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch (e) {}
+                  try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
                   setIsEditModalVisible(true);
                 }}
                 style={styles.editLink}
@@ -474,7 +471,7 @@ export const UserProfileScreen = () => {
               <TouchableOpacity 
                 style={[styles.settingsRow, { borderBottomWidth: 0, paddingVertical: SPACING.sm }]} 
                 onPress={async () => {
-                  try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch (e) {}
+                  try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
                   await setLanguage(language === 'es' ? 'en' : 'es');
                 }}
               >
@@ -657,7 +654,7 @@ export const UserProfileScreen = () => {
                           variant="secondary"
                           icon={<Ionicons name="qr-code-outline" size={14} color={colors.background} />}
                           onPress={() => {
-                            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
+                            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
                             setSelectedTicketForQR(tkt);
                             setIsQRModalVisible(true);
                           }}
@@ -760,7 +757,7 @@ export const UserProfileScreen = () => {
                       <TouchableOpacity
                         key={star}
                         onPress={() => {
-                          try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
+                          try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
                           setReviewRating(star);
                         }}
                       >
@@ -815,7 +812,7 @@ export const UserProfileScreen = () => {
                           ))}
                         </View>
                       </View>
-                      <Text style={styles.opinionComment}>"{op.comment}"</Text>
+                      <Text style={styles.opinionComment}>{"\u201C"}{op.comment}{"\u201D"}</Text>
                       <Text style={styles.opinionMeta}>{t("Enviado el:")} {new Date(op.created_at).toLocaleDateString()}</Text>
                     </Card>
                   ))
@@ -991,7 +988,7 @@ export const UserProfileScreen = () => {
                 
                 {/* Simulated QR Code structure */}
                 <View style={styles.qrBox}>
-                  <Ionicons name="qr-code" size={160} color={colors.background} />
+                  <Ionicons name="qr-code" size={160} color="#000000" />
                   <View style={styles.qrScannerHelper} />
                 </View>
 

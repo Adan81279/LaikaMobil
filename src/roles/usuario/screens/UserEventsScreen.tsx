@@ -1,16 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  TextInput,
-  Modal,
-  Alert,
-  FlatList,
-  Dimensions,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Alert, FlatList, Dimensions} from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../../styles/theme';
@@ -158,8 +147,8 @@ export const UserEventsScreen = () => {
 
   const getSeatPrice = (row: string) => {
     if (!activeEvent) return 0;
-    if (row === 'A') return activeEvent.price * 1.5; // VIP
-    if (row === 'B' || row === 'C') return activeEvent.price * 1.1; // Gold
+    if (row === 'A') return Math.round(activeEvent.price * 1.5); // VIP
+    if (row === 'B' || row === 'C') return Math.round(activeEvent.price * 1.1); // Gold
     return activeEvent.price; // General
   };
 
@@ -788,7 +777,7 @@ export const UserEventsScreen = () => {
                                         });
                                       }}
                                     >
-                                      <Ionicons name="remove" size={12} color={colors.textPrimary} />
+                                      <Ionicons name="remove" size={12} color={colors.background} />
                                     </TouchableOpacity>
                                     <Text style={styles.relatedMerchQtyText}>{qty}</Text>
                                     <TouchableOpacity
@@ -797,7 +786,7 @@ export const UserEventsScreen = () => {
                                         setSelectedMerch(prev => ({ ...prev, [prod.id]: qty + 1 }));
                                       }}
                                     >
-                                      <Ionicons name="add" size={12} color={colors.textPrimary} />
+                                      <Ionicons name="add" size={12} color={colors.background} />
                                     </TouchableOpacity>
                                   </View>
                                 )}
@@ -848,9 +837,12 @@ export const UserEventsScreen = () => {
 
                           let seatBg = colors.border;
                           if (isOccupied) seatBg = '#475569';
-                          else if (isSelected) seatBg = colors.success;
+                          else if (isSelected) seatBg = '#10B981';
                           else if (seatCat === 'VIP') seatBg = '#f59e0b';
                           else if (seatCat === 'GOLD') seatBg = '#a855f7';
+
+                          const isWhiteText = isSelected || isOccupied || seatCat === 'VIP' || seatCat === 'GOLD';
+                          const seatTextColor = isWhiteText ? '#FFFFFF' : colors.textPrimary;
 
                           return (
                             <TouchableOpacity
@@ -859,7 +851,7 @@ export const UserEventsScreen = () => {
                               disabled={isOccupied}
                               onPress={() => toggleSeat(id)}
                             >
-                              <Text style={styles.seatText}>{col}</Text>
+                              <Text style={[styles.seatText, { color: seatTextColor }]}>{col}</Text>
                             </TouchableOpacity>
                           );
                         })}
@@ -882,7 +874,7 @@ export const UserEventsScreen = () => {
                       <Text style={styles.legendText}>{t("Gral")}</Text>
                     </View>
                     <View style={styles.legendItem}>
-                      <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
+                      <View style={[styles.legendDot, { backgroundColor: '#10B981' }]} />
                       <Text style={styles.legendText}>{t("Mi Selección")}</Text>
                     </View>
                     <View style={styles.legendItem}>
@@ -1706,13 +1698,13 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     marginVertical: SPACING.xs,
   },
   seatBadge: {
-    backgroundColor: colors.success,
+    backgroundColor: '#10B981',
     paddingVertical: 3,
     paddingHorizontal: 8,
     borderRadius: BORDER_RADIUS.sm,
   },
   seatBadgeText: {
-    color: colors.textPrimary,
+    color: '#FFFFFF',
     fontSize: 10,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
@@ -2264,13 +2256,13 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     gap: 4,
   },
   relatedMerchTitle: {
-    color: colors.textPrimary,
+    color: '#FFFFFF',
     fontSize: 10,
     fontWeight: 'bold',
     textAlign: 'center',
   },
   relatedMerchPrice: {
-    color: colors.textSecondary,
+    color: '#9CA3AF',
     fontSize: 9,
   },
   relatedMerchAddBtn: {

@@ -323,7 +323,7 @@ export const UserWalletScreen = () => {
                   </View>
                   <View style={styles.passMetaCol}>
                     <Text style={styles.passMetaLabel}>PRECIO</Text>
-                    <Text style={styles.passMetaVal}>${activeTicket.price} MXN</Text>
+                    <Text style={styles.passMetaVal}>${Math.round(Number(activeTicket.price))} MXN</Text>
                   </View>
                 </View>
 

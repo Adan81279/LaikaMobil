@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  FlatList,
-  Modal,
-  Alert,
-  Dimensions,
-} from 'react-native';
+import {View,Text,StyleSheet,TouchableOpacity,ScrollView,FlatList,Modal,Alert,Dimensions,} from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../../styles/theme';
@@ -304,14 +294,14 @@ export const UserBazaarScreen = () => {
                                 style={styles.qtyBtn}
                                 onPress={() => removeFromCart(id)}
                               >
-                                <Ionicons name="remove" size={12} color={colors.textPrimary} />
+                                <Ionicons name="remove" size={12} color={colors.background} />
                               </TouchableOpacity>
                               <Text style={styles.qtyText}>{qty}</Text>
                               <TouchableOpacity
                                 style={styles.qtyBtn}
                                 onPress={() => addToCart(id)}
                               >
-                                <Ionicons name="add" size={12} color={colors.textPrimary} />
+                                <Ionicons name="add" size={12} color={colors.background} />
                               </TouchableOpacity>
                             </View>
                           </View>
@@ -551,7 +541,7 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     marginTop: 2,
   },
   qtyBtn: {
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: colors.primary,
     width: 18,
     height: 18,
     borderRadius: 4,

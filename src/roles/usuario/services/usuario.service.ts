@@ -1135,10 +1135,10 @@ class UsuarioService {
       let seatPrice = basePrice;
       let zoneName = 'General';
       if (row === 'A') {
-        seatPrice = basePrice * 1.5;
+        seatPrice = Math.round(basePrice * 1.5);
         zoneName = 'VIP';
       } else if (row === 'B' || row === 'C') {
-        seatPrice = basePrice * 1.1;
+        seatPrice = Math.round(basePrice * 1.1);
         zoneName = 'Gold';
       }
 
