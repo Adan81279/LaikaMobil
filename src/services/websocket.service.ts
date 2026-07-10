@@ -67,6 +67,13 @@ class WebSocketService {
   }
 
   /**
+   * Get active server URL
+   */
+  getServerUrl(): string {
+    return this.serverUrl;
+  }
+
+  /**
    * Establish WebSocket Connection
    */
   connect() {

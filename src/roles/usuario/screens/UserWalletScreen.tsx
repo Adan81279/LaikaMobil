@@ -8,6 +8,7 @@ import {
   FlatList,
   Modal,
   Alert,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../../styles/theme';
@@ -65,6 +66,41 @@ export const UserWalletScreen = () => {
       } catch (e) {}
     }
   });
+
+  const [wsUrlInput, setWsUrlInput] = useState(websocketService.getServerUrl());
+  const [isMockMode, setIsMockMode] = useState(websocketService.isMockMode());
+  const [isWsConnected, setIsWsConnected] = useState(websocketService.isClientConnected());
+
+  useEffect(() => {
+    const unsubscribeStatus = websocketService.subscribe('status_change', (data) => {
+      setIsWsConnected(data.connected);
+      setIsMockMode(data.mode === 'mock');
+    });
+
+    if (!websocketService.isMockMode()) {
+      websocketService.connect();
+    }
+
+    return () => {
+      unsubscribeStatus();
+    };
+  }, []);
+
+  const handleToggleWSMode = async () => {
+    const nextMock = !isMockMode;
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (e) {}
+    await websocketService.configure(wsUrlInput, nextMock);
+    setIsMockMode(nextMock);
+    setIsWsConnected(websocketService.isClientConnected());
+    Alert.alert(
+      'Configuración Guardada',
+      nextMock 
+        ? 'Se ha activado el Modo Simulado (Relé Local).'
+        : `Conectando al servidor WebSocket en: ${wsUrlInput}`
+    );
+  };
 
   // Real-time WebSocket validation subscription
   useEffect(() => {
@@ -248,7 +284,8 @@ export const UserWalletScreen = () => {
           <Text style={{ fontSize: 10, color: colors.textSecondary, marginBottom: SPACING.sm }}>
             Prueba la interacción en tiempo real y sensores. Abre este panel en dos dispositivos para ver la sincronización.
           </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs }}>
+          
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs, marginBottom: SPACING.xs }}>
             <TouchableOpacity 
               style={{ backgroundColor: `${colors.secondary}15`, borderColor: colors.secondary, borderWidth: 1, paddingVertical: 6, paddingHorizontal: 10, borderRadius: BORDER_RADIUS.md, flexDirection: 'row', alignItems: 'center', gap: 4 }}
               onPress={simulateWristRaise}
@@ -281,6 +318,59 @@ export const UserWalletScreen = () => {
               <Text style={{ fontSize: 9, fontWeight: 'bold', color: colors.textPrimary }}>Reset GPS</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Configuración de Servidor WebSocket */}
+          <View style={{ marginTop: SPACING.xs, borderTopWidth: 1, borderColor: colors.border, paddingTop: SPACING.xs }}>
+            <Text style={{ fontSize: 9, fontWeight: 'bold', color: colors.textSecondary, marginBottom: 4 }}>
+              Servidor WebSocket (Datos Reales):
+            </Text>
+            <View style={{ flexDirection: 'row', gap: SPACING.xs }}>
+              <TextInput
+                style={{
+                  flex: 1,
+                  height: 32,
+                  backgroundColor: colors.surfaceAlt,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                  borderRadius: BORDER_RADIUS.md,
+                  paddingHorizontal: SPACING.sm,
+                  fontSize: 10,
+                  color: colors.textPrimary,
+                }}
+                value={wsUrlInput}
+                onChangeText={setWsUrlInput}
+                placeholder="ws://192.168.1.100:8080"
+                placeholderTextColor={colors.textMuted}
+              />
+              <TouchableOpacity
+                style={{
+                  backgroundColor: isMockMode ? `${colors.primary}15` : colors.success,
+                  borderColor: isMockMode ? colors.primary : colors.success,
+                  borderWidth: 1,
+                  paddingHorizontal: 12,
+                  borderRadius: BORDER_RADIUS.md,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  height: 32,
+                }}
+                onPress={handleToggleWSMode}
+              >
+                <Text style={{ fontSize: 9, fontWeight: 'bold', color: isMockMode ? colors.primary : '#FFFFFF' }}>
+                  {isMockMode ? 'Conectar Real' : 'Modo Simulado'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: SPACING.xs }}>
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: isWsConnected ? colors.success : colors.error }} />
+              <Text style={{ fontSize: 9, color: colors.textMuted }}>
+                Canal: <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>
+                  {isMockMode ? 'Simulado (Relé local)' : isWsConnected ? 'Conectado a Servidor Real' : 'Desconectado'}
+                </Text>
+              </Text>
+            </View>
+          </View>
+
           {closestVenue && (
             <Text style={{ fontSize: 9, color: colors.textMuted, marginTop: SPACING.sm }}>
               Distancia más cercana: <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>{closestVenue.venueName}</Text> ({closestVenue.distance}m)
