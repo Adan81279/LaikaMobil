@@ -26,6 +26,8 @@ import Card from '../../../components/Card';
 import Loader from '../../../components/Loader';
 import Button from '../../../components/Button';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useIsFocused } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { useLanguage } from '../../../context/LanguageContext';
@@ -122,6 +124,7 @@ export const OperadorDashboardScreen = () => {
 
   const handleValidate = async (codeToUse?: string) => {
     const code = (codeToUse || ticketCode).trim();
+    console.log('[OperadorDashboardScreen] handleValidate started for code:', code);
     if (!code) {
       Alert.alert(t('Código Requerido'), t('Por favor, ingrese un código de boleto.'));
       return;
@@ -139,6 +142,7 @@ export const OperadorDashboardScreen = () => {
 
     try {
       const result = await operadorService.validateTicket(code);
+      console.log('[OperadorDashboardScreen] validateTicket result:', result);
       setValidationResult(result);
       
       if (result.valid) {
@@ -158,6 +162,7 @@ export const OperadorDashboardScreen = () => {
       setTicketCode('');
       fetchStats(); // Update totals
     } catch (err: any) {
+      console.error('[OperadorDashboardScreen] validateTicket error caught:', err);
       setValidationError(err.message ? t(err.message) : t('Código de boleto inexistente.'));
       try {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -167,9 +172,18 @@ export const OperadorDashboardScreen = () => {
     }
   };
 
-  const handleBarCodeScanned = ({ data }: { data: string }) => {
-    if (loading || scanned) return;
-    handleValidate(data);
+  const handleBarCodeScanned = (event: any) => {
+    const rawData = event ? event.data : null;
+    console.log('[OperadorDashboardScreen] Barcode scanned event triggered. Data:', rawData, 'Raw:', event);
+    if (!rawData) {
+      console.warn('[OperadorDashboardScreen] Scanned barcode event has no data property.');
+      return;
+    }
+    if (loading || scanned) {
+      console.log('[OperadorDashboardScreen] Scan ignored: loading =', loading, ', scanned =', scanned);
+      return;
+    }
+    handleValidate(rawData);
   };
 
   const handleResetScanner = () => {
@@ -203,7 +217,7 @@ export const OperadorDashboardScreen = () => {
 
   const laserY = laserAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [10, 170], // Height of scanning window bounds
+    outputRange: [15, 265], // Height of scanning window bounds
   });
 
   const styles = getStyles(colors, isDarkMode);
@@ -312,7 +326,7 @@ export const OperadorDashboardScreen = () => {
                   barcodeScannerSettings={{
                     barcodeTypes: ['qr'],
                   }}
-                  onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+                  onBarcodeScanned={handleBarCodeScanned}
                 />
                 
                 {/* Laser animation */}
@@ -418,7 +432,11 @@ export const OperadorDashboardScreen = () => {
               {validationResult.price !== undefined && (
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>{t("Precio Pagado:")}</Text>
-                  <Text style={styles.detailVal}>${validationResult.price} MXN</Text>
+                  <Text style={styles.detailVal}>
+                    ${(validationResult.price !== null && !isNaN(Number(validationResult.price))) 
+                      ? Number(validationResult.price).toFixed(2) 
+                      : '0.00'} MXN
+                  </Text>
                 </View>
               )}
 
@@ -616,14 +634,26 @@ export const OperadorDashboardScreen = () => {
             {/* Info details */}
             {fallAlert && (
               <View style={{ gap: SPACING.sm }}>
-                <View style={{ backgroundColor: colors.surfaceAlt, padding: SPACING.sm, borderRadius: BORDER_RADIUS.md }}>
-                  <Text style={{ fontSize: 9, color: colors.textMuted }}>ASISTENTE</Text>
-                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.textPrimary }}>
-                    {fallAlert.user_name}
-                  </Text>
-                  <Text style={{ fontSize: 10, color: colors.textSecondary }}>
-                    {fallAlert.user_email}
-                  </Text>
+                <View style={{ flexDirection: 'row', gap: SPACING.sm }}>
+                  <View style={{ flex: 1.2, backgroundColor: colors.surfaceAlt, padding: SPACING.sm, borderRadius: BORDER_RADIUS.md }}>
+                    <Text style={{ fontSize: 9, color: colors.textMuted }}>ASISTENTE</Text>
+                    <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.textPrimary }} numberOfLines={1}>
+                      {fallAlert.user_name}
+                    </Text>
+                    <Text style={{ fontSize: 9, color: colors.textSecondary }} numberOfLines={1}>
+                      {fallAlert.user_email}
+                    </Text>
+                  </View>
+
+                  <View style={{ flex: 0.8, backgroundColor: colors.surfaceAlt, padding: SPACING.sm, borderRadius: BORDER_RADIUS.md, justifyContent: 'center' }}>
+                    <Text style={{ fontSize: 9, color: colors.textMuted }}>DISPOSITIVO</Text>
+                    <Text style={{ fontSize: 11, fontWeight: 'bold', color: colors.primary }} numberOfLines={1}>
+                      {fallAlert.device_id || 'LAIKA-WATCH-01'}
+                    </Text>
+                    <Text style={{ fontSize: 8, color: colors.textSecondary }}>
+                      {fallAlert.type === 'SOS_MANUAL' ? 'Alerta SOS' : 'Caída Sensor'}
+                    </Text>
+                  </View>
                 </View>
 
                 <View style={{ backgroundColor: colors.surfaceAlt, padding: SPACING.sm, borderRadius: BORDER_RADIUS.md }}>
@@ -792,7 +822,7 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     textAlign: 'center',
   },
   scannerWrapper: {
-    height: 180,
+    height: 280,
     backgroundColor: isDarkMode ? '#070a13' : '#F8FAFC',
     borderRadius: BORDER_RADIUS.md,
     borderColor: colors.border,
@@ -991,10 +1021,10 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.15)',
   },
   targetBox: {
-    width: 100,
-    height: 100,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    width: 180,
+    height: 180,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.65)',
     borderRadius: BORDER_RADIUS.md,
     backgroundColor: 'transparent',
   },

@@ -6,7 +6,7 @@ import { Platform } from 'react-native';
 export const BACKGROUND_LAIKA_LOCATION_TASK = 'BACKGROUND_LAIKA_LOCATION_TASK';
 
 // Define the background task for location updates
-TaskManager.defineTask(BACKGROUND_LAIKA_LOCATION_TASK, ({ data, error }) => {
+TaskManager.defineTask(BACKGROUND_LAIKA_LOCATION_TASK, async ({ data, error }) => {
   if (error) {
     console.error('[BackgroundLocationTask] Task error:', error);
     return;
@@ -25,7 +25,13 @@ class WearableService {
   private locationPermissionGranted: boolean = false;
 
   constructor() {
-    Accelerometer.setUpdateInterval(100); // 100ms updates
+    try {
+      if (Accelerometer && typeof Accelerometer.setUpdateInterval === 'function') {
+        Accelerometer.setUpdateInterval(100); // 100ms updates
+      }
+    } catch (e) {
+      console.warn('[WearableService] Accelerometer is not available or failed to initialize:', e);
+    }
   }
 
   /**

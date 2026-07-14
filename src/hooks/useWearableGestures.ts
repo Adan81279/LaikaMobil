@@ -113,6 +113,7 @@ export function useWearableGestures(onWristRaiseCallback?: () => void) {
     // 2. Fetch current user context
     let userName = 'Usuario Laika Club';
     let userEmail = 'cliente@laikaclub.com';
+    let deviceId = 'LAIKA-WATCH-01';
 
     try {
       const userStr = await AsyncStorage.getItem('@laika_auth_user');
@@ -121,10 +122,16 @@ export function useWearableGestures(onWristRaiseCallback?: () => void) {
         userName = userObj.name || userName;
         userEmail = userObj.email || userEmail;
       }
+      
+      const savedDevice = await AsyncStorage.getItem('@laika_wearable_device_id');
+      if (savedDevice) {
+        deviceId = savedDevice;
+      }
     } catch (e) {}
 
     // 3. Emit emergency fallback event through WebSocket
     websocketService.send('fall_detected', {
+      device_id: deviceId,
       user_name: userName,
       user_email: userEmail,
       latitude: currentCoords.latitude,

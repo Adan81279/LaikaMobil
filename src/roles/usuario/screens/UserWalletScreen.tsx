@@ -9,6 +9,7 @@ import {
   Modal,
   Alert,
   TextInput,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../../styles/theme';
@@ -25,6 +26,7 @@ import * as Clipboard from 'expo-clipboard';
 import Input from '../../../components/Input';
 import useWearableGestures from '../../../hooks/useWearableGestures';
 import websocketService from '../../../services/websocket.service';
+import { WearableSimulatorModal } from '../../../components/WearableSimulatorModal';
 
 export const UserWalletScreen = () => {
   const { isDarkMode, colors } = useTheme();
@@ -36,6 +38,9 @@ export const UserWalletScreen = () => {
   const [loading, setLoading] = useState(true);
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
   const [qrModalVisible, setQrModalVisible] = useState(false);
+
+  // Wearable Modal Visible State
+  const [wearableModalVisible, setWearableModalVisible] = useState(false);
 
   // Transfer state
   const [transferModalVisible, setTransferModalVisible] = useState(false);
@@ -273,58 +278,79 @@ export const UserWalletScreen = () => {
           </Text>
         </View>
 
-        {/* DEVELOPER WEARABLE SIMULATION PANEL */}
-        <Card style={{ padding: SPACING.md, borderColor: colors.secondary, borderWidth: 1, borderStyle: 'dashed', marginBottom: SPACING.md }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: SPACING.xs }}>
-            <Ionicons name="construct-outline" size={16} color={colors.secondary} />
-            <Text style={{ fontSize: 10, fontWeight: 'bold', color: colors.secondary, textTransform: 'uppercase' }}>
-              Simulador Wearable (Modo Desarrollador)
-            </Text>
+        {/* WEARABLE INTEGRATION PANEL */}
+        <Card style={{ 
+          padding: SPACING.md, 
+          borderColor: colors.border, 
+          borderWidth: 1, 
+          backgroundColor: isDarkMode ? '#0d111d' : '#FFFFFF',
+          marginBottom: SPACING.md,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 2,
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: SPACING.xs }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Ionicons name="watch-outline" size={18} color={colors.primary} />
+              <Text style={{ fontSize: 11, fontWeight: 'bold', color: colors.textPrimary, letterSpacing: 0.5 }}>
+                Usar Smartwatch
+              </Text>
+            </View>
+            <View style={{ 
+              backgroundColor: isWsConnected ? `${colors.success}15` : `${colors.error}15`, 
+              paddingHorizontal: 8, 
+              paddingVertical: 2, 
+              borderRadius: BORDER_RADIUS.round 
+            }}>
+              <Text style={{ fontSize: 8, fontWeight: 'bold', color: isWsConnected ? colors.success : colors.error }}>
+                {isWsConnected ? 'Sincronizado' : 'Desconectado'}
+              </Text>
+            </View>
           </View>
-          <Text style={{ fontSize: 10, color: colors.textSecondary, marginBottom: SPACING.sm }}>
-            Prueba la interacción en tiempo real y sensores. Abre este panel en dos dispositivos para ver la sincronización.
-          </Text>
           
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs, marginBottom: SPACING.xs }}>
-            <TouchableOpacity 
-              style={{ backgroundColor: `${colors.secondary}15`, borderColor: colors.secondary, borderWidth: 1, paddingVertical: 6, paddingHorizontal: 10, borderRadius: BORDER_RADIUS.md, flexDirection: 'row', alignItems: 'center', gap: 4 }}
-              onPress={simulateWristRaise}
-            >
-              <Ionicons name="watch-outline" size={14} color={colors.secondary} />
-              <Text style={{ fontSize: 9, fontWeight: 'bold', color: colors.secondary }}>Gesto Muñeca</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={{ backgroundColor: `${colors.error}15`, borderColor: colors.error, borderWidth: 1, paddingVertical: 6, paddingHorizontal: 10, borderRadius: BORDER_RADIUS.md, flexDirection: 'row', alignItems: 'center', gap: 4 }}
-              onPress={simulateFall}
-            >
-              <Ionicons name="warning-outline" size={14} color={colors.error} />
-              <Text style={{ fontSize: 9, fontWeight: 'bold', color: colors.error }}>Simular Caída</Text>
-            </TouchableOpacity>
+          <Text style={{ fontSize: 10, color: colors.textSecondary, marginBottom: SPACING.md, lineHeight: 14 }}>
+            Sincroniza tus pases en tiempo real, comparte tu ritmo cardíaco y activa alertas automáticas de seguridad durante el evento.
+          </Text>
 
-            <TouchableOpacity 
-              style={{ backgroundColor: `${colors.primary}15`, borderColor: colors.primary, borderWidth: 1, paddingVertical: 6, paddingHorizontal: 10, borderRadius: BORDER_RADIUS.md, flexDirection: 'row', alignItems: 'center', gap: 4 }}
-              onPress={() => simulateLocation(19.3900, -99.1400)}
-            >
-              <Ionicons name="location-outline" size={14} color={colors.primary} />
-              <Text style={{ fontSize: 9, fontWeight: 'bold', color: colors.primary }}>GPS: Recinto</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={{ backgroundColor: colors.surfaceAlt, borderColor: colors.border, borderWidth: 1, paddingVertical: 6, paddingHorizontal: 10, borderRadius: BORDER_RADIUS.md, flexDirection: 'row', alignItems: 'center', gap: 4 }}
-              onPress={resetToRealLocation}
-            >
-              <Ionicons name="refresh-outline" size={14} color={colors.textPrimary} />
-              <Text style={{ fontSize: 9, fontWeight: 'bold', color: colors.textPrimary }}>Reset GPS</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Configuración de Servidor WebSocket */}
-          <View style={{ marginTop: SPACING.xs, borderTopWidth: 1, borderColor: colors.border, paddingTop: SPACING.xs }}>
-            <Text style={{ fontSize: 9, fontWeight: 'bold', color: colors.textSecondary, marginBottom: 4 }}>
-              Servidor WebSocket (Datos Reales):
+          <TouchableOpacity
+            style={{
+              backgroundColor: colors.primary,
+              paddingVertical: 10,
+              paddingHorizontal: 16,
+              borderRadius: BORDER_RADIUS.md,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: SPACING.xs,
+              borderColor: colors.border,
+              borderWidth: 1,
+              shadowColor: colors.primary,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.2,
+              shadowRadius: 4,
+              elevation: 3,
+            }}
+            onPress={() => setWearableModalVisible(true)}
+          >
+            <Ionicons name="watch" size={16} color={isDarkMode ? '#000000' : '#FFFFFF'} />
+            <Text style={{ fontSize: 11, fontWeight: 'bold', color: isDarkMode ? '#000000' : '#FFFFFF', letterSpacing: 0.5 }}>
+              ABRIR INTERFAZ DEL RELOJ
             </Text>
-            <View style={{ flexDirection: 'row', gap: SPACING.xs }}>
+          </TouchableOpacity>
+          
+          {/* Collapsible/Sleek Server Configuration */}
+          <View style={{ marginTop: SPACING.sm, paddingTop: SPACING.sm, borderTopWidth: 0.5, borderColor: colors.border }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontSize: 9, color: colors.textSecondary, fontWeight: 'medium' }}>
+                Servidor de Sincronización:
+              </Text>
+              <Text style={{ fontSize: 9, color: colors.textMuted, fontStyle: 'italic' }}>
+                {isMockMode ? 'Modo Local' : 'Canal WebSocket'}
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', gap: SPACING.xs, marginTop: 4 }}>
               <TextInput
                 style={{
                   flex: 1,
@@ -356,26 +382,17 @@ export const UserWalletScreen = () => {
                 onPress={handleToggleWSMode}
               >
                 <Text style={{ fontSize: 9, fontWeight: 'bold', color: isMockMode ? colors.primary : '#FFFFFF' }}>
-                  {isMockMode ? 'Conectar Real' : 'Modo Simulado'}
+                  {isMockMode ? 'Conectar' : 'Local'}
                 </Text>
               </TouchableOpacity>
             </View>
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: SPACING.xs }}>
-              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: isWsConnected ? colors.success : colors.error }} />
-              <Text style={{ fontSize: 9, color: colors.textMuted }}>
-                Canal: <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>
-                  {isMockMode ? 'Simulado (Relé local)' : isWsConnected ? 'Conectado a Servidor Real' : 'Desconectado'}
-                </Text>
+            {closestVenue && (
+              <Text style={{ fontSize: 9, color: colors.textMuted, marginTop: SPACING.sm }}>
+                Recinto más cercano: <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>{closestVenue.venueName}</Text> ({closestVenue.distance}m)
               </Text>
-            </View>
+            )}
           </View>
-
-          {closestVenue && (
-            <Text style={{ fontSize: 9, color: colors.textMuted, marginTop: SPACING.sm }}>
-              Distancia más cercana: <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>{closestVenue.venueName}</Text> ({closestVenue.distance}m)
-            </Text>
-          )}
         </Card>
 
         {/* ACTIVE TICKETS SECTION */}
@@ -525,11 +542,31 @@ export const UserWalletScreen = () => {
                   </View>
                 )}
 
-                {/* Simulated QR Code rendering */}
+                {/* Real QR Code rendering */}
                 <View style={styles.qrContainer}>
                   <View style={styles.qrBox}>
-                    {/* Simulated QR grid with blocks */}
-                    <Ionicons name="qr-code-sharp" size={160} color="#000000" />
+                    <Image 
+                      source={{ 
+                        uri: (() => {
+                          const payload = {
+                            id: activeTicket.id,
+                            c: activeTicket.ticket_code,
+                            o: (activeTicket as any).owner_name || user?.name || 'Cliente',
+                            e: activeTicket.owner_email || user?.email || 'cliente@laikaclub.com',
+                            t: activeTicket.event_title || activeTicket.event_name || 'Espectáculo',
+                            v: activeTicket.venue_name || activeTicket.venue || 'Recinto Central',
+                            s: activeTicket.seat_label || 'General',
+                            p: activeTicket.price || 0,
+                            d: activeTicket.date,
+                            h: activeTicket.time,
+                            st: activeTicket.status
+                          };
+                          const dataStr = JSON.stringify(payload);
+                          return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(dataStr)}`;
+                        })()
+                      }} 
+                      style={{ width: 160, height: 160 }}
+                    />
                   </View>
                   
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm, marginTop: SPACING.xs }}>
@@ -740,6 +777,11 @@ export const UserWalletScreen = () => {
           </View>
         </View>
       </Modal>
+      <WearableSimulatorModal 
+        visible={wearableModalVisible} 
+        onClose={() => setWearableModalVisible(false)} 
+        initialTicket={activeTicket}
+      />
     </View>
   );
 };

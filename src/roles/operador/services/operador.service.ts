@@ -1,4 +1,5 @@
 import api from '../../../services/api.service';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface TicketValidationResponse {
   valid: boolean;
@@ -145,60 +146,209 @@ class OperadorService {
     } catch (error: any) {
       console.warn('validateTicket using offline fallback...', error);
       
-      const code = ticketCode.trim().toUpperCase();
+      const code = ticketCode.trim();
 
-      // Check if ticket exists in AsyncStorage first
-      let localTicket: any = null;
-      let ticketsList: any[] = [];
-      try {
-        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-        const stored = await AsyncStorage.getItem('@laika_user_tickets');
-        if (stored) {
-          ticketsList = JSON.parse(stored);
-          localTicket = ticketsList.find((t: any) => 
-            t.ticket_code.toUpperCase() === code || 
-            t.id === code || 
-            (t.transfer_code && t.transfer_code.toUpperCase() === code)
-          );
+      // Check if this is a QR JSON payload carrying full ticket metadata
+      let scannedTicket: any = null;
+      if (code.startsWith('{') && code.endsWith('}')) {
+        try {
+          scannedTicket = JSON.parse(code);
+        } catch (e) {
+          console.error('Error parsing scanned ticket JSON:', e);
         }
-      } catch (err) {
-        console.warn('Error reading local tickets in operadorService:', err);
+      } else if (code.startsWith('%7B') || code.includes('%22')) {
+        try {
+          scannedTicket = JSON.parse(decodeURIComponent(code));
+        } catch (e) {
+          console.error('Error parsing decoded scanned ticket JSON:', e);
+        }
       }
 
-      if (localTicket) {
-        // Resolve names
-        let ownerName = 'Usuario Final';
+      if (scannedTicket) {
+        const ticketCodeReal = scannedTicket.c || scannedTicket.ticket_code;
+        if (!ticketCodeReal) {
+          throw new Error('Código de boleto no encontrado en los datos del QR.');
+        }
+
+        const ownerNameReal = scannedTicket.o || scannedTicket.owner_name || 'Cliente';
+        const ownerEmailReal = scannedTicket.e || scannedTicket.owner_email || '';
+        const eventTitleReal = scannedTicket.t || scannedTicket.event_title || 'Espectáculo';
+        const venueNameReal = scannedTicket.v || scannedTicket.venue_name || 'Recinto Central';
+        const seatLabelReal = scannedTicket.s || scannedTicket.seat_label || 'General';
+        const priceReal = scannedTicket.p !== undefined ? Number(scannedTicket.p) : 0;
+        const dateReal = scannedTicket.d || scannedTicket.date;
+        const timeReal = scannedTicket.h || scannedTicket.time;
+        const originalStatus = scannedTicket.st || scannedTicket.status || 'valid';
+
+        // Load list of locally redeemed codes to prevent double entry
+        let redeemedCodes: string[] = [];
         try {
-          const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-          const storedUsers = await AsyncStorage.getItem('@laika_registered_users');
-          if (storedUsers) {
-            const users = JSON.parse(storedUsers);
-            const matchedUser = users.find((u: any) => u.email === localTicket.owner_email);
-            if (matchedUser) {
-              ownerName = matchedUser.name;
+          const storedRedeemed = await AsyncStorage.getItem('@laika_redeemed_ticket_codes');
+          if (storedRedeemed) {
+            redeemedCodes = JSON.parse(storedRedeemed);
+          }
+        } catch (e) {
+          console.warn('Error reading redeemed codes:', e);
+        }
+
+        const isAlreadyRedeemed = redeemedCodes.includes(ticketCodeReal.toUpperCase()) || originalStatus === 'used';
+        
+        if (isAlreadyRedeemed) {
+          // Already scanned
+          this.mockStats.scanned_today += 1;
+          this.mockStats.invalid_today += 1;
+          this.mockStats.recent_scans.unshift({
+            id: String(Date.now()),
+            ticket_code: ticketCodeReal,
+            status: 'used',
+            timestamp: new Date().toISOString(),
+            event_title: eventTitleReal,
+          });
+
+          return {
+            valid: false,
+            status: 'used',
+            ticket_code: ticketCodeReal,
+            owner_name: ownerNameReal,
+            owner_email: ownerEmailReal,
+            original_owner_name: ownerNameReal,
+            original_owner_email: ownerEmailReal,
+            event_title: eventTitleReal,
+            venue_name: venueNameReal,
+            seat_label: seatLabelReal,
+            date: dateReal,
+            time: timeReal,
+            price: priceReal,
+            redeemed_at: new Date().toISOString(), // simulation timestamp of second scan
+          };
+        }
+
+        // Successfully redeem
+        redeemedCodes.push(ticketCodeReal.toUpperCase());
+        try {
+          await AsyncStorage.setItem('@laika_redeemed_ticket_codes', JSON.stringify(redeemedCodes));
+        } catch (e) {
+          console.warn('Error saving redeemed codes:', e);
+        }
+
+        // Sync local user tickets status if they exist on this same device
+        try {
+          const stored = await AsyncStorage.getItem('@laika_user_tickets');
+          if (stored) {
+            const ticketsList = JSON.parse(stored);
+            const matchedLocal = ticketsList.find((t: any) => 
+              (t.ticket_code && t.ticket_code.toUpperCase() === ticketCodeReal.toUpperCase()) ||
+              (t.id && t.id.toUpperCase() === ticketCodeReal.toUpperCase())
+            );
+            if (matchedLocal) {
+              matchedLocal.status = 'used';
+              matchedLocal.redeemed_at = new Date().toISOString();
+              await AsyncStorage.setItem('@laika_user_tickets', JSON.stringify(ticketsList));
             }
           }
         } catch (e) {}
 
-        const isValid = localTicket.status === 'valid';
-        
+        this.mockStats.scanned_today += 1;
+        this.mockStats.valid_today += 1;
+        this.mockStats.recent_scans.unshift({
+          id: String(Date.now()),
+          ticket_code: ticketCodeReal,
+          status: 'success',
+          timestamp: new Date().toISOString(),
+          event_title: eventTitleReal,
+        });
+
+        return {
+          valid: true,
+          status: 'active',
+          ticket_code: ticketCodeReal,
+          owner_name: ownerNameReal,
+          owner_email: ownerEmailReal,
+          original_owner_name: ownerNameReal,
+          original_owner_email: ownerEmailReal,
+          event_title: eventTitleReal,
+          venue_name: venueNameReal,
+          seat_label: seatLabelReal,
+          date: dateReal,
+          time: timeReal,
+          price: priceReal,
+        };
+      }
+
+      // Legacy/Manual fallback
+      const cleanCode = code.toUpperCase();
+      let localTicket: any = null;
+      let ticketsList: any[] = [];
+      try {
+        const stored = await AsyncStorage.getItem('@laika_user_tickets');
+        if (stored) {
+          ticketsList = JSON.parse(stored);
+          localTicket = ticketsList.find((t: any) => {
+            const tCode = t.ticket_code ? String(t.ticket_code).toUpperCase() : '';
+            const tId = t.id ? String(t.id).toUpperCase() : '';
+            const tTransfer = t.transfer_code ? String(t.transfer_code).toUpperCase() : '';
+            return tCode === cleanCode || tId === cleanCode || tTransfer === cleanCode;
+          });
+        }
+      } catch (err) {
+        console.warn('Error reading local tickets:', err);
+      }
+
+      if (localTicket) {
+        let ownerName = 'Usuario Final';
+        try {
+          const activeUserStr = await AsyncStorage.getItem('@laika_auth_user');
+          if (activeUserStr) {
+            const activeUser = JSON.parse(activeUserStr);
+            if (activeUser.email === localTicket.owner_email) {
+              ownerName = activeUser.name || 'Cliente';
+            }
+          }
+          if (ownerName === 'Usuario Final') {
+            const storedUsers = await AsyncStorage.getItem('@laika_registered_users');
+            if (storedUsers) {
+              const users = JSON.parse(storedUsers);
+              const matchedUser = users.find((u: any) => u.email === localTicket.owner_email);
+              if (matchedUser) {
+                ownerName = matchedUser.name;
+              }
+            }
+          }
+        } catch (e) {}
+
+        // Check against our global redeemed codes list as well
+        let redeemedCodes: string[] = [];
+        try {
+          const storedRedeemed = await AsyncStorage.getItem('@laika_redeemed_ticket_codes');
+          if (storedRedeemed) {
+            redeemedCodes = JSON.parse(storedRedeemed);
+          }
+        } catch (e) {}
+
+        const isRedeemed = localTicket.status !== 'valid' || redeemedCodes.includes(localTicket.ticket_code.toUpperCase());
+        const isValid = !isRedeemed;
+
         if (isValid) {
-          // Mark as used
           localTicket.status = 'used';
           localTicket.redeemed_at = new Date().toISOString();
           try {
-            const AsyncStorage = require('@react-native-async-storage/async-storage').default;
             await AsyncStorage.setItem('@laika_user_tickets', JSON.stringify(ticketsList));
+          } catch (e) {}
+
+          // Add to redeemed codes list
+          redeemedCodes.push(localTicket.ticket_code.toUpperCase());
+          try {
+            await AsyncStorage.setItem('@laika_redeemed_ticket_codes', JSON.stringify(redeemedCodes));
           } catch (e) {}
         }
 
-        // Stats update
         this.mockStats.scanned_today += 1;
         if (isValid) {
           this.mockStats.valid_today += 1;
         } else {
           this.mockStats.invalid_today += 1;
         }
+        
         this.mockStats.recent_scans.unshift({
           id: String(Date.now()),
           ticket_code: localTicket.ticket_code,
@@ -224,19 +374,18 @@ class OperadorService {
           redeemed_at: localTicket.redeemed_at,
         };
       }
-      
-      // Standard local presets
-      if (code === 'TKT-VALID-123' || code.startsWith('TKT-OK') || code === 'TKT-VALID-905171') {
-        const matched = this.mockAttendees.find(att => att.ticket_code === code);
-        const ticketState = this.mockScannedTickets[code] || { status: 'active' };
-        
+
+      // Hardcoded offline presets for legacy demo
+      if (cleanCode === 'TKT-VALID-123' || cleanCode.startsWith('TKT-OK') || cleanCode === 'TKT-VALID-905171') {
+        const matched = this.mockAttendees.find(att => att.ticket_code === cleanCode);
+        const ticketState = this.mockScannedTickets[cleanCode] || { status: 'active' };
+
         if (ticketState.status === 'used') {
-          // Already used offline
           this.mockStats.scanned_today += 1;
           this.mockStats.invalid_today += 1;
           this.mockStats.recent_scans.unshift({
             id: String(Date.now()),
-            ticket_code: code,
+            ticket_code: cleanCode,
             status: 'used',
             timestamp: new Date().toISOString(),
             event_title: matched ? matched.event_title : 'Luis Miguel Tour 2026',
@@ -244,7 +393,7 @@ class OperadorService {
           return {
             valid: false,
             status: 'used',
-            ticket_code: code,
+            ticket_code: cleanCode,
             owner_name: matched ? matched.owner_name : 'Juan Pérez',
             event_title: matched ? matched.event_title : 'Luis Miguel Tour 2026',
             venue_name: matched ? matched.venue_name : 'Estadio Arena Monterrey',
@@ -253,8 +402,7 @@ class OperadorService {
           };
         }
 
-        // Successfully redeem offline
-        this.mockScannedTickets[code] = {
+        this.mockScannedTickets[cleanCode] = {
           status: 'used',
           redeemed_at: new Date().toISOString(),
         };
@@ -262,7 +410,7 @@ class OperadorService {
         this.mockStats.valid_today += 1;
         this.mockStats.recent_scans.unshift({
           id: String(Date.now()),
-          ticket_code: code,
+          ticket_code: cleanCode,
           status: 'success',
           timestamp: new Date().toISOString(),
           event_title: matched ? matched.event_title : 'Luis Miguel Tour 2026',
@@ -275,19 +423,19 @@ class OperadorService {
 
         return {
           valid: true,
-          status: 'active', // returned status prior to redemption
-          ticket_code: code,
+          status: 'active',
+          ticket_code: cleanCode,
           owner_name: matched ? matched.owner_name : 'Juan Pérez',
           event_title: matched ? matched.event_title : 'Luis Miguel Tour 2026',
           venue_name: matched ? matched.venue_name : 'Estadio Arena Monterrey',
           seat_label: matched ? matched.seat_label : 'Planta Baja - B4',
         };
-      } else if (code === 'TKT-USED-456') {
+      } else if (cleanCode === 'TKT-USED-456') {
         this.mockStats.scanned_today += 1;
         this.mockStats.invalid_today += 1;
         this.mockStats.recent_scans.unshift({
           id: String(Date.now()),
-          ticket_code: code,
+          ticket_code: cleanCode,
           status: 'used',
           timestamp: new Date().toISOString(),
           event_title: 'Bad Bunny Tour Coahuila',
@@ -295,20 +443,20 @@ class OperadorService {
         return {
           valid: false,
           status: 'used',
-          ticket_code: code,
+          ticket_code: cleanCode,
           owner_name: 'Jimena Díaz',
           event_title: 'Bad Bunny Tour Coahuila',
           venue_name: 'Coliseo Centenario',
           seat_label: 'Balcón General - G12',
-          redeemed_at: this.mockScannedTickets['TKT-USED-456'].redeemed_at,
+          redeemed_at: this.mockScannedTickets['TKT-USED-456']?.redeemed_at || new Date().toISOString(),
         };
       } else {
-        // Inexistent ticket
+        // Unknown
         this.mockStats.scanned_today += 1;
         this.mockStats.invalid_today += 1;
         this.mockStats.recent_scans.unshift({
           id: String(Date.now()),
-          ticket_code: code,
+          ticket_code: cleanCode,
           status: 'invalid',
           timestamp: new Date().toISOString(),
           event_title: 'Evento Desconocido',

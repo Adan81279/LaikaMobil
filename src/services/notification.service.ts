@@ -7,7 +7,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
-    shouldVibrate: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -56,6 +57,15 @@ class NotificationService {
     }
   }
 
+  private listeners: Set<(title: string, body: string, data: any) => void> = new Set();
+
+  subscribe(listener: (title: string, body: string, data: any) => void) {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
   /**
    * Display a local instant notification
    */
@@ -81,6 +91,15 @@ class NotificationService {
         trigger: null, // trigger immediately
       });
       console.log(`[NotificationService] Dispatched local notification: "${title}"`);
+
+      // Forward to sub-listeners (like the Wearable Simulator)
+      this.listeners.forEach((cb) => {
+        try {
+          cb(title, body, data);
+        } catch (e) {
+          console.warn('[NotificationService] Error invoking listener:', e);
+        }
+      });
     } catch (err) {
       console.error('[NotificationService] Error triggering notification:', err);
     }
