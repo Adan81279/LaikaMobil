@@ -1,5 +1,6 @@
 import apiService from '../../../services/api.service';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import emailService from '../../../services/email.service';
 
 export interface EventInfo {
   id: string;
@@ -1164,6 +1165,41 @@ class UsuarioService {
 
     // Increase User XP on Purchase
     await this.addXP(100 * seats.length);
+
+    // Send email notification for Ticket Purchase
+    try {
+      const ticketCodes = newTickets.map(t => t.ticket_code);
+      const userStr = await AsyncStorage.getItem('@laika_auth_user');
+      const userObj = userStr ? JSON.parse(userStr) : null;
+      
+      emailService.sendTicketPurchaseEmail({
+        eventTitle: event?.title || 'Espectáculo Adquirido',
+        venueName: event?.venue || 'Recinto Central',
+        date: event?.date || 'Fecha Pendiente',
+        time: event?.time || 'Hora Pendiente',
+        seats: seats,
+        ticketCodes: ticketCodes,
+        totalPrice: price,
+        toEmail: userObj?.email || currentUserEmail,
+        userName: userObj?.name || 'Cliente',
+      });
+      
+      // If there is related merchandise, send a merchandise purchase email as well
+      if (relatedMerch && relatedMerch.length > 0) {
+        emailService.sendMerchPurchaseEmail({
+          items: relatedMerch.map(m => ({
+            title: m.title,
+            price: m.price,
+            quantity: m.quantity
+          })),
+          totalPrice: relatedMerch.reduce((sum, m) => sum + (m.price * m.quantity), 0),
+          toEmail: userObj?.email || currentUserEmail,
+          userName: userObj?.name || 'Cliente',
+        });
+      }
+    } catch (emailErr) {
+      console.error('[UsuarioService] Error triggering ticket purchase email:', emailErr);
+    }
   }
 
   /**
@@ -1273,6 +1309,26 @@ class UsuarioService {
     mockMerchOrders = [newOrder, ...mockMerchOrders];
     await saveMerchOrdersToStorage(mockMerchOrders);
     await this.addXP(50);
+
+    // Trigger Merchandise Email Notification
+    try {
+      const userStr = await AsyncStorage.getItem('@laika_auth_user');
+      const userObj = userStr ? JSON.parse(userStr) : null;
+      
+      emailService.sendMerchPurchaseEmail({
+        items: items.map(it => ({
+          title: it.item.title,
+          price: it.item.price,
+          quantity: it.quantity
+        })),
+        totalPrice: totalPrice,
+        toEmail: userObj?.email,
+        userName: userObj?.name,
+      });
+    } catch (emailErr) {
+      console.error('[UsuarioService] Error triggering merchandise purchase email:', emailErr);
+    }
+
     return true;
   }
 
@@ -1330,6 +1386,9 @@ class UsuarioService {
   async spinLuckySeat(): Promise<{ success: boolean; coupon?: Coupon; message: string }> {
     try {
       const response = await apiService.post('/api/tickets/lucky-seat', {}, { timeout: 2000 });
+      if (response.success && response.coupon) {
+        this.triggerCouponEmail(response.coupon);
+      }
       return response;
     } catch (e) {
       // Offline Simulation
@@ -1342,6 +1401,9 @@ class UsuarioService {
         // Add XP reward
         await this.addXP(75);
 
+        // Trigger email
+        this.triggerCouponEmail(wonCoupon);
+
         return {
           success: true,
           coupon: wonCoupon,
@@ -1353,6 +1415,24 @@ class UsuarioService {
           message: 'Suerte para la próxima. Inténtalo de nuevo mañana.'
         };
       }
+    }
+  }
+
+  private async triggerCouponEmail(coupon: Coupon) {
+    try {
+      const userStr = await AsyncStorage.getItem('@laika_auth_user');
+      const userObj = userStr ? JSON.parse(userStr) : null;
+      
+      emailService.sendCouponRewardEmail({
+        couponCode: coupon.code,
+        discount: coupon.discount,
+        description: coupon.description,
+        expiry: coupon.expiry,
+        toEmail: userObj?.email,
+        userName: userObj?.name,
+      });
+    } catch (emailErr) {
+      console.error('[UsuarioService] Error triggering coupon email:', emailErr);
     }
   }
 
@@ -1538,8 +1618,8 @@ class UsuarioService {
    * Get active ticket code
    */
   async getTicketCode(): Promise<string | null> {
-    const tickets = await this.getTickets();
-    const active = tickets.find(t => t.status === 'valid');
+    const tickets = await this.getMyTickets();
+    const active = tickets.find((t: Ticket) => t.status === 'valid');
     return active ? active.ticket_code : null;
   }
 

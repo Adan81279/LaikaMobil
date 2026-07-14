@@ -38,6 +38,19 @@ export const APP_CONFIG = {
 
   // Session Management
   SESSION_TIMEOUT_MS: 30 * 60 * 1000, // 30 minutes in milliseconds
+
+  // EmailJS Configuration (via Expo environment variables or fallbacks)
+  EMAILJS: {
+    SERVICE_ID: (process.env.EXPO_PUBLIC_EMAILJS_SERVICE_ID || 'service_o31g0l2').trim(),
+    PUBLIC_KEY: (process.env.EXPO_PUBLIC_EMAILJS_PUBLIC_KEY || 'N2XvWn8j_zG9fN8mH').trim(),
+    TEMPLATES: {
+      TICKET_PURCHASE: (process.env.EXPO_PUBLIC_EMAILJS_TEMPLATE_TICKET || 'template_tickets').trim(),
+      MERCH_PURCHASE: (process.env.EXPO_PUBLIC_EMAILJS_TEMPLATE_MERCH || 'template_merch').trim(),
+      EVENT_ALERT: (process.env.EXPO_PUBLIC_EMAILJS_TEMPLATE_EVENT || 'template_event').trim(),
+      PASSWORD_CHANGE: (process.env.EXPO_PUBLIC_EMAILJS_TEMPLATE_PASSWORD || 'template_password').trim(),
+      COUPON_REWARD: (process.env.EXPO_PUBLIC_EMAILJS_TEMPLATE_COUPON || 'template_coupon').trim(),
+    },
+  },
 };
 
 export default APP_CONFIG;

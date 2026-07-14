@@ -19,6 +19,7 @@ import { useLanguage } from '../context/LanguageContext';
 import Input from './Input';
 import Button from './Button';
 import * as Haptics from 'expo-haptics';
+import emailService from '../services/email.service';
 
 interface EditProfileModalProps {
   visible: boolean;
@@ -115,6 +116,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ visible, onC
     setLoading(false);
 
     if (success) {
+      if (password) {
+        emailService.sendPasswordChangeEmail(email.trim(), name.trim());
+      }
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch (e) {}

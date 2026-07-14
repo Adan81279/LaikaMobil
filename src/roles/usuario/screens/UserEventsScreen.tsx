@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../../styles/theme';
 import usuarioService, { EventInfo, MerchItem, Ticket } from '../services/usuario.service';
+import emailService from '../../../services/email.service';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Card from '../../../components/Card';
 import Loader from '../../../components/Loader';
@@ -55,6 +56,24 @@ export const UserEventsScreen = () => {
         t.venue?.toLowerCase().includes(closestVenue.venueName.toLowerCase())
       )
     : null;
+
+  // Track sent proximity alerts to avoid spamming multiple emails on every GPS update tick
+  const [sentProximityAlerts, setSentProximityAlerts] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (nearbyTicket && closestVenue && !sentProximityAlerts[nearbyTicket.id]) {
+      setSentProximityAlerts(prev => ({ ...prev, [nearbyTicket.id]: true }));
+      emailService.sendEventAlertEmail({
+        eventTitle: nearbyTicket.event_title || 'Espectáculo Próximo',
+        venueName: nearbyTicket.venue_name || 'Recinto',
+        date: nearbyTicket.date || 'Fecha',
+        time: nearbyTicket.time || 'Hora',
+        distance: `${closestVenue.distance} metros`,
+        toEmail: user?.email,
+        userName: user?.name,
+      });
+    }
+  }, [nearbyTicket, closestVenue, user]);
 
   // Shopping Cart Item type
   interface CartItem {
