@@ -14,6 +14,7 @@ import { useLanguage } from '../../../context/LanguageContext';
 import { useRouter } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import notificationService from '../../../services/notification.service';
 
 const { width } = Dimensions.get('window');
 
@@ -153,6 +154,14 @@ export const UserBazaarScreen = () => {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } catch (h) {}
         setPurchaseSuccess(true);
+
+        // Trigger wearable and local notification
+        const totalItems = orderItems.reduce((sum, item) => sum + item.quantity, 0);
+        notificationService.triggerLocalNotification(
+          t('🛍️ Compra de Souvenirs'),
+          `${t('Has adquirido')} ${totalItems} ${t('artículos del bazar por')} $${getCartTotalPrice()} MXN.`
+        );
+
         setCart({});
       } else {
         Alert.alert(t('Error'), t('No se pudo registrar la compra de mercancía.'));

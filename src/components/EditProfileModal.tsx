@@ -20,6 +20,7 @@ import Input from './Input';
 import Button from './Button';
 import * as Haptics from 'expo-haptics';
 import emailService from '../services/email.service';
+import notificationService from '../services/notification.service';
 
 interface EditProfileModalProps {
   visible: boolean;
@@ -118,6 +119,10 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ visible, onC
     if (success) {
       if (password) {
         emailService.sendPasswordChangeEmail(email.trim(), name.trim());
+        notificationService.triggerLocalNotification(
+          t('🔒 Contraseña Modificada'),
+          t('Tu contraseña de acceso ha sido cambiada de forma segura.')
+        );
       }
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

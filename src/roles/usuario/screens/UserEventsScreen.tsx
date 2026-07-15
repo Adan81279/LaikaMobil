@@ -268,6 +268,13 @@ export const UserEventsScreen = () => {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } catch (h) {}
         setPaymentSuccess(true);
+
+        // Trigger wearable and local notification
+        notificationService.triggerLocalNotification(
+          t('🎫 Compra Exitosa'),
+          `${t('Has adquirido')} ${selectedSeats.length} ${t('boletos para')} ${t(activeEvent.title)}.`
+        );
+
         await AsyncStorage.removeItem('@Laika:cart_event_ids');
       } else {
         Alert.alert(t('Error'), t('No se pudo completar la compra del boleto.'));
@@ -579,6 +586,14 @@ export const UserEventsScreen = () => {
         } catch (h) {}
 
         setPaymentSuccess(true);
+
+        // Trigger wearable and local notification
+        const totalTickets = cart.reduce((sum, item) => sum + item.seats.length, 0);
+        notificationService.triggerLocalNotification(
+          t('🎫 Compra Exitosa (Carrito)'),
+          `${t('Has adquirido')} ${totalTickets} ${t('boletos para tus eventos guardados.')}`
+        );
+
         setCart([]); // Clear cart
         await AsyncStorage.removeItem('@Laika:cart_event_ids');
       } catch (err) {
