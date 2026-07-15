@@ -10,6 +10,8 @@ import {
   Alert,
   TextInput,
   Image,
+  Linking,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../../styles/theme';
@@ -25,6 +27,7 @@ import { useIsFocused } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import Input from '../../../components/Input';
 import useWearableGestures from '../../../hooks/useWearableGestures';
+import { VENUES } from '../../../hooks/useGeolocation';
 import websocketService from '../../../services/websocket.service';
 import { WearableSimulatorModal } from '../../../components/WearableSimulatorModal';
 
@@ -246,6 +249,42 @@ export const UserWalletScreen = () => {
     setQrModalVisible(true);
   };
 
+  const getVenueCoords = (venueName?: string) => {
+    if (!venueName) return null;
+    const nameLower = venueName.toLowerCase();
+    const found = VENUES.find(v => 
+      nameLower.includes(v.name.toLowerCase()) || 
+      v.name.toLowerCase().includes(nameLower)
+    );
+    return found ? { latitude: found.latitude, longitude: found.longitude, name: found.name } : null;
+  };
+
+  const handleOpenRoute = (ticket: Ticket) => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch(e){}
+    
+    const venueName = ticket.venue_name || ticket.venue || 'Estadio Laika Arena';
+    const coords = getVenueCoords(venueName) || { latitude: 19.3900, longitude: -99.1400, name: venueName };
+
+    const lat = coords.latitude;
+    const lng = coords.longitude;
+    const label = encodeURIComponent(coords.name);
+
+    // Google Maps direction URL
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${label}&travelmode=driving`;
+    
+    Linking.canOpenURL(url).then(supported => {
+      if (supported) {
+        Linking.openURL(url);
+      } else {
+        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
+      }
+    }).catch(err => {
+      console.warn('Error opening maps URL:', err);
+    });
+  };
+
   if (loading && tickets.length === 0) {
     return <Loader visible={true} message="Cargando tu cartera digital..." />;
   }
@@ -412,6 +451,28 @@ export const UserWalletScreen = () => {
                   <Text style={styles.ticketVenue} numberOfLines={1}>{ticket.venue_name || ticket.venue || 'Recinto Central'}</Text>
                   <Text style={styles.ticketTime}>{(ticket.date || ticket.event_date || 'Fecha')} | {(ticket.time || ticket.event_time || 'N/A')}</Text>
                   <Text style={styles.ticketSeat}>Zona: <Text style={{fontWeight: 'bold', color: colors.primary}}>{ticket.seat_label || ticket.seat_id || 'N/A'}</Text></Text>
+                  
+                  <TouchableOpacity 
+                    style={{ 
+                      flexDirection: 'row', 
+                      alignItems: 'center', 
+                      gap: 4, 
+                      marginTop: 6,
+                      backgroundColor: `${colors.primary}10`,
+                      alignSelf: 'flex-start',
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: BORDER_RADIUS.sm,
+                      borderColor: `${colors.primary}30`,
+                      borderWidth: 0.5,
+                    }}
+                    onPress={() => handleOpenRoute(ticket)}
+                  >
+                    <Ionicons name="navigate-circle-outline" size={12} color={colors.primary} />
+                    <Text style={{ fontSize: 9, fontWeight: 'bold', color: colors.primary }}>
+                      ¿CÓMO LLEGAR? (RUTA GPS)
+                    </Text>
+                  </TouchableOpacity>
                   
                   {ticket.transfer_code && (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>

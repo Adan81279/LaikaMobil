@@ -51,26 +51,25 @@ export function useGeolocation() {
   useEffect(() => {
     let active = true;
 
+    const onLocationUpdate = (location: { latitude: number; longitude: number; accuracy: number | null }) => {
+      if (!active) return;
+      const coords: Coords = {
+        latitude: location.latitude,
+        longitude: location.longitude,
+      };
+      updateLocationData(coords);
+    };
+
     const initLocation = async () => {
-      // Start foreground tracking
-      await wearableService.startLocationUpdates((location) => {
-        if (!active) return;
-        const coords: Coords = {
-          latitude: location.latitude,
-          longitude: location.longitude,
-        };
-        updateLocationData(coords);
-      });
+      await wearableService.startLocationUpdates(onLocationUpdate);
     };
 
     initLocation();
-
-    // Start background tracking as well
     wearableService.startBackgroundLocation();
 
     return () => {
       active = false;
-      wearableService.stopLocationUpdates();
+      wearableService.stopLocationUpdates(onLocationUpdate);
       wearableService.stopBackgroundLocation();
     };
   }, []);
@@ -101,7 +100,7 @@ export function useGeolocation() {
    */
   const simulateLocation = (latitude: number, longitude: number) => {
     console.log(`[useGeolocation-Simulator] Simulating GPS shift to: Lat=${latitude}, Lng=${longitude}`);
-    updateLocationData({ latitude, longitude });
+    wearableService.simulateLocation(latitude, longitude);
   };
 
   /**
@@ -109,12 +108,7 @@ export function useGeolocation() {
    */
   const resetToRealLocation = async () => {
     setLoading(true);
-    await wearableService.startLocationUpdates((location) => {
-      updateLocationData({
-        latitude: location.latitude,
-        longitude: location.longitude,
-      });
-    });
+    await wearableService.resetToRealLocation();
   };
 
   return {

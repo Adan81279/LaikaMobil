@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Alert, FlatList, Dimensions} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Alert, FlatList, Dimensions, Linking, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../../styles/theme';
 import usuarioService, { EventInfo, MerchItem, Ticket } from '../services/usuario.service';
 import emailService from '../../../services/email.service';
+import notificationService from '../../../services/notification.service';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Card from '../../../components/Card';
 import Loader from '../../../components/Loader';
@@ -63,6 +64,8 @@ export const UserEventsScreen = () => {
   useEffect(() => {
     if (nearbyTicket && closestVenue && !sentProximityAlerts[nearbyTicket.id]) {
       setSentProximityAlerts(prev => ({ ...prev, [nearbyTicket.id]: true }));
+      
+      // Send Proximity Email Alert
       emailService.sendEventAlertEmail({
         eventTitle: nearbyTicket.event_title || 'Espectáculo Próximo',
         venueName: nearbyTicket.venue_name || 'Recinto',
@@ -72,6 +75,17 @@ export const UserEventsScreen = () => {
         toEmail: user?.email,
         userName: user?.name,
       });
+
+      // Send local push notification alert to user's phone!
+      try {
+        notificationService.triggerLocalNotification(
+          '¡Ya estás cerca del recinto!',
+          `Estás a solo ${closestVenue.distance} metros de ${closestVenue.venueName}. Abre tu ticket y prepárate para ingresar.`,
+          { venueName: closestVenue.venueName, distance: closestVenue.distance }
+        );
+      } catch (err) {
+        console.warn('Error triggering local notification:', err);
+      }
     }
   }, [nearbyTicket, closestVenue, user]);
 
@@ -575,6 +589,25 @@ export const UserEventsScreen = () => {
     }, 1800);
   };
 
+  const handleOpenRoute = (lat: number, lng: number, venueName: string) => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch(e){}
+    
+    const label = encodeURIComponent(venueName);
+    const dirUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${label}&travelmode=driving`;
+    
+    Linking.canOpenURL(dirUrl).then((supported) => {
+      if (supported) {
+        Linking.openURL(dirUrl);
+      } else {
+        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
+      }
+    }).catch(err => {
+      console.warn('Error opening route URL:', err);
+    });
+  };
+
   if (loading && events.length === 0) {
     return <Loader visible={true} message={t("Cargando catálogo de eventos...")} />;
   }
@@ -663,11 +696,14 @@ export const UserEventsScreen = () => {
 
       {/* Events List */}
       <FlatList
+        key="two-columns-grid"
         data={filteredEvents}
         keyExtractor={(item) => item.id}
+        numColumns={2}
+        columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: SPACING.md }}
         contentContainerStyle={styles.listContainer}
         ListHeaderComponent={
-          <View style={{ gap: SPACING.xs, marginBottom: SPACING.sm }}>
+          <View style={{ gap: SPACING.xs, marginBottom: SPACING.sm, width: '100%' }}>
             {/* GPS PROXIMITY ALERT BANNER */}
             {nearbyTicket && (
               <Card style={{
@@ -695,68 +731,55 @@ export const UserEventsScreen = () => {
                     Tu acceso para "{nearbyTicket.event_title}" está listo.
                   </Text>
                 </View>
-                <TouchableOpacity 
-                  style={{
-                    backgroundColor: colors.primary,
-                    paddingVertical: 6,
-                    paddingHorizontal: 12,
-                    borderRadius: BORDER_RADIUS.md,
-                    justifyContent: 'center',
-                    alignItems: 'center'
-                  }}
-                  onPress={() => {
-                    // Navigate to Wallet tab
-                    router.push('/(tabs)/wallet' as any);
-                  }}
-                >
-                  <Text style={{ color: colors.background, fontSize: 9, fontWeight: 'bold' }}>
-                    VER BOLETO
-                  </Text>
-                </TouchableOpacity>
+                <View style={{ gap: SPACING.xs }}>
+                  <TouchableOpacity 
+                    style={{
+                      backgroundColor: colors.primary,
+                      paddingVertical: 6,
+                      paddingHorizontal: 12,
+                      borderRadius: BORDER_RADIUS.md,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      width: 90,
+                    }}
+                    onPress={() => {
+                      // Navigate to Wallet tab
+                      router.push('/(tabs)/wallet' as any);
+                    }}
+                  >
+                    <Text style={{ color: colors.background, fontSize: 9, fontWeight: 'bold' }}>
+                      VER BOLETO
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={{
+                      backgroundColor: 'transparent',
+                      borderColor: colors.primary,
+                      borderWidth: 1,
+                      paddingVertical: 5,
+                      paddingHorizontal: 12,
+                      borderRadius: BORDER_RADIUS.md,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      flexDirection: 'row',
+                      gap: 3,
+                      width: 90,
+                    }}
+                    onPress={() => {
+                      if (closestVenue) {
+                        handleOpenRoute(closestVenue.latitude, closestVenue.longitude, closestVenue.venueName);
+                      }
+                    }}
+                  >
+                    <Ionicons name="navigate" size={10} color={colors.primary} />
+                    <Text style={{ color: colors.primary, fontSize: 8, fontWeight: 'bold' }}>
+                      VER RUTA
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </Card>
             )}
-
-            {/* GPS SIMULATOR (DEV ONLY) */}
-            <Card style={{
-              padding: SPACING.md,
-              borderColor: colors.secondary,
-              borderWidth: 1,
-              borderStyle: 'dashed',
-              marginTop: SPACING.xs,
-              borderRadius: BORDER_RADIUS.md,
-            }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: SPACING.xs }}>
-                <Ionicons name="location-outline" size={16} color={colors.secondary} />
-                <Text style={{ fontSize: 10, fontWeight: 'bold', color: colors.secondary, textTransform: 'uppercase' }}>
-                  Simulador de Geolocalización (Desarrollo)
-                </Text>
-              </View>
-              <Text style={{ fontSize: 9, color: colors.textSecondary, marginBottom: SPACING.sm }}>
-                Haz clic en una opción para mover virtualmente tu ubicación y probar la alerta de proximidad.
-              </Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs }}>
-                <TouchableOpacity 
-                  style={{ backgroundColor: `${colors.primary}15`, borderColor: colors.primary, borderWidth: 1, paddingVertical: 5, paddingHorizontal: 10, borderRadius: BORDER_RADIUS.md }}
-                  onPress={() => simulateLocation(19.3900, -99.1400)}
-                >
-                  <Text style={{ fontSize: 9, fontWeight: 'bold', color: colors.primary }}>Estadio Laika Arena (Cerca)</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                  style={{ backgroundColor: `${colors.primary}15`, borderColor: colors.primary, borderWidth: 1, paddingVertical: 5, paddingHorizontal: 10, borderRadius: BORDER_RADIUS.md }}
-                  onPress={() => simulateLocation(19.4030, -99.0960)}
-                >
-                  <Text style={{ fontSize: 9, fontWeight: 'bold', color: colors.primary }}>Foro Sol (Cerca)</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                  style={{ backgroundColor: colors.surfaceAlt, borderColor: colors.border, borderWidth: 1, paddingVertical: 5, paddingHorizontal: 10, borderRadius: BORDER_RADIUS.md }}
-                  onPress={resetToRealLocation}
-                >
-                  <Text style={{ fontSize: 9, fontWeight: 'bold', color: colors.textPrimary }}>Reset GPS Real</Text>
-                </TouchableOpacity>
-              </View>
-            </Card>
           </View>
         }
         ListEmptyComponent={
@@ -772,27 +795,28 @@ export const UserEventsScreen = () => {
               <View style={styles.categoryBadge}>
                 <Text style={styles.categoryBadgeText}>{t(item.category)}</Text>
               </View>
-              <Text style={styles.eventTitle}>{t(item.title)}</Text>
+              <Text style={styles.eventTitle} numberOfLines={2}>{t(item.title)}</Text>
               
               <View style={styles.eventDetailRow}>
-                <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
+                <Ionicons name="location-outline" size={11} color={colors.textSecondary} />
                 <Text style={styles.eventDetailText} numberOfLines={1}>{t(item.venue)}</Text>
               </View>
 
               <View style={styles.eventDetailRow}>
-                <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
-                <Text style={styles.eventDetailText}>{item.date} a las {item.time}</Text>
+                <Ionicons name="time-outline" size={11} color={colors.textSecondary} />
+                <Text style={styles.eventDetailText} numberOfLines={1}>{item.date}</Text>
               </View>
 
               <View style={styles.eventFooter}>
-                <View>
+                <View style={styles.priceRow}>
                   <Text style={styles.priceLabel}>{t("Desde")}</Text>
                   <Text style={styles.priceText}>${item.price} MXN</Text>
                 </View>
                 <Button
-                  title={t("Reservar Lugar")}
+                  title={t("Reservar")}
                   size="sm"
                   onPress={() => handleOpenBooking(item)}
+                  style={{ width: '100%' }}
                 />
               </View>
             </View>
@@ -1647,15 +1671,17 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     marginTop: SPACING.sm,
   },
   eventCard: {
+    flex: 1,
+    maxWidth: '48.5%',
     padding: 0,
     overflow: 'hidden',
   },
   eventImg: {
     width: '100%',
-    height: 140,
+    height: 100,
   },
   eventInfo: {
-    padding: SPACING.md,
+    padding: SPACING.sm,
   },
   categoryBadge: {
     alignSelf: 'flex-start',
@@ -1663,44 +1689,48 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     paddingVertical: 2,
     paddingHorizontal: 8,
     borderRadius: BORDER_RADIUS.sm,
-    marginBottom: SPACING.xs,
+    marginBottom: 4,
   },
   categoryBadgeText: {
     color: colors.primary,
-    fontSize: 9,
+    fontSize: 8.5,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
   },
   eventTitle: {
-    fontSize: TYPOGRAPHY.fontSizes.md,
+    fontSize: 11.5,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
     color: colors.textPrimary,
-    marginBottom: SPACING.sm,
+    marginBottom: 6,
+    height: 32,
   },
   eventDetailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.xs,
-    marginBottom: 6,
+    gap: 4,
+    marginBottom: 4,
   },
   eventDetailText: {
-    fontSize: TYPOGRAPHY.fontSizes.xs,
+    fontSize: 9.5,
     color: colors.textSecondary,
   },
   eventFooter: {
+    marginTop: SPACING.sm,
+    borderTopWidth: 1,
+    borderColor: colors.surfaceAlt,
+    paddingTop: SPACING.xs,
+  },
+  priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: SPACING.md,
-    borderTopWidth: 1,
-    borderColor: colors.surfaceAlt,
-    paddingTop: SPACING.sm,
+    marginBottom: 6,
   },
   priceLabel: {
-    fontSize: 9,
+    fontSize: 8.5,
     color: colors.textMuted,
   },
   priceText: {
-    fontSize: TYPOGRAPHY.fontSizes.md,
+    fontSize: 11.5,
     fontWeight: TYPOGRAPHY.fontWeights.bold,
     color: colors.success,
   },

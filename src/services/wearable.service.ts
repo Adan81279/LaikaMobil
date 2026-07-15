@@ -23,6 +23,8 @@ class WearableService {
   private accelSubscription: any = null;
   private locationSubscription: any = null;
   private locationPermissionGranted: boolean = false;
+  private locationListeners: Array<(coords: { latitude: number; longitude: number; accuracy: number | null }) => void> = [];
+  private simulatedCoords: { latitude: number; longitude: number } | null = null;
 
   constructor() {
     try {
@@ -83,11 +85,32 @@ class WearableService {
     }
   }
 
+  private broadcastLocation(coords: { latitude: number; longitude: number; accuracy: number | null }) {
+    this.locationListeners.forEach((listener) => {
+      try {
+        listener(coords);
+      } catch (err) {
+        console.warn('[WearableService] Error inside location observer:', err);
+      }
+    });
+  }
+
   /**
-   * Start tracking foreground GPS location
+   * Start tracking foreground GPS location with shared observers
    */
   async startLocationUpdates(onLocation: (coords: { latitude: number; longitude: number; accuracy: number | null }) => void) {
-    this.stopLocationUpdates();
+    this.locationListeners.push(onLocation);
+
+    // If there is an active simulation, broadcast it immediately
+    if (this.simulatedCoords) {
+      onLocation({
+        latitude: this.simulatedCoords.latitude,
+        longitude: this.simulatedCoords.longitude,
+        accuracy: 1,
+      });
+    }
+
+    if (this.locationSubscription) return;
 
     if (!this.locationPermissionGranted) {
       const granted = await this.requestLocationPermissions();
@@ -105,11 +128,13 @@ class WearableService {
           distanceInterval: 5, // or every 5 meters
         },
         (location) => {
-          onLocation({
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
-            accuracy: location.coords.accuracy,
-          });
+          if (!this.simulatedCoords) {
+            this.broadcastLocation({
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+              accuracy: location.coords.accuracy,
+            });
+          }
         }
       );
       console.log('[WearableService] Location foreground watching started.');
@@ -119,13 +144,48 @@ class WearableService {
   }
 
   /**
-   * Stop tracking foreground GPS location
+   * Stop tracking foreground GPS location for a specific listener
    */
-  stopLocationUpdates() {
-    if (this.locationSubscription) {
+  stopLocationUpdates(onLocation?: (coords: { latitude: number; longitude: number; accuracy: number | null }) => void) {
+    if (onLocation) {
+      this.locationListeners = this.locationListeners.filter((l) => l !== onLocation);
+    } else {
+      this.locationListeners = [];
+    }
+
+    if (this.locationListeners.length === 0 && this.locationSubscription) {
       this.locationSubscription.remove();
       this.locationSubscription = null;
       console.log('[WearableService] Location foreground watching stopped.');
+    }
+  }
+
+  /**
+   * Force a simulated coordinates update to all listeners
+   */
+  simulateLocation(latitude: number, longitude: number) {
+    this.simulatedCoords = { latitude, longitude };
+    this.broadcastLocation({
+      latitude,
+      longitude,
+      accuracy: 1,
+    });
+  }
+
+  /**
+   * Reset simulation and fall back to real device coordinates
+   */
+  async resetToRealLocation() {
+    this.simulatedCoords = null;
+    try {
+      const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      this.broadcastLocation({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        accuracy: location.coords.accuracy,
+      });
+    } catch (e) {
+      console.warn('[WearableService] Failed to fetch current position for reset:', e);
     }
   }
 

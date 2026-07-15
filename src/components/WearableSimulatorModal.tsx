@@ -11,10 +11,12 @@ import {
   Easing,
   Alert,
   Image,
+  Linking,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAccelerometer } from '../hooks/useAccelerometer';
-import { useGeolocation } from '../hooks/useGeolocation';
+import { useGeolocation, calculateDistance, VENUES } from '../hooks/useGeolocation';
 import websocketService from '../services/websocket.service';
 import notificationService from '../services/notification.service';
 import usuarioService, { Ticket } from '../roles/usuario/services/usuario.service';
@@ -69,7 +71,7 @@ export const WearableSimulatorModal: React.FC<WearableSimulatorModalProps> = ({ 
 
   // 5. Real User Tickets and Active View States
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [watchView, setWatchView] = useState<'dashboard' | 'ticket-list' | 'ticket-detail' | 'validated-success'>('dashboard');
+  const [watchView, setWatchView] = useState<'dashboard' | 'ticket-list' | 'ticket-detail' | 'validated-success' | 'watch-map'>('dashboard');
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isTicketRevealed, setIsTicketRevealed] = useState(false);
 
@@ -90,6 +92,130 @@ export const WearableSimulatorModal: React.FC<WearableSimulatorModalProps> = ({ 
 
   // Clock state
   const [timeStr, setTimeStr] = useState('');
+
+  // Proximity notification popup states
+  const [showProximityPopup, setShowProximityPopup] = useState(false);
+  const lastNotifiedVenue = useRef<string | null>(null);
+
+  const [mapTargetVenue, setMapTargetVenue] = useState<{
+    venueName: string;
+    latitude: number;
+    longitude: number;
+    distance: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (closestVenue && closestVenue.distance < 500) {
+      if (lastNotifiedVenue.current !== closestVenue.venueName) {
+        lastNotifiedVenue.current = closestVenue.venueName;
+        setShowProximityPopup(true);
+        // Add to watch notifications list
+        const now = new Date();
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        setNotifications(prev => [
+          {
+            id: Math.random().toString(),
+            title: 'Recinto Cercano',
+            body: `Estás a ${closestVenue.distance}m de ${closestVenue.venueName}.`,
+            time: timeStr
+          },
+          ...prev
+        ]);
+
+        // Auto-target closest venue coordinates for the map
+        setMapTargetVenue({
+          venueName: closestVenue.venueName,
+          latitude: closestVenue.latitude,
+          longitude: closestVenue.longitude,
+          distance: closestVenue.distance
+        });
+
+        try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch (e) {}
+      }
+    } else if (!closestVenue || closestVenue.distance >= 500) {
+      lastNotifiedVenue.current = null;
+      setShowProximityPopup(false);
+    }
+  }, [closestVenue]);
+
+  const handleOpenMapForTicket = (ticket: Ticket) => {
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
+    
+    const venueName = ticket.venue_name || ticket.venue || 'Estadio Laika Arena';
+    const nameLower = venueName.toLowerCase();
+    const found = VENUES.find(v => 
+      nameLower.includes(v.name.toLowerCase()) || 
+      v.name.toLowerCase().includes(nameLower)
+    );
+    const coords = found ? { latitude: found.latitude, longitude: found.longitude } : { latitude: 19.3900, longitude: -99.1400 };
+    
+    const dist = calculateDistance(
+      currentCoords.latitude,
+      currentCoords.longitude,
+      coords.latitude,
+      coords.longitude
+    );
+    
+    setMapTargetVenue({
+      venueName: found ? found.name : venueName,
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+      distance: Math.round(dist)
+    });
+    
+    setWatchView('watch-map');
+  };
+
+  const handleStartPhoneRoute = () => {
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
+    
+    const activeTarget = mapTargetVenue || (closestVenue ? {
+      venueName: closestVenue.venueName,
+      latitude: closestVenue.latitude,
+      longitude: closestVenue.longitude,
+      distance: closestVenue.distance
+    } : null);
+
+    if (!activeTarget) {
+      Alert.alert('Error', 'No hay recinto de destino asignado para trazar la ruta.');
+      return;
+    }
+
+    const lat = activeTarget.latitude;
+    const lng = activeTarget.longitude;
+    const label = encodeURIComponent(activeTarget.venueName);
+
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${label}&travelmode=driving`;
+    
+    Linking.canOpenURL(url).then(supported => {
+      if (supported) {
+        Linking.openURL(url);
+      } else {
+        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
+      }
+    }).catch(err => {
+      console.warn('Error opening maps from wearable:', err);
+    });
+  };
+
+  const handleOpenTicketFromMap = () => {
+    const validTickets = tickets.filter(t => t.status === 'valid');
+    let matchedTicket = null;
+    if (closestVenue) {
+      matchedTicket = validTickets.find(t => 
+        t.venue_name?.toLowerCase().includes(closestVenue.venueName.toLowerCase()) ||
+        t.venue?.toLowerCase().includes(closestVenue.venueName.toLowerCase())
+      );
+    }
+    const ticketToOpen = matchedTicket || validTickets[0];
+    if (ticketToOpen) {
+      setSelectedTicket(ticketToOpen);
+      setIsTicketRevealed(true); // Auto reveal from map
+      setWatchView('ticket-detail');
+    } else {
+      Alert.alert('Sin Boletos', 'No tienes boletos válidos para este recinto.');
+    }
+  };
 
   // Load configured device
   useEffect(() => {
@@ -434,6 +560,93 @@ export const WearableSimulatorModal: React.FC<WearableSimulatorModalProps> = ({ 
                   </Text>
                 </Animated.View>
               )}
+
+              {/* Proximity Alert Popup Overlay */}
+              {showProximityPopup && closestVenue && (
+                <View 
+                  style={{
+                    ...StyleSheet.absoluteFillObject,
+                    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+                    zIndex: 10000,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    padding: 16,
+                  }}
+                >
+                  <View style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    backgroundColor: `${colors.primary}20`,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginBottom: 4,
+                  }}>
+                    <Ionicons name="location" size={18} color={colors.primary} />
+                  </View>
+                  
+                  <Text style={{ 
+                    color: colors.primary, 
+                    fontSize: 9, 
+                    fontWeight: '900', 
+                    letterSpacing: 0.5,
+                    textTransform: 'uppercase',
+                    textAlign: 'center',
+                  }}>
+                    ¡RECINTO DETECTADO!
+                  </Text>
+                  
+                  <Text style={{ 
+                    color: '#FFFFFF', 
+                    fontSize: 10, 
+                    fontWeight: 'bold', 
+                    textAlign: 'center', 
+                    marginTop: 3,
+                    paddingHorizontal: 8,
+                  }}>
+                    Estás a {closestVenue.distance}m de {closestVenue.venueName}
+                  </Text>
+                  
+                  <Text style={{ 
+                    color: '#A3A3A3', 
+                    fontSize: 7, 
+                    textAlign: 'center', 
+                    marginTop: 2,
+                    lineHeight: 9,
+                  }}>
+                    ¿Deseas ver la ruta de acceso al evento?
+                  </Text>
+                  
+                  <View style={{ flexDirection: 'row', gap: 6, marginTop: 10 }}>
+                    <TouchableOpacity 
+                      style={{
+                        backgroundColor: colors.primary,
+                        paddingVertical: 4,
+                        paddingHorizontal: 12,
+                        borderRadius: 8,
+                      }}
+                      onPress={() => {
+                        setShowProximityPopup(false);
+                        setWatchView('watch-map');
+                      }}
+                    >
+                      <Text style={{ color: '#000000', fontSize: 8, fontWeight: 'bold' }}>VER MAPA</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={{
+                        backgroundColor: '#262626',
+                        paddingVertical: 4,
+                        paddingHorizontal: 12,
+                        borderRadius: 8,
+                      }}
+                      onPress={() => setShowProximityPopup(false)}
+                    >
+                      <Text style={{ color: '#FFFFFF', fontSize: 8, fontWeight: 'bold' }}>OMITIR</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
               
               {watchView === 'dashboard' ? (
                 <>
@@ -542,12 +755,25 @@ export const WearableSimulatorModal: React.FC<WearableSimulatorModalProps> = ({ 
                       </View>
 
                       {/* GPS Data summary */}
-                      <View style={styles.gpsSummaryBox}>
+                      <TouchableOpacity 
+                        style={styles.gpsSummaryBox}
+                        onPress={() => {
+                          if (closestVenue && closestVenue.distance < 500) {
+                            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
+                            setWatchView('watch-map');
+                          }
+                        }}
+                      >
                         <Ionicons name="location-sharp" size={10} color="#FF3B30" />
                         <Text style={styles.gpsText}>
                           Recinto: {closestVenue ? `${closestVenue.distance}m` : 'Buscando...'}
                         </Text>
-                      </View>
+                        {closestVenue && closestVenue.distance < 500 && (
+                          <Text style={{ fontSize: 6.5, color: colors.primary, fontWeight: 'bold', marginLeft: 2 }}>
+                            (VER MAPA)
+                          </Text>
+                        )}
+                      </TouchableOpacity>
                     </View>
 
                     {/* PAGE 3: NOTIFICATIONS CENTER */}
@@ -634,23 +860,58 @@ export const WearableSimulatorModal: React.FC<WearableSimulatorModalProps> = ({ 
                       </View>
                     ) : (
                       tickets.filter(t => t.status === 'valid').map(ticket => (
-                        <TouchableOpacity 
+                        <View 
                           key={ticket.id} 
-                          style={styles.watchTicketItem}
-                          onPress={() => {
-                            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
-                            setSelectedTicket(ticket);
-                            setIsTicketRevealed(false);
-                            setWatchView('ticket-detail');
+                          style={{
+                            width: '92%',
+                            backgroundColor: '#0F0F0F',
+                            borderColor: '#262626',
+                            borderWidth: 1,
+                            borderRadius: 8,
+                            marginBottom: 4,
+                            alignSelf: 'center',
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            overflow: 'hidden',
                           }}
                         >
-                          <Text style={styles.watchTicketTitle} numberOfLines={1}>
-                            {ticket.event_title || ticket.event_name || 'Espectáculo'}
-                          </Text>
-                          <Text style={styles.watchTicketSeat} numberOfLines={1}>
-                            {ticket.seat_label} • {ticket.date}
-                          </Text>
-                        </TouchableOpacity>
+                          <TouchableOpacity 
+                            style={{
+                              flex: 1,
+                              paddingVertical: 6,
+                              paddingLeft: 8,
+                              paddingRight: 4,
+                            }}
+                            onPress={() => {
+                              try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
+                              setSelectedTicket(ticket);
+                              setIsTicketRevealed(false);
+                              setWatchView('ticket-detail');
+                            }}
+                          >
+                            <Text style={[styles.watchTicketTitle, { textAlign: 'left' }]} numberOfLines={1}>
+                              {ticket.event_title || ticket.event_name || 'Espectáculo'}
+                            </Text>
+                            <Text style={[styles.watchTicketSeat, { textAlign: 'left' }]} numberOfLines={1}>
+                              {ticket.seat_label} • {ticket.date}
+                            </Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity 
+                            style={{
+                              backgroundColor: 'rgba(255, 35, 83, 0.15)',
+                              paddingHorizontal: 10,
+                              paddingVertical: 12,
+                              borderLeftWidth: 1,
+                              borderLeftColor: '#262626',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                            }}
+                            onPress={() => handleOpenMapForTicket(ticket)}
+                          >
+                            <Ionicons name="map" size={12} color="#FF2353" />
+                          </TouchableOpacity>
+                        </View>
                       ))
                     )}
                   </ScrollView>
@@ -774,6 +1035,247 @@ export const WearableSimulatorModal: React.FC<WearableSimulatorModalProps> = ({ 
                     Acceso verificado con éxito en puerta.
                   </Text>
                 </View>
+              ) : watchView === 'watch-map' && (mapTargetVenue || closestVenue) ? (
+                (() => {
+                  const activeTarget = mapTargetVenue || (closestVenue ? {
+                    venueName: closestVenue.venueName,
+                    latitude: closestVenue.latitude,
+                    longitude: closestVenue.longitude,
+                    distance: closestVenue.distance
+                  } : null);
+
+                  if (!activeTarget) return null;
+
+                  const distanceVal = Math.round(calculateDistance(
+                    currentCoords.latitude,
+                    currentCoords.longitude,
+                    activeTarget.latitude,
+                    activeTarget.longitude
+                  ));
+
+                  const centerX = WATCH_DIAL_SIZE / 2;
+                  const centerY = WATCH_DIAL_SIZE / 2;
+                  
+                  // Center of coordinates on screen is the venue pin
+                  const pinX = centerX;
+                  const pinY = centerY - 15;
+
+                  return (
+                    <View style={{
+                      ...StyleSheet.absoluteFillObject,
+                      backgroundColor: '#05070B',
+                      position: 'relative',
+                    }}>
+                      {/* Grid Lines spanning full watch screen */}
+                      <View style={{ position: 'absolute', left: 0, right: 0, top: '25%', height: 1, backgroundColor: 'rgba(255, 255, 255, 0.08)' }} />
+                      <View style={{ position: 'absolute', left: 0, right: 0, top: '50%', height: 1.2, backgroundColor: 'rgba(255, 255, 255, 0.15)' }} />
+                      <View style={{ position: 'absolute', left: 0, right: 0, top: '75%', height: 1, backgroundColor: 'rgba(255, 255, 255, 0.08)' }} />
+                      <View style={{ position: 'absolute', top: 0, bottom: 0, left: '25%', width: 1, backgroundColor: 'rgba(255, 255, 255, 0.08)' }} />
+                      <View style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', width: 1.2, backgroundColor: 'rgba(255, 255, 255, 0.15)' }} />
+                      <View style={{ position: 'absolute', top: 0, bottom: 0, left: '75%', width: 1, backgroundColor: 'rgba(255, 255, 255, 0.08)' }} />
+                      
+                      {/* Concentric rings centered around the Venue Pin */}
+                      <View style={{
+                        position: 'absolute',
+                        left: pinX - 45,
+                        top: pinY - 45,
+                        width: 90,
+                        height: 90,
+                        borderRadius: 45,
+                        borderWidth: 1,
+                        borderColor: 'rgba(255, 255, 255, 0.12)',
+                        borderStyle: 'dashed',
+                      }} />
+                      
+                      <View style={{
+                        position: 'absolute',
+                        left: pinX - 85,
+                        top: pinY - 85,
+                        width: 170,
+                        height: 170,
+                        borderRadius: 85,
+                        borderWidth: 1,
+                        borderColor: 'rgba(255, 255, 255, 0.08)',
+                        borderStyle: 'dashed',
+                      }} />
+                      
+                      <View style={{
+                        position: 'absolute',
+                        left: pinX - 125,
+                        top: pinY - 125,
+                        width: 250,
+                        height: 250,
+                        borderRadius: 125,
+                        borderWidth: 1,
+                        borderColor: 'rgba(255, 255, 255, 0.05)',
+                        borderStyle: 'dashed',
+                      }} />
+
+                      {/* Venue Pin (Larger and more visible) */}
+                      <View style={{
+                        position: 'absolute',
+                        left: pinX - 15,
+                        top: pinY - 15,
+                        width: 30,
+                        height: 30,
+                        borderRadius: 15,
+                        backgroundColor: '#10B981',
+                        borderColor: '#FFFFFF',
+                        borderWidth: 1.5,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        shadowColor: '#10B981',
+                        shadowOffset: { width: 0, height: 0 },
+                        shadowOpacity: 0.8,
+                        shadowRadius: 6,
+                        elevation: 6,
+                      }}>
+                        <Ionicons name="business" size={14} color="#FFFFFF" />
+                      </View>
+                      
+                      {/* Route line & user dot (Wider, larger radius scale) */}
+                      {(() => {
+                        // We map scale between 0.35 and 1.0 so the dot is never too close or too small
+                        const scale = Math.max(0.35, Math.min(1.0, distanceVal / 1000));
+                        // User dot moves downwards and to the left relative to the venue pin
+                        const userX = pinX - 110 * scale;
+                        const userY = pinY + 110 * scale;
+                        
+                        return (
+                          <>
+                            {/* Route connecting line (Thicker and brighter) */}
+                            <View style={{
+                              position: 'absolute',
+                              left: userX,
+                              top: pinY,
+                              width: pinX - userX,
+                              height: userY - pinY,
+                              borderColor: colors.primary,
+                              borderLeftWidth: 1.5,
+                              borderBottomWidth: 1.5,
+                              borderStyle: 'dashed',
+                              opacity: 0.85,
+                            }} />
+
+                            {/* Pulsing User Blue Dot (Larger, bright glow) */}
+                            <View style={{
+                              position: 'absolute',
+                              left: userX - 6,
+                              top: userY - 6,
+                              width: 12,
+                              height: 12,
+                              borderRadius: 6,
+                              backgroundColor: '#3B82F6',
+                              borderColor: '#FFFFFF',
+                              borderWidth: 2,
+                              shadowColor: '#3B82F6',
+                              shadowOffset: { width: 0, height: 0 },
+                              shadowOpacity: 0.9,
+                              shadowRadius: 6,
+                              elevation: 6,
+                            }} />
+                          </>
+                        );
+                      })()}
+
+                      {/* Top Header Overlay with glass backdrop */}
+                      <View style={{
+                        position: 'absolute',
+                        top: 20,
+                        left: 0,
+                        right: 0,
+                        alignItems: 'center',
+                        paddingHorizontal: 16,
+                      }}>
+                        <View style={{
+                          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                          borderRadius: 14,
+                          paddingVertical: 4,
+                          paddingHorizontal: 12,
+                          borderColor: 'rgba(255,255,255,0.1)',
+                          borderWidth: 1,
+                          maxWidth: '90%',
+                        }}>
+                          <Text style={{
+                            color: '#FFFFFF',
+                            fontSize: 8.5,
+                            fontWeight: 'bold',
+                            textAlign: 'center',
+                          }} numberOfLines={1}>
+                            {activeTarget.venueName}
+                          </Text>
+                          <Text style={{
+                            color: colors.primary,
+                            fontSize: 7.5,
+                            fontWeight: '900',
+                            textAlign: 'center',
+                            marginTop: 1,
+                          }}>
+                            {distanceVal.toLocaleString()} METROS
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Bottom Actions Floating Overlay */}
+                      <View style={{
+                        position: 'absolute',
+                        bottom: 34,
+                        left: 0,
+                        right: 0,
+                        flexDirection: 'row',
+                        justifyContent: 'center',
+                        gap: 10,
+                      }}>
+                        {/* INICIAR (Start phone route) */}
+                        <TouchableOpacity 
+                          style={{
+                            backgroundColor: colors.primary,
+                            paddingVertical: 5.5,
+                            paddingHorizontal: 15,
+                            borderRadius: 12,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.4,
+                            shadowRadius: 2.5,
+                            elevation: 3,
+                          }}
+                          onPress={handleStartPhoneRoute}
+                        >
+                          <Ionicons name="navigate" size={10} color="#000000" style={{ marginRight: 3 }} />
+                          <Text style={{ color: '#000000', fontSize: 8.5, fontWeight: 'bold' }}>INICIAR</Text>
+                        </TouchableOpacity>
+                        
+                        {/* SALIR (Go back to ticket list) */}
+                        <TouchableOpacity 
+                          style={{
+                            backgroundColor: 'rgba(20, 20, 20, 0.95)',
+                            borderColor: '#374151',
+                            borderWidth: 1,
+                            paddingVertical: 5.5,
+                            paddingHorizontal: 15,
+                            borderRadius: 12,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.4,
+                            shadowRadius: 2.5,
+                            elevation: 3,
+                          }}
+                          onPress={() => {
+                            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch(e){}
+                            setWatchView('ticket-list');
+                          }}
+                        >
+                          <Ionicons name="close-circle" size={10} color="#FFFFFF" style={{ marginRight: 3 }} />
+                          <Text style={{ color: '#FFFFFF', fontSize: 8.5, fontWeight: 'bold' }}>SALIR</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  );
+                })()
               ) : null}
 
               {/* Glowing watch screen glare reflections */}
